@@ -1,0 +1,18 @@
+# Bỏ qua tất cả node_modules ở mọi thư mục
+node_modules/
+**/node_modules/
+
+# Bỏ qua tất cả file môi trường chứa mật khẩu
+.env
+**/.env
+.env.*
+
+# Bỏ qua thư mục build frontend
+dist/
+build/
+
+# File hệ thống và Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
