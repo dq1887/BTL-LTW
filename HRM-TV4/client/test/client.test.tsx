@@ -1,0 +1,45 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
+import { readFileSync } from 'node:fs';
+import postcss from 'postcss';
+import { api, ApiError, setAccessToken } from '../src/api';
+import { csvCell, formatDate, initials, permissions } from '../src/lib/presentation';
+import { AuthContext, type AuthValue } from '../src/contexts/AuthContext';
+import { useLeaveFilters } from '../src/stores/useLeaveFilters';
+import { readStorage, writeStorage } from '../src/lib/storage';
+import App from '../src/App';
+import type { LeaveRequest, User } from '../src/types';
+const employee: User = { id: 'u1', username: 'employee', role: 'employee', employeeId: 'e1', fullName: 'Nhân viên An' };
+const manager: User = { ...employee, id: 'u2', username: 'manager', role: 'manager', employeeId: 'e2' };
+const hr: User = { ...employee, id: 'u3', username: 'hr', role: 'admin_hr', employeeId: 'e3' };
+const request: LeaveRequest = { id: 'r1', employeeId: { id: 'e1', employeeCode: 'NV001', fullName: 'Nhân viên An', departmentId: 'd1', status: 'active' }, leaveTypeId: { id: 't1', code: 'ANNUAL', name: 'Nghỉ phép năm', paid: true, active: true, annualQuota: 12 }, fromDate: '2026-11-09', toDate: '2026-11-10', reason: 'Việc gia đình', requestedDays: 2, leaveDates: ['2026-11-09', '2026-11-10'], status: 'pending', history: [] };
+function render(path: string, user: User | null) { const value: AuthValue = { user, loading: false, login: async () => {}, logout: () => {} }; return renderToStaticMarkup(<MemoryRouter initialEntries={[path]}><AuthContext.Provider value={value}><App /></AuthContext.Provider></MemoryRouter>); }
+afterEach(() => { vi.unstubAllGlobals(); setAccessToken(''); useLeaveFilters.getState().reset(); });
+describe('Hiển thị và quyền phía client', () => {
+  it('nhân viên chỉ sửa/hủy pending, không tự duyệt', () => expect(permissions(employee, request)).toEqual({ owner: true, edit: true, review: false, cancel: true }));
+  it('manager xét duyệt đơn người khác, không sửa đơn người khác', () => expect(permissions(manager, request)).toEqual({ owner: false, edit: false, review: true, cancel: false }));
+  it('HR cũng không được tự duyệt', () => expect(permissions({ ...hr, employeeId: 'e1' }, request).review).toBe(false));
+  it('approved không sửa, chỉ HR có quyền hủy', () => { const approved = { ...request, status: 'approved' as const }; expect(permissions(employee, approved).edit).toBe(false); expect(permissions(employee, approved).cancel).toBe(false); expect(permissions(hr, approved).cancel).toBe(true); });
+  it('đơn đã hủy không còn nút duyệt/sửa/hủy', () => expect(permissions(hr, { ...request, status: 'cancelled' })).toMatchObject({ review: false, edit: false, cancel: false }));
+  it('trang login render form và tài khoản demo', () => { const html = render('/login', null); expect(html).toContain('Đăng nhập'); expect(html).toContain('autoComplete="username"'); expect(html).toContain('Nhân sự / HR'); });
+  it('chưa đăng nhập không render nội dung trang nghỉ phép', () => expect(render('/leave/requests', null)).not.toContain('Danh sách đơn nghỉ'));
+  it('trang đơn render không lỗi và giải thích quyền duyệt', () => { const html = render('/leave/requests', employee); expect(html).toContain('Đơn nghỉ &amp; phê duyệt'); expect(html).toContain('Đơn của bạn cần quản lý phòng hoặc HR xét duyệt.'); expect(html).toContain('Đang tải đơn nghỉ'); });
+  it('employee xem loại nghỉ nhưng không có nút thêm', () => { const html = render('/leave/types', employee); expect(html).toContain('Chỉ HR được thêm'); expect(html).not.toContain('>Thêm loại nghỉ<'); });
+  it('HR có nút thêm loại nghỉ', () => expect(render('/leave/types', hr)).toContain('Thêm loại nghỉ'));
+  it('404 có đường quay về', () => expect(render('/khong-co', employee)).toContain('Không tìm thấy trang'));
+  it('CSV chặn công thức và escape dấu nháy', () => { expect(csvCell('=SUM(A1)')).toBe('"\'=SUM(A1)"'); expect(csvCell('An "A"')).toBe('"An ""A"""'); });
+  it('ngày hiển thị vi-VN và avatar lấy đúng ký tự', () => { expect(formatDate('2026-11-09')).toBe('09/11/2026'); expect(initials('Đồng Mạnh Cường')).toBe('MC'); });
+  it('bộ lọc dùng chung reset sạch dữ liệu tài khoản', () => { useLeaveFilters.getState().set({ employeeId: 'private', q: 'secret', status: 'approved' }); useLeaveFilters.getState().reset(); expect(useLeaveFilters.getState()).toMatchObject({ employeeId: '', q: '', status: '' }); });
+  it('storage bị chặn không làm ứng dụng crash', () => { vi.stubGlobal('sessionStorage', { getItem: () => { throw new Error('Denied'); }, setItem: () => { throw new Error('Denied'); } }); expect(readStorage('token')).toBeNull(); expect(() => writeStorage('token', 'x')).not.toThrow(); });
+  it('CSS phân tích được và có layout mobile/dark/reduced-motion', () => { const css = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8'); expect(() => postcss.parse(css)).not.toThrow(); expect(css).toContain('max-width:420px'); expect(css).toContain('data-theme="dark"'); expect(css).toContain('prefers-reduced-motion'); });
+});
+describe('HTTP transport phía client', () => {
+  it('gửi Bearer token và JSON đúng, đọc data', async () => { const fetcher = vi.fn(async () => Response.json({ success: true, data: { id: '1' } })); vi.stubGlobal('fetch', fetcher); setAccessToken('demo-token'); expect(await api('/leave-requests', 'POST', { reason: 'Việc nhà' })).toEqual({ id: '1' }); expect(fetcher.mock.calls[0]).toEqual(['/api/leave-requests', expect.objectContaining({ method: 'POST', body: '{"reason":"Việc nhà"}', headers: expect.objectContaining({ Authorization: 'Bearer demo-token' }) })]); });
+  it('xóa 204 không cố parse JSON', async () => { vi.stubGlobal('fetch', async () => new Response(null, { status: 204 })); expect(await api('/leave-requests/1', 'DELETE')).toBeUndefined(); });
+  it('401 nghiệp vụ phát sự kiện hết phiên', async () => { const target = new EventTarget(); const listener = vi.fn(); target.addEventListener('auth-expired', listener); vi.stubGlobal('window', target); vi.stubGlobal('fetch', async () => Response.json({ success: false, message: 'Hết phiên' }, { status: 401 })); await expect(api('/leave-types')).rejects.toMatchObject({ status: 401 }); expect(listener).toHaveBeenCalledOnce(); });
+  it('sai mật khẩu không phát sự kiện hết phiên', async () => { const target = new EventTarget(); const listener = vi.fn(); target.addEventListener('auth-expired', listener); vi.stubGlobal('window', target); vi.stubGlobal('fetch', async () => Response.json({ success: false, message: 'Sai mật khẩu' }, { status: 401 })); await expect(api('/auth/login', 'POST', {})).rejects.toBeInstanceOf(ApiError); expect(listener).not.toHaveBeenCalled(); });
+  it('lỗi mạng được diễn đạt rõ', async () => { vi.stubGlobal('fetch', async () => { throw new TypeError('fetch failed'); }); await expect(api('/leave-types')).rejects.toMatchObject({ status: 0, message: expect.stringContaining('Không kết nối được máy chủ') }); });
+  it('phản hồi JSON null được báo lỗi rõ ràng', async () => { vi.stubGlobal('fetch', async () => Response.json(null)); await expect(api('/leave-types')).rejects.toBeInstanceOf(ApiError); });
+  it('phản hồi HTML không làm lộ lỗi parse khó hiểu', async () => { vi.stubGlobal('fetch', async () => new Response('<html>502</html>', { status: 502 })); await expect(api('/leave-types')).rejects.toMatchObject({ message: expect.stringContaining('phản hồi không hợp lệ') }); });
+});

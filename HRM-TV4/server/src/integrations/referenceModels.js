@@ -1,0 +1,10 @@
+import mongoose from 'mongoose';
+const id = mongoose.Schema.Types.ObjectId;
+const make = (name, fields, collection) => mongoose.models[name] ?? mongoose.model(name, new mongoose.Schema(fields, { collection, timestamps: true }));
+export const Department = make('Department', { code: String, name: String, managerId: { type: id, ref: 'Employee' } }, 'departments');
+export const Employee = make('Employee', { employeeCode: String, fullName: String, email: String, departmentId: { type: id, ref: 'Department' }, status: { type: String, enum: ['active', 'inactive'] } }, 'employees');
+export const User = make('User', { username: { type: String, unique: true }, passwordHash: { type: String, select: false }, role: { type: String, enum: ['admin_hr', 'manager', 'employee'] }, employeeId: { type: id, ref: 'Employee' } }, 'users');
+export const Shift = make('Shift', { code: String, startTime: String, endTime: String, breakMinutes: Number, status: String }, 'shifts');
+export const Schedule = make('Schedule', { employeeId: { type: id, ref: 'Employee' }, shiftId: { type: id, ref: 'Shift' }, workDate: String, status: String }, 'schedules');
+export const Attendance = make('Attendance', { employeeId: { type: id, ref: 'Employee' }, scheduleId: { type: id, ref: 'Schedule' }, checkInAt: Date, checkOutAt: Date, workCredit: Number }, 'attendances');
+export const Payroll = make('Payroll', { employeeId: { type: id, ref: 'Employee' }, period: String, status: String }, 'payrolls');
