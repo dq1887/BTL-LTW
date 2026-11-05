@@ -1,7 +1,7 @@
 const Employee = require('../models/Employee');
 const Department = require('../models/Department');
 
-// [GET] /api/employees - Lấy danh sách nhân viên
+// [GET] /api/employees - Lấy danh sách nhân viên (Có tìm kiếm & phân trang)
 const getEmployees = async (req, res) => {
     try {
         const page = Number(req.query.page) || 1;
@@ -30,7 +30,7 @@ const getEmployees = async (req, res) => {
     }
 };
 
-// [GET] /api/employees/:id - Chi tiết 1 nhân viên (kèm lịch sử chuyển phòng)
+// [GET] /api/employees/:id - Xem chi tiết 1 nhân viên (Kèm lịch sử điều chuyển)
 const getEmployeeById = async (req, res) => {
     try {
         const employee = await Employee.findById(req.params.id)
@@ -45,12 +45,12 @@ const getEmployeeById = async (req, res) => {
     }
 };
 
-// [POST] /api/employees - Thêm nhân viên mới (Check trùng employeeCode & email -> 409)
+// [POST] /api/employees - Thêm nhân viên mới (Check trùng employeeCode & email -> 409 Conflict)
 const createEmployee = async (req, res) => {
     try {
         const { employeeCode, email } = req.body;
 
-        // Quy tắc 1: Check trùng employeeCode hoặc email
+        // Quy tắc 1: Kiểm tra không trùng mã nhân viên hoặc email
         const existingEmp = await Employee.findOne({
             $or: [{ employeeCode }, { email }]
         });
@@ -69,7 +69,7 @@ const createEmployee = async (req, res) => {
     }
 };
 
-// [PATCH] /api/employees/:id - Cập nhật nhân viên
+// [PATCH] /api/employees/:id - Cập nhật thông tin nhân viên
 const updateEmployee = async (req, res) => {
     try {
         const updatedEmployee = await Employee.findByIdAndUpdate(
@@ -94,12 +94,12 @@ const transferDepartment = async (req, res) => {
 
         const oldDepartmentId = employee.departmentId;
 
-        // Nếu chuyển sang đúng phòng ban hiện tại thì bỏ qua
+        // Báo lỗi nếu chuyển vào đúng phòng ban hiện tại
         if (oldDepartmentId.toString() === newDepartmentId) {
             return res.status(400).json({ message: 'Nhân viên đã thuộc phòng ban này rồi!' });
         }
 
-        // Cập nhật departmentId mới và lưu nhật ký điều chuyển
+        // Cập nhật phòng ban mới và lưu nhật ký điều chuyển
         employee.departmentId = newDepartmentId;
         employee.transferHistory.push({
             oldDepartment: oldDepartmentId,
@@ -117,7 +117,7 @@ const transferDepartment = async (req, res) => {
 // [DELETE] /api/employees/:id - Xóa mềm nhân viên (Quy tắc 4)
 const deleteEmployee = async (req, res) => {
     try {
-        // Áp dụng cơ chế xóa mềm: Đổi trạng thái thành inactive để bảo toàn lịch sử
+        // Cơ chế xóa mềm: Đổi status thành inactive để bảo lưu lịch sử chấm công/lương
         const employee = await Employee.findByIdAndUpdate(
             req.params.id,
             { status: 'inactive' },
