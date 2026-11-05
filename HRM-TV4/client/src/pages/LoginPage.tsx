@@ -1,0 +1,17 @@
+import { useState, type FormEvent } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { errorMessage } from '../types';
+import Icon from '../components/Icon';
+export default function LoginPage() {
+  const { user, login } = useAuth(); const navigate = useNavigate(); const location = useLocation();
+  const [username, setUsername] = useState(''); const [password, setPassword] = useState(''); const [visible, setVisible] = useState(false);
+  const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
+  const state: unknown = location.state;
+  const from = typeof state === 'object' && state !== null && 'from' in state && typeof state.from === 'string' && state.from.startsWith('/leave/') ? state.from : '/leave/requests';
+  if (user) return <Navigate to={from} replace />;
+  async function submit(event: FormEvent) { event.preventDefault(); if (busy) return; setBusy(true); setError(''); try { await login(username, password); navigate(from, { replace: true }); } catch (value) { setError(errorMessage(value)); } finally { setBusy(false); } }
+  return <main className="login-page"><section className="login-intro"><div className="brand"><span className="brand-mark"><Icon name="grid" size={23} /></span><span>HRM<small>NỘI BỘ DOANH NGHIỆP</small></span></div><div><p className="eyebrow">MODULE 04</p><h2>Nghỉ phép<br />& phê duyệt<span>.</span></h2><p>Không gian quản lý đơn nghỉ, số dư phép và chính sách nghỉ dành cho nhân viên, quản lý và HR.</p><div className="login-feature"><Icon name="calendar" /><span>Đơn nghỉ và số dư theo năm</span></div><div className="login-feature"><Icon name="shield" /><span>Phê duyệt đúng quyền, lưu lịch sử</span></div><div className="login-feature"><Icon name="layers" /><span>Liên kết dữ liệu công và lương</span></div></div><small>HRM / INTERNAL WORKSPACE</small></section><section className="login-form-section"><div className="login-box"><p className="eyebrow">TÀI KHOẢN NỘI BỘ</p><h1>Đăng nhập</h1><p className="muted">Sử dụng tài khoản được cấp để tiếp tục.</p><form className="form" onSubmit={submit}><fieldset disabled={busy}>
+    <label>Tài khoản<input autoComplete="username" required maxLength={100} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Nhập tên tài khoản" /></label><label>Mật khẩu<div className="password-field"><input type={visible ? 'text' : 'password'} autoComplete="current-password" required maxLength={100} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nhập mật khẩu" /><button type="button" className="text-button" aria-label={visible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} onClick={() => setVisible(!visible)}>{visible ? 'Ẩn' : 'Hiện'}</button></div></label></fieldset>{error && <p role="alert" className="error">{error}</p>}<button className="login-submit" disabled={busy}>{busy ? 'Đang đăng nhập…' : 'Đăng nhập'}<Icon name="arrow" /></button>
+  </form><div className="demo-accounts"><p>Tài khoản thử nghiệm <small>Mật khẩu: 123456</small></p><div>{[['employee', 'Nhân viên'], ['manager', 'Quản lý'], ['hr', 'Nhân sự / HR']].map(([account, label]) => <button className="secondary" type="button" disabled={busy} key={account} onClick={() => { setUsername(account); setPassword('123456'); setError(''); }}>{label}</button>)}</div><small>Chọn vai trò để điền tài khoản, sau đó bấm Đăng nhập.</small></div></div></section></main>;
+}

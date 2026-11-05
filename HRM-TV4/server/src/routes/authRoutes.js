@@ -1,0 +1,21 @@
+import { Router } from 'express';
+import { rateLimit } from 'express-rate-limit';
+import { z } from 'zod';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { User, Employee } from '../integrations/referenceModels.js';
+import { jwtSecret } from '../config.js';
+import { ensure } from '../lib/errors.js';
+import { authenticate } from '../middlewares/auth.js';
+export const authRouter = Router();
+authRouter.post('/login', rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: true, legacyHeaders: false, message: { success: false, code: 'RATE_LIMIT', message: 'Thử đăng nhập quá nhiều. Hãy thử lại sau.' } }), async (req, res) => {
+  const input = z.object({ username: z.string().trim().min(1).max(100), password: z.string().min(1).max(100) }).strict().parse(req.body);
+  const user = await User.findOne({ username: input.username }).select('+passwordHash');
+  ensure(user && await bcrypt.compare(input.password, user.passwordHash), 401, 'Sai tài khoản hoặc mật khẩu.');
+  const employee = await Employee.findById(user.employeeId);
+  ensure(employee?.status === 'active', 403, 'Nhân viên không còn hoạt động.');
+  const actor = { id: String(user._id), username: user.username, role: user.role, employeeId: String(user.employeeId), fullName: employee.fullName };
+  const token = jwt.sign({}, jwtSecret(), { subject: actor.id, expiresIn: '8h', algorithm: 'HS256' });
+  res.json({ success: true, data: { token, user: actor } });
+});
+authRouter.get('/me', authenticate, (req, res) => res.json({ success: true, data: req.actor }));
