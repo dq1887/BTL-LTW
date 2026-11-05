@@ -1,4 +1,3 @@
-// backend/src/routes/employeeRoutes.js
 const express = require('express');
 const router = express.Router();
 const {
@@ -6,6 +5,7 @@ const {
     getEmployeeById,
     createEmployee,
     updateEmployee,
+    transferDepartment,
     deleteEmployee
 } = require('../controllers/employeeController');
 
@@ -15,7 +15,10 @@ router.route('/')
 
 router.route('/:id')
     .get(getEmployeeById)
-    .put(updateEmployee)
+    .patch(updateEmployee)
     .delete(deleteEmployee);
+
+// Route điều chuyển phòng ban
+router.patch('/:id/transfer', transferDepartment);
 
 module.exports = router;

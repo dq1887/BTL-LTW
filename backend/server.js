@@ -12,7 +12,8 @@ app.use(cors());
 app.use(express.json());
 
 // Routes API
-app.use('/api/employees', require('./src/routes/employeeRoutes')); // <--- Thêm dòng này
+app.use('/api/employees', require('./src/routes/employeeRoutes'));
+app.use('/api/departments', require('./src/routes/departmentRoutes'));
 
 // Đường dẫn test thử server
 app.get('/', (req, res) => {
