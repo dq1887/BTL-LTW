@@ -1,0 +1,19 @@
+# Thư mục cài đặt thư viện (rất nặng)
+node_modules/
+
+# File chứa mật khẩu & cấu hình bảo mật
+.env
+.env.local
+.env.*.local
+
+# File log hệ thống
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# File tạm hệ điều hành và Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

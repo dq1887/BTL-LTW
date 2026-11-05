@@ -11,6 +11,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Routes API
+app.use('/api/employees', require('./src/routes/employeeRoutes')); // <--- Thêm dòng này
+
 // Đường dẫn test thử server
 app.get('/', (req, res) => {
     res.send('HRM Backend Server is running...');
