@@ -1,36 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Shifts.css";
-
-interface Shift {
-  id: string;
-  name: string;
-  startTime: string;
-  endTime: string;
-  breakMinutes: number;
-}
+import { shiftService, type Shift } from "../services/shiftService";
 
 export const Shifts: React.FC = () => {
-  // Dữ liệu mẫu ban đầu (khớp kịch bản demo: ca hành chính)
-  const [shifts, setShifts] = useState<Shift[]>([
-    {
-      id: "1",
-      name: "Ca hành chính",
-      startTime: "08:00",
-      endTime: "17:00",
-      breakMinutes: 60,
-    },
-    {
-      id: "2",
-      name: "Ca sáng",
-      startTime: "07:30",
-      endTime: "11:30",
-      breakMinutes: 15,
-    },
-  ]);
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentShift, setCurrentShift] = useState<Partial<Shift>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Tải danh sách ca làm việc từ Backend
+  const loadShifts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await shiftService.getAll();
+      setShifts(data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Đã xảy ra lỗi!";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadShifts();
+  }, []);
 
   // Mở modal thêm mới
   const handleOpenAddModal = () => {
@@ -46,11 +45,11 @@ export const Shifts: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Xử lý lưu form (Thêm hoặc Sửa)
-  const handleSave = (e: React.FormEvent) => {
+  // Xử lý lưu form (Thêm hoặc Sửa thông qua API Backend)
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
-      !currentShift.name ||
+      !currentShift.name?.trim() ||
       !currentShift.startTime ||
       !currentShift.endTime
     ) {
@@ -58,38 +57,52 @@ export const Shifts: React.FC = () => {
       return;
     }
 
-    // Quy tắc nghiệp vụ kiểm tra logic thời gian cơ bản
     if (currentShift.startTime >= currentShift.endTime) {
       alert("Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc!");
       return;
     }
 
-    if (isEditing) {
-      // Cập nhật ca
-      setShifts(
-        shifts.map((s) =>
-          s.id === currentShift.id ? (currentShift as Shift) : s,
-        ),
-      );
-    } else {
-      // Thêm mới ca
-      const newShift: Shift = {
-        id: Date.now().toString(),
-        name: currentShift.name!,
-        startTime: currentShift.startTime!,
-        endTime: currentShift.endTime!,
+    try {
+      setSubmitting(true);
+      const payload = {
+        name: currentShift.name.trim(),
+        startTime: currentShift.startTime,
+        endTime: currentShift.endTime,
         breakMinutes: Number(currentShift.breakMinutes) || 0,
       };
-      setShifts([...shifts, newShift]);
-    }
 
-    setIsModalOpen(false);
+      if (isEditing && currentShift._id) {
+        await shiftService.update(currentShift._id, payload);
+        alert("Cập nhật ca làm việc thành công!");
+      } else {
+        await shiftService.create(payload);
+        alert("Thêm ca làm việc mới thành công!");
+      }
+
+      setIsModalOpen(false);
+      await loadShifts();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Thao tác thất bại!";
+      alert(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // Xóa ca làm
-  const handleDelete = (id: string) => {
-    if (confirm("Bạn có chắc chắn muốn xóa ca làm này không?")) {
-      setShifts(shifts.filter((s) => s.id !== id));
+  // Xóa ca làm việc
+  const handleDelete = async (id?: string) => {
+    if (!id) return;
+    if (!confirm("Bạn có chắc chắn muốn xóa ca làm này không?")) {
+      return;
+    }
+
+    try {
+      await shiftService.delete(id);
+      alert("Đã xóa ca làm việc thành công!");
+      await loadShifts();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Không thể xóa ca làm!";
+      alert(message);
     }
   };
 
@@ -103,65 +116,78 @@ export const Shifts: React.FC = () => {
         </button>
       </div>
 
+      {/* Hiển thị lỗi nếu có */}
+      {error && (
+        <div style={{ color: "#ef4444", marginBottom: "16px", padding: "10px", background: "#fee2e2", borderRadius: "6px" }}>
+          ⚠️ {error}
+        </div>
+      )}
+
       {/* Bảng danh sách ca */}
       <div className="table-card">
-        <table className="shifts-table">
-          <thead>
-            <tr>
-              <th>Tên ca</th>
-              <th>Giờ bắt đầu</th>
-              <th>Giờ kết thúc</th>
-              <th>Thời gian nghỉ (phút)</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shifts.map((shift) => (
-              <tr key={shift.id}>
-                <td>
-                  <strong>{shift.name}</strong>
-                </td>
-                <td>
-                  <span className="badge-time">{shift.startTime}</span>
-                </td>
-                <td>
-                  <span className="badge-time">{shift.endTime}</span>
-                </td>
-                <td>{shift.breakMinutes} phút</td>
-                <td>
-                  <button
-                    className="btn-action edit"
-                    onClick={() => handleOpenEditModal(shift)}
-                    title="Sửa"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    className="btn-action delete"
-                    onClick={() => handleDelete(shift.id)}
-                    title="Xóa"
-                  >
-                    🗑️
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {shifts.length === 0 && (
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
+            Đang tải dữ liệu từ máy chủ...
+          </div>
+        ) : (
+          <table className="shifts-table">
+            <thead>
               <tr>
-                <td
-                  colSpan={5}
-                  style={{
-                    textAlign: "center",
-                    color: "#94a3b8",
-                    padding: "20px",
-                  }}
-                >
-                  Chưa có ca làm việc nào được tạo.
-                </td>
+                <th>Tên ca</th>
+                <th>Giờ bắt đầu</th>
+                <th>Giờ kết thúc</th>
+                <th>Thời gian nghỉ (phút)</th>
+                <th>Thao tác</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {shifts.map((shift) => (
+                <tr key={shift._id}>
+                  <td>
+                    <strong>{shift.name}</strong>
+                  </td>
+                  <td>
+                    <span className="badge-time">{shift.startTime}</span>
+                  </td>
+                  <td>
+                    <span className="badge-time">{shift.endTime}</span>
+                  </td>
+                  <td>{shift.breakMinutes} phút</td>
+                  <td>
+                    <button
+                      className="btn-action edit"
+                      onClick={() => handleOpenEditModal(shift)}
+                      title="Sửa"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="btn-action delete"
+                      onClick={() => handleDelete(shift._id)}
+                      title="Xóa"
+                    >
+                      🗑️
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {shifts.length === 0 && !loading && (
+                <tr>
+                  <td
+                    colSpan={5}
+                    style={{
+                      textAlign: "center",
+                      color: "#94a3b8",
+                      padding: "20px",
+                    }}
+                  >
+                    Chưa có ca làm việc nào được tạo.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Modal Thêm / Sửa ca làm */}
@@ -187,6 +213,7 @@ export const Shifts: React.FC = () => {
                   onChange={(e) =>
                     setCurrentShift({ ...currentShift, name: e.target.value })
                   }
+                  required
                 />
               </div>
               <div className="form-group">
@@ -200,6 +227,7 @@ export const Shifts: React.FC = () => {
                       startTime: e.target.value,
                     })
                   }
+                  required
                 />
               </div>
               <div className="form-group">
@@ -213,6 +241,7 @@ export const Shifts: React.FC = () => {
                       endTime: e.target.value,
                     })
                   }
+                  required
                 />
               </div>
               <div className="form-group">
@@ -234,11 +263,16 @@ export const Shifts: React.FC = () => {
                   type="button"
                   className="btn-secondary"
                   onClick={() => setIsModalOpen(false)}
+                  disabled={submitting}
                 >
                   Hủy
                 </button>
-                <button type="submit" className="btn-primary">
-                  {isEditing ? "Cập nhật" : "Thêm mới"}
+                <button type="submit" className="btn-primary" disabled={submitting}>
+                  {submitting
+                    ? "Đang lưu..."
+                    : isEditing
+                    ? "Cập nhật"
+                    : "Thêm mới"}
                 </button>
               </div>
             </form>

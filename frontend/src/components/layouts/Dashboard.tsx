@@ -1,5 +1,6 @@
 import Icon from "./Icons";
 import "./Dashboard.css";
+import { authService } from "../../services/authService";
 
 const stats = [
   {
@@ -78,12 +79,15 @@ const activities = [
 ];
 
 export default function Dashboard() {
+  const currentUser = authService.getCurrentUser();
+  const userName = currentUser?.fullName || currentUser?.name || "Bạn";
+
   return (
     <div className="dashboard">
       <div className="welcome-row">
         <div>
           <h1>
-            Xin chào, Nguyễn Văn A! <span>👋</span>
+            Xin chào, {userName}! <span>👋</span>
           </h1>
           <p>Chúc bạn có một ngày làm việc hiệu quả!</p>
         </div>

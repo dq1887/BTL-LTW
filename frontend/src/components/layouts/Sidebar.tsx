@@ -1,10 +1,12 @@
+import { Link, useLocation } from "react-router-dom";
 import Icon from "./Icons";
 import type { ComponentProps } from "react";
+import { authService } from "../../services/authService";
 
 type SidebarProps = { collapsed: boolean };
 
 const menu = [
-  { label: "Tổng quan", icon: "dashboard", active: true, path: "/dashboard" },
+  { label: "Tổng quan", icon: "dashboard", path: "/dashboard" },
   { label: "Nhân sự", icon: "users", arrow: true, path: "/employees" },
   { label: "Phòng ban", icon: "network", path: "/departments" },
   { label: "Ca làm việc", icon: "calendar", path: "/shifts" },
@@ -16,6 +18,15 @@ const menu = [
 ] as const;
 
 export default function Sidebar({ collapsed }: SidebarProps) {
+  const location = useLocation();
+
+  const handleLogout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (confirm("Bạn có chắc chắn muốn đăng xuất không?")) {
+      authService.logout();
+    }
+  };
+
   return (
     <aside className={`sidebar ${collapsed ? "sidebar--collapsed" : ""}`}>
       <div className="brand">
@@ -32,12 +43,12 @@ export default function Sidebar({ collapsed }: SidebarProps) {
 
       <nav className="sidebar-nav" aria-label="Điều hướng chính">
         {menu.map((item) => {
-          const isActive = "active" in item && item.active;
+          const isActive = location.pathname.startsWith(item.path);
 
           return (
-            <a
+            <Link
               key={item.label}
-              href={item.path}
+              to={item.path}
               className={`nav-item ${isActive ? "active" : ""}`}
               title={collapsed ? item.label : undefined}
             >
@@ -50,7 +61,7 @@ export default function Sidebar({ collapsed }: SidebarProps) {
               {!collapsed && "arrow" in item && item.arrow && (
                 <Icon name="chevron-right" size={17} className="nav-arrow" />
               )}
-            </a>
+            </Link>
           );
         })}
       </nav>
@@ -60,14 +71,15 @@ export default function Sidebar({ collapsed }: SidebarProps) {
           <span>☾</span>
           <span>☼</span>
         </div>
-        <a
+        <button
           className="logout-link"
-          href="#logout"
+          onClick={handleLogout}
           title={collapsed ? "Đăng xuất" : undefined}
+          style={{ background: "none", border: "none", width: "100%", textAlign: "left" }}
         >
           <Icon name="logout" size={21} />
           {!collapsed && <span>Đăng xuất</span>}
-        </a>
+        </button>
       </div>
     </aside>
   );
