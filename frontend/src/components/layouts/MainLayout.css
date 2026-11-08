@@ -43,12 +43,10 @@ button {
 }
 .page-content {
   width: 100%;
-  max-width: 1800px;
-  margin: 0 auto;
-  padding: 28px 27px 34px;
+  margin: 0;
+  padding: 24px 30px;
 }
 
-/* Sidebar */
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;

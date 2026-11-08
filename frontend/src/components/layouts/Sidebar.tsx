@@ -10,7 +10,8 @@ const menu = [
   { label: "Nhân sự", icon: "users", arrow: true, path: "/employees" },
   { label: "Phòng ban", icon: "network", path: "/departments" },
   { label: "Ca làm việc", icon: "calendar", path: "/shifts" },
-  { label: "Chấm công", icon: "calendar", arrow: true, path: "/attendance" },
+  { label: "Chấm công", icon: "clock", path: "/attendance" },
+  { label: "Duyệt sửa công", icon: "check", path: "/attendance-adjustments" },
   { label: "Nghỉ phép", icon: "send", path: "/leave-requests" },
   { label: "Bảng lương", icon: "wallet", path: "/payroll" },
   { label: "Báo cáo", icon: "chart", arrow: true, path: "/reports" },
@@ -43,7 +44,7 @@ export default function Sidebar({ collapsed }: SidebarProps) {
 
       <nav className="sidebar-nav" aria-label="Điều hướng chính">
         {menu.map((item) => {
-          const isActive = location.pathname.startsWith(item.path);
+          const isActive = location.pathname === item.path;
 
           return (
             <Link
@@ -75,7 +76,12 @@ export default function Sidebar({ collapsed }: SidebarProps) {
           className="logout-link"
           onClick={handleLogout}
           title={collapsed ? "Đăng xuất" : undefined}
-          style={{ background: "none", border: "none", width: "100%", textAlign: "left" }}
+          style={{
+            background: "none",
+            border: "none",
+            width: "100%",
+            textAlign: "left",
+          }}
         >
           <Icon name="logout" size={21} />
           {!collapsed && <span>Đăng xuất</span>}

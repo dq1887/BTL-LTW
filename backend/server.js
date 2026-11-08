@@ -15,12 +15,19 @@ app.use(express.json());
 app.use("/api/employees", require("./src/routes/employeeRoutes"));
 app.use("/api/departments", require("./src/routes/departmentRoutes"));
 app.use("/api/shifts", require("./src/routes/shiftRoutes"));
-app.use('/api/auth', require('./src/routes/authRoutes'));
+app.use("/api/auth", require("./src/routes/authRoutes"));
+app.use("/api/attendances", require("./src/routes/attendanceRoutes"));
+app.use(
+  "/api/attendance-adjustments",
+  require("./src/routes/adjustmentRoutes"),
+);
 
-// Đường dẫn test thử server
 app.get("/", (req, res) => {
   res.send("HRM Backend Server is running...");
 });
+
+const errorHandler = require("./src/middleware/errorMiddleware");
+app.use(errorHandler);
 
 // Kết nối MongoDB Atlas và chạy Server
 const PORT = process.env.PORT || 5000;
