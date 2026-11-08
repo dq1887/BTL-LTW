@@ -7,5 +7,7 @@ const shiftSchema = new mongoose.Schema(
     endTime: { type: String, required: true },
     breakMinutes: { type: Number, default: 60 },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
+
+module.exports = mongoose.model("Shift", shiftSchema);
