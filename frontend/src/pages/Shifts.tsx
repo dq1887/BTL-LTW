@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from "react";
 import "./Shifts.css";
 import { shiftService, type Shift } from "../services/shiftService";
+import { authService } from "../services/authService";
 
 export const Shifts: React.FC = () => {
+  const currentUser = authService.getCurrentUser();
+  const canAddOrEdit =
+    currentUser?.role === "admin_hr" || currentUser?.role === "manager";
+  const canDelete = currentUser?.role === "admin_hr";
+
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,10 +116,24 @@ export const Shifts: React.FC = () => {
     <div className="shifts-container">
       {/* Tiêu đề & Nút thêm */}
       <div className="shifts-header-top">
-        <h2>⏰ Quản lý Danh mục Ca làm việc</h2>
-        <button className="btn-primary" onClick={handleOpenAddModal}>
-          + Thêm ca làm mới
-        </button>
+        <div>
+          <h2>⏰ Quản lý Danh mục Ca làm việc</h2>
+          <small style={{ color: "#64748b" }}>
+            Vai trò hiện tại:{" "}
+            <strong>
+              {currentUser?.role === "admin_hr"
+                ? "Admin HR (Toàn quyền)"
+                : currentUser?.role === "manager"
+                ? "Trưởng phòng (Thêm/Sửa)"
+                : "Nhân viên (Chỉ xem)"}
+            </strong>
+          </small>
+        </div>
+        {canAddOrEdit && (
+          <button className="btn-primary" onClick={handleOpenAddModal}>
+            + Thêm ca làm mới
+          </button>
+        )}
       </div>
 
       {/* Hiển thị lỗi nếu có */}
@@ -154,20 +174,35 @@ export const Shifts: React.FC = () => {
                   </td>
                   <td>{shift.breakMinutes} phút</td>
                   <td>
-                    <button
-                      className="btn-action edit"
-                      onClick={() => handleOpenEditModal(shift)}
-                      title="Sửa"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className="btn-action delete"
-                      onClick={() => handleDelete(shift._id)}
-                      title="Xóa"
-                    >
-                      🗑️
-                    </button>
+                    {canAddOrEdit && (
+                      <button
+                        className="btn-action edit"
+                        onClick={() => handleOpenEditModal(shift)}
+                        title="Sửa"
+                      >
+                        ✏️
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        className="btn-action delete"
+                        onClick={() => handleDelete(shift._id)}
+                        title="Xóa"
+                      >
+                        🗑️
+                      </button>
+                    )}
+                    {!canAddOrEdit && !canDelete && (
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          color: "#94a3b8",
+                          fontStyle: "italic",
+                        }}
+                      >
+                        Chỉ xem
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
