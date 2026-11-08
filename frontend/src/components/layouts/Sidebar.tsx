@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Icon from "./Icons";
 import type { ComponentProps } from "react";
 import { authService } from "../../services/authService";
@@ -19,6 +19,7 @@ const menu = [
 ] as const;
 
 export default function Sidebar({ collapsed }: SidebarProps) {
+  const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = (e: React.MouseEvent) => {
@@ -30,7 +31,11 @@ export default function Sidebar({ collapsed }: SidebarProps) {
 
   return (
     <aside className={`sidebar ${collapsed ? "sidebar--collapsed" : ""}`}>
-      <div className="brand">
+      <div
+        className="brand"
+        onClick={() => navigate("/dashboard")}
+        style={{ cursor: "pointer" }}
+      >
         <div className="brand-mark">
           <Icon name="users" size={37} strokeWidth={2.5} />
         </div>
