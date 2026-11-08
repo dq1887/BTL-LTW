@@ -1,8 +1,10 @@
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Icon from "./Icons";
 import { authService } from "../../services/authService";
 
 export default function UserDropdown() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const currentUser = authService.getCurrentUser();
 
@@ -25,13 +27,17 @@ export default function UserDropdown() {
     }
   };
 
-  const displayName = currentUser?.fullName || currentUser?.name || "Người dùng";
+  const displayName =
+    currentUser?.fullName || currentUser?.name || "Người dùng";
   const firstLetter = displayName.trim().charAt(0).toUpperCase() || "U";
   const roleLabel = getRoleLabel(currentUser?.role);
 
   return (
     <div className="user-menu-wrap">
-      <button className="user-profile" onClick={() => setOpen((value) => !value)}>
+      <button
+        className="user-profile"
+        onClick={() => setOpen((value) => !value)}
+      >
         <div className="avatar">{firstLetter}</div>
         <span className="user-info">
           <strong>{displayName}</strong>
@@ -41,8 +47,18 @@ export default function UserDropdown() {
       </button>
       {open && (
         <div className="user-dropdown">
-          <button><Icon name="user" size={16} /> Hồ sơ cá nhân</button>
-          <button><Icon name="settings" size={16} /> Cài đặt tài khoản</button>
+          <button
+            onClick={() => {
+              setOpen(false);
+              navigate("/profile");
+            }}
+            style={{ cursor: "pointer" }}
+          >
+            <Icon name="user" size={16} /> Hồ sơ cá nhân
+          </button>
+          <button>
+            <Icon name="settings" size={16} /> Cài đặt tài khoản
+          </button>
           <button className="dropdown-logout" onClick={handleLogout}>
             <Icon name="logout" size={16} /> Đăng xuất
           </button>

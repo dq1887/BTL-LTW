@@ -51,10 +51,15 @@ const login = async (req, res) => {
       token,
       user: {
         id: employee._id,
-        name: employee.fullName || employee.name || "Người dùng",
+        _id: employee._id,
+        employeeCode: employee.employeeCode,
         fullName: employee.fullName || employee.name || "Người dùng",
+        name: employee.fullName || employee.name || "Người dùng",
         email: employee.email,
+        phone: employee.phone || "",
+        position: employee.position || "Nhân viên",
         role: employee.role,
+        departmentId: employee.departmentId,
       },
     });
   } catch (error) {
