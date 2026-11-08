@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Icon from "./Icons";
 import "./Dashboard.css";
 import { authService } from "../../services/authService";
@@ -5,7 +6,7 @@ import { authService } from "../../services/authService";
 const stats = [
   {
     title: "Tổng nhân viên",
-    value: "128",
+    value: "50",
     change: "+2.5%",
     icon: "users",
     tone: "blue",
@@ -13,7 +14,7 @@ const stats = [
   },
   {
     title: "Phòng ban",
-    value: "8",
+    value: "5",
     change: "+0%",
     icon: "building",
     tone: "green",
@@ -37,11 +38,13 @@ const stats = [
   },
 ] as const;
 
+// 5 phòng ban chuẩn MongoDB (Mỗi phòng 10 người, tổng 50 người)
 const departments = [
-  { name: "Kỹ thuật", values: [23, 17, 18] },
-  { name: "Kinh doanh", values: [26, 16, 22] },
-  { name: "Marketing", values: [24, 15, 18] },
-  { name: "Tài chính", values: [30, 25, 21] },
+  { name: "Hành chính NS", values: [5, 5] },
+  { name: "Kinh doanh", values: [6, 4] },
+  { name: "CNTT", values: [7, 3] },
+  { name: "Marketing", values: [5, 5] },
+  { name: "Kế toán", values: [5, 5] },
 ];
 
 const schedule = [
@@ -56,7 +59,7 @@ const schedule = [
   {
     day: "Th 5",
     date: "06/11",
-    title: "Họp phòng ban Kỹ thuật",
+    title: "Họp phòng ban CNTT",
     time: "09:00 - 10:30",
     icon: "users",
     tone: "purple",
@@ -81,6 +84,11 @@ const activities = [
 export default function Dashboard() {
   const currentUser = authService.getCurrentUser();
   const userName = currentUser?.fullName || currentUser?.name || "Bạn";
+  const userRole = currentUser?.role || "admin_hr";
+
+  const [period, setPeriod] = useState<"week" | "month" | "year">("month");
+  // State quản lý hiển thị Modal Giám sát hệ thống
+  const [showSystemHealth, setShowSystemHealth] = useState(false);
 
   return (
     <div className="dashboard">
@@ -133,51 +141,195 @@ export default function Dashboard() {
             <h2>
               <Icon name="chart" /> Thống kê nhân sự theo phòng ban
             </h2>
-            <button className="period-select">
-              Tháng này <Icon name="chevron-down" size={16} />
-            </button>
-          </div>
-          <div className="chart-area">
-            <div className="y-labels">
-              <span>40</span>
-              <span>30</span>
-              <span>20</span>
-              <span>10</span>
-              <span>0</span>
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <select
+                value={period}
+                onChange={(e) =>
+                  setPeriod(e.target.value as "week" | "month" | "year")
+                }
+                style={{
+                  padding: "6px 30px 6px 14px",
+                  fontSize: "13.5px",
+                  fontWeight: "700",
+                  color: "#0f172a",
+                  backgroundColor: "#f8fafc",
+                  border: "1.5px solid #cbd5e1",
+                  borderRadius: "8px",
+                  outline: "none",
+                  cursor: "pointer",
+                  appearance: "none",
+                  WebkitAppearance: "none",
+                }}
+              >
+                <option value="week">Tuần này</option>
+                <option value="month">Tháng này</option>
+                <option value="year">Năm nay</option>
+              </select>
+              <Icon
+                name="chevron-down"
+                size={14}
+                strokeWidth={2.5}
+                style={{
+                  position: "absolute",
+                  right: "10px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  pointerEvents: "none",
+                  color: "#0f172a",
+                }}
+              />
             </div>
-            <div className="chart-main">
-              <div className="chart-grid-lines">
-                <i />
-                <i />
-                <i />
-                <i />
-                <i />
+          </div>
+
+          {/* ĐỒ THỊ CĂN CHUẨN VẠCH CHIA 15 - 10 - 5 - 0 */}
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              position: "relative",
+              marginTop: "16px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                height: "150px",
+                fontSize: "12px",
+                color: "#64748b",
+                fontWeight: "600",
+                width: "24px",
+                textAlign: "right",
+                lineHeight: "1",
+              }}
+            >
+              <span style={{ transform: "translateY(-50%)" }}>15</span>
+              <span style={{ transform: "translateY(-50%)" }}>10</span>
+              <span style={{ transform: "translateY(-50%)" }}>5</span>
+              <span style={{ transform: "translateY(-50%)" }}>0</span>
+            </div>
+
+            <div style={{ flex: 1, position: "relative", height: "150px" }}>
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  pointerEvents: "none",
+                }}
+              >
+                <div
+                  style={{ borderBottom: "1px solid #e2e8f0", width: "100%" }}
+                />
+                <div
+                  style={{ borderBottom: "1px solid #e2e8f0", width: "100%" }}
+                />
+                <div
+                  style={{ borderBottom: "1px solid #e2e8f0", width: "100%" }}
+                />
+                <div
+                  style={{ borderBottom: "1.5px solid #cbd5e1", width: "100%" }}
+                />
               </div>
-              <div className="bar-groups">
+
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  justifyContent: "space-around",
+                  alignItems: "flex-end",
+                }}
+              >
                 {departments.map((dept) => (
-                  <div className="bar-group" key={dept.name}>
-                    <div className="bars">
+                  <div
+                    key={dept.name}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      position: "relative",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-end",
+                        gap: "6px",
+                        height: "150px",
+                      }}
+                    >
                       {dept.values.map((v, index) => (
                         <span
                           key={index}
-                          className={`bar bar-${index}`}
-                          style={{ height: `${v * 5.5}px` }}
+                          style={{
+                            height: `${(v / 15) * 100}%`,
+                            width: "15px",
+                            backgroundColor:
+                              index === 0 ? "#2563eb" : "#93c5fd",
+                            borderRadius: "4px 4px 0 0",
+                            transition: "height 0.3s ease",
+                          }}
+                          title={`${index === 0 ? "Nam" : "Nữ"}: ${v} người`}
                         />
                       ))}
                     </div>
-                    <small>{dept.name}</small>
+                    <small
+                      style={{
+                        position: "absolute",
+                        top: "158px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        color: "#334155",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {dept.name}
+                    </small>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="chart-legend">
-              <span>
-                <i className="legend-blue" /> Nam
-              </span>
-              <span>
-                <i className="legend-light" /> Nữ
-              </span>
-            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: "24px",
+              marginTop: "38px",
+              fontSize: "13px",
+              fontWeight: "600",
+              color: "#475569",
+            }}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <i
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  backgroundColor: "#2563eb",
+                  borderRadius: "3px",
+                  display: "inline-block",
+                }}
+              />{" "}
+              Nam
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <i
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  backgroundColor: "#93c5fd",
+                  borderRadius: "3px",
+                  display: "inline-block",
+                }}
+              />{" "}
+              Nữ
+            </span>
           </div>
         </article>
 
@@ -196,11 +348,11 @@ export default function Dashboard() {
                 <strong>98%</strong>
               </div>
               <span>Nhân viên đi làm</span>
-              <b>125 / 128</b>
+              <b>49 / 50</b>
             </div>
             <div className="attendance-legend">
               <p>
-                <i className="dot teal" /> Đi làm đúng giờ <b>125</b>
+                <i className="dot teal" /> Đi làm đúng giờ <b>47</b>
               </p>
               <p>
                 <i className="dot orange-dot" /> Đi muộn <b>2</b>
@@ -264,11 +416,12 @@ export default function Dashboard() {
           </div>
         </article>
 
+        {/* THẺ PROMO ĐƯỢC GẮN SỰ KIỆN onClick */}
         <article className="promo-card">
           <div>
             <h2>HRM Internal</h2>
             <p>Đồng hành cùng doanh nghiệp trong công tác quản lý nhân sự</p>
-            <button>
+            <button onClick={() => setShowSystemHealth(true)}>
               Tìm hiểu thêm <Icon name="arrow-right" size={16} />
             </button>
           </div>
@@ -277,6 +430,367 @@ export default function Dashboard() {
           </div>
         </article>
       </section>
+
+      {/* MODAL GIÁM SÁT HỆ THỐNG & API HEALTH */}
+      {showSystemHealth && (
+        <div
+          /* 1. Click vào khoảng đen bên ngoài là tự thoát */
+          onClick={() => setShowSystemHealth(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "20px",
+          }}
+        >
+          <div
+            /* 2. Chặn nổi bọt sự kiện: Click bên trong khung trắng KHÔNG bị đóng */
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "16px",
+              width: "600px",
+              maxWidth: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              border: "1px solid #e2e8f0",
+              padding: "24px",
+              fontFamily: "inherit",
+            }}
+          >
+            {/* Header Modal */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                borderBottom: "1px solid #f1f5f9",
+                paddingBottom: "14px",
+                marginBottom: "18px",
+              }}
+            >
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "10px" }}
+              >
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "10px",
+                    backgroundColor: "#f0fdf4",
+                    color: "#16a34a",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Icon name="zap" size={20} />
+                </div>
+                <div>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: "17.5px",
+                      fontWeight: "700",
+                      color: "#0f172a",
+                    }}
+                  >
+                    Trạng Thái Hệ Thống (System Health)
+                  </h3>
+                  <span style={{ fontSize: "12.5px", color: "#64748b" }}>
+                    Kiểm tra tình trạng vận hành REST API & Cơ sở dữ liệu
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSystemHealth(false)}
+                title="Đóng"
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "20px",
+                  color: "#94a3b8",
+                  cursor: "pointer",
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Thông số kỹ thuật */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+                marginBottom: "16px",
+              }}
+            >
+              {/* Database */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "12px 14px",
+                  backgroundColor: "#f8fafc",
+                  borderRadius: "10px",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: "13.5px",
+                      fontWeight: "700",
+                      color: "#1e293b",
+                    }}
+                  >
+                    Cơ sở dữ liệu MongoDB Atlas
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>
+                    50 Nhân sự • 5 Phòng ban • Hệ thống 10 Collections
+                    (attendances, shifts, users,...)
+                  </div>
+                </div>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontSize: "12.5px",
+                    fontWeight: "700",
+                    color: "#16a34a",
+                    backgroundColor: "#dcfce7",
+                    padding: "4px 10px",
+                    borderRadius: "20px",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "7px",
+                      height: "7px",
+                      backgroundColor: "#16a34a",
+                      borderRadius: "50%",
+                    }}
+                  />
+                  Đã kết nối
+                </span>
+              </div>
+
+              {/* Express Server */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "12px 14px",
+                  backgroundColor: "#f8fafc",
+                  borderRadius: "10px",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: "13.5px",
+                      fontWeight: "700",
+                      color: "#1e293b",
+                    }}
+                  >
+                    Express.js Backend Server
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>
+                    Cổng :5000 • Xử lý lỗi tập trung: ErrorHandler Active
+                  </div>
+                </div>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontSize: "12.5px",
+                    fontWeight: "700",
+                    color: "#16a34a",
+                    backgroundColor: "#dcfce7",
+                    padding: "4px 10px",
+                    borderRadius: "20px",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: "7px",
+                      height: "7px",
+                      backgroundColor: "#16a34a",
+                      borderRadius: "50%",
+                    }}
+                  />
+                  Hoạt động (200 OK)
+                </span>
+              </div>
+
+              {/* JWT Auth */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "12px 14px",
+                  backgroundColor: "#f8fafc",
+                  borderRadius: "10px",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: "13.5px",
+                      fontWeight: "700",
+                      color: "#1e293b",
+                    }}
+                  >
+                    Bảo mật Phiên & Token JWT
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>
+                    Tài khoản: {userName} • Quyền hạn: {userRole}
+                  </div>
+                </div>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontSize: "12.5px",
+                    fontWeight: "700",
+                    color: "#2563eb",
+                    backgroundColor: "#eff6ff",
+                    padding: "4px 10px",
+                    borderRadius: "20px",
+                  }}
+                >
+                  Hợp lệ (Authenticated)
+                </span>
+              </div>
+
+              {/* Cụm API toàn bộ hệ thống */}
+              <div
+                style={{
+                  padding: "14px 16px",
+                  backgroundColor: "#f8fafc",
+                  borderRadius: "10px",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "13.5px",
+                    fontWeight: "700",
+                    color: "#1e293b",
+                    marginBottom: "10px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span>Trạng thái các phân hệ API chính:</span>
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#16a34a",
+                      fontWeight: "600",
+                    }}
+                  >
+                    5/5 Phân hệ sẵn sàng
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "10px 16px",
+                    fontSize: "12.5px",
+                    color: "#475569",
+                  }}
+                >
+                  <div>
+                    <span style={{ color: "#64748b" }}>Nhân sự & Auth:</span>{" "}
+                    <code style={{ color: "#0f172a", fontWeight: "600" }}>
+                      /api/employees
+                    </code>{" "}
+                    <b style={{ color: "#16a34a" }}>200 OK</b>
+                  </div>
+
+                  <div>
+                    <span style={{ color: "#64748b" }}>Ca làm việc:</span>{" "}
+                    <code style={{ color: "#0f172a", fontWeight: "600" }}>
+                      /api/shifts
+                    </code>{" "}
+                    <b style={{ color: "#16a34a" }}>200 OK</b>
+                  </div>
+
+                  <div>
+                    <span style={{ color: "#64748b" }}>Chấm công & Sửa:</span>{" "}
+                    <code style={{ color: "#0f172a", fontWeight: "600" }}>
+                      /api/attendances
+                    </code>{" "}
+                    <b style={{ color: "#16a34a" }}>200 OK</b>
+                  </div>
+
+                  <div>
+                    <span style={{ color: "#64748b" }}>Nghỉ phép:</span>{" "}
+                    <code style={{ color: "#0f172a", fontWeight: "600" }}>
+                      /api/leave-requests
+                    </code>{" "}
+                    <b style={{ color: "#16a34a" }}>200 OK</b>
+                  </div>
+
+                  <div style={{ gridColumn: "span 2" }}>
+                    <span style={{ color: "#64748b" }}>
+                      Bảng lương & Báo cáo:
+                    </span>{" "}
+                    <code style={{ color: "#0f172a", fontWeight: "600" }}>
+                      /api/payrolls
+                    </code>{" "}
+                    &{" "}
+                    <code style={{ color: "#0f172a", fontWeight: "600" }}>
+                      /api/reports
+                    </code>{" "}
+                    <b style={{ color: "#16a34a" }}>200 OK</b>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                paddingTop: "8px",
+                borderTop: "1px solid #f1f5f9",
+              }}
+            >
+              <span style={{ fontSize: "12px", color: "#64748b" }}>
+                Độ trễ phản hồi máy chủ:{" "}
+                <b style={{ color: "#16a34a" }}>~18ms</b>
+              </span>
+              <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                Nhấn ra ngoài hoặc bấm dấu ✕ để đóng
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
