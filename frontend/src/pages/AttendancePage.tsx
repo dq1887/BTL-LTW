@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from "react";
 import Icon from "../components/layouts/Icons";
 
+interface EmployeeInfo {
+  _id?: string;
+  fullName?: string;
+  employeeCode?: string;
+  position?: string;
+}
+
 interface AttendanceRecord {
   _id: string;
+  employeeId?: EmployeeInfo; // Nhận thông tin nhân viên từ backend populate
   workDate: string;
   checkInAt?: string;
   checkOutAt?: string;
@@ -17,6 +25,14 @@ export default function AttendancePage() {
   const [message, setMessage] = useState("");
   const [selectedAttId, setSelectedAttId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+
+  // Kiểm tra quyền từ tài khoản đang đăng nhập
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const isManagerOrAdmin =
+    currentUser?.role === "admin_hr" ||
+    (currentUser?.position || "").toLowerCase().includes("trưởng phòng") ||
+    (currentUser?.position || "").toLowerCase().includes("leader") ||
+    (currentUser?.position || "").toLowerCase().includes("giám đốc");
 
   const getHeaders = () => {
     const token =
@@ -74,7 +90,6 @@ export default function AttendancePage() {
   const handleCheckOut = async () => {
     setLoading(true);
     try {
-      // Tìm bản ghi hôm nay để check-out
       const todayStr = new Date().toISOString().split("T")[0];
       const todayRecord = attendances.find((a) => a.workDate === todayStr);
 
@@ -216,7 +231,7 @@ export default function AttendancePage() {
         </div>
       )}
 
-      {/* Modal khiếu nại đơn giản */}
+      {/* Modal khiếu nại */}
       {selectedAttId && (
         <div
           style={{
@@ -318,6 +333,10 @@ export default function AttendancePage() {
                 fontWeight: "600",
               }}
             >
+              {/* Cột Nhân viên hiển thị riêng cho Admin hoặc Trưởng phòng */}
+              {isManagerOrAdmin && (
+                <th style={{ padding: "14px 20px" }}>Nhân viên</th>
+              )}
               <th style={{ padding: "14px 20px" }}>Ngày làm việc</th>
               <th style={{ padding: "14px 20px" }}>Giờ bắt đầu</th>
               <th style={{ padding: "14px 20px" }}>Giờ kết thúc</th>
@@ -331,6 +350,20 @@ export default function AttendancePage() {
             {attendances.length > 0 ? (
               attendances.map((att) => (
                 <tr key={att._id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  {/* Ô thông tin nhân viên cho Quản lý / Admin */}
+                  {isManagerOrAdmin && (
+                    <td style={{ padding: "14px 20px" }}>
+                      <div style={{ fontWeight: "600", color: "#0f172a" }}>
+                        {att.employeeId?.fullName || "—"}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#64748b" }}>
+                        {att.employeeId?.employeeCode || ""}
+                        {att.employeeId?.position
+                          ? ` • ${att.employeeId.position}`
+                          : ""}
+                      </div>
+                    </td>
+                  )}
                   <td
                     style={{
                       padding: "14px 20px",
@@ -372,7 +405,13 @@ export default function AttendancePage() {
                     {att.minutesWorked || 0} phút
                   </td>
                   <td style={{ padding: "14px 20px", fontWeight: "700" }}>
-                    {att.workCredit}
+                    <span
+                      style={{
+                        color: att.workCredit > 1 ? "#16a34a" : "#0f172a",
+                      }}
+                    >
+                      {att.workCredit}
+                    </span>
                   </td>
                   <td style={{ padding: "14px 20px" }}>
                     <span
@@ -415,7 +454,7 @@ export default function AttendancePage() {
             ) : (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={isManagerOrAdmin ? 8 : 7}
                   style={{
                     textAlign: "center",
                     padding: "36px",

@@ -1,10 +1,30 @@
-require("../models/Employee"); // Nạp schema Employee để populate không lỗi
+const Employee = require("../models/Employee");
 const Attendance = require("../models/Attendance");
 const AttendanceAdjustment = require("../models/AttendanceAdjustment");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 
-// 1. POST /api/attendances/check-in (Quy tắc 1: Đúng ngày hiện tại, 1 bản ghi/ca)[cite: 81]
+// Bảng cấu hình định mức các ca theo danh mục TV2
+const SHIFT_SPECS = {
+  hanh_chinh: {
+    name: "Ca hành chính",
+    standardNetMinutes: 480,
+    breakMinutes: 60,
+  },
+  sang: { name: "Ca sáng", standardNetMinutes: 255, breakMinutes: 15 },
+  chieu: { name: "Ca chiều", standardNetMinutes: 255, breakMinutes: 15 },
+  dem: { name: "Ca đêm", standardNetMinutes: 435, breakMinutes: 45 },
+};
+
+// Hàm tự động nhận diện ca dựa trên giờ Check-in
+const detectShiftSpec = (checkInDate) => {
+  const hour = new Date(checkInDate).getHours();
+  if (hour >= 20 || hour < 5) return SHIFT_SPECS.dem;
+  if (hour >= 6 && hour < 10) return SHIFT_SPECS.hanh_chinh;
+  if (hour >= 12 && hour < 16) return SHIFT_SPECS.chieu;
+  return SHIFT_SPECS.hanh_chinh;
+};
+
 exports.checkIn = catchAsync(async (req, res, next) => {
   const employeeId = req.user ? req.user._id : req.body.employeeId;
   const { scheduleId, workDate } = req.body;
@@ -41,18 +61,15 @@ exports.checkIn = catchAsync(async (req, res, next) => {
   });
 });
 
-// 2. POST /api/attendances/:id/check-out (Quy tắc 2, 3, 4: Chặn lặp, tính phút, quy đổi công)[cite: 81]
 exports.checkOut = catchAsync(async (req, res, next) => {
   const attendance = await Attendance.findById(req.params.id);
 
   if (!attendance) {
     return next(new AppError("Không tìm thấy bản ghi chấm công!", 404));
   }
-
   if (!attendance.checkInAt) {
     return next(new AppError("Chưa Check-in, không thể Check-out!", 400));
   }
-
   if (attendance.checkOutAt) {
     return next(new AppError("Bản ghi đã Check-out trước đó rồi!", 409));
   }
@@ -60,46 +77,79 @@ exports.checkOut = catchAsync(async (req, res, next) => {
   const checkOutTime = new Date();
   attendance.checkOutAt = checkOutTime;
 
-  // minutesWorked = (checkOut - checkIn) - breakMinutes
+  // 1. Tính tổng thời gian thực tế có mặt (phút)
   const totalMs = checkOutTime - new Date(attendance.checkInAt);
-  const totalMinutes = Math.round(totalMs / 60000);
-  const breakMin = attendance.breakMinutes || 60;
-  const actualMinutes = Math.max(0, totalMinutes - breakMin);
-  attendance.minutesWorked = actualMinutes;
+  const totalMinutes = Math.max(0, Math.round(totalMs / 60000));
 
-  // Quy đổi công chuẩn: >= 75% -> 1 công, >= 50% -> 0.5 công, < 50% -> 0 công
-  const standardShiftMinutes = 480;
-  const ratio = actualMinutes / standardShiftMinutes;
+  // 2. Xác định ca làm việc tương ứng
+  const shift = detectShiftSpec(attendance.checkInAt);
+  const breakMin =
+    attendance.breakMinutes !== undefined
+      ? attendance.breakMinutes
+      : shift.breakMinutes;
+  const standardShiftMinutes = shift.standardNetMinutes;
 
-  if (ratio >= 0.75) {
-    attendance.workCredit = 1;
-  } else if (ratio >= 0.5) {
-    attendance.workCredit = 0.5;
-  } else {
+  // 3. Tính công: Chưa đủ thời gian tối thiểu của ca thì công = 0
+  if (totalMinutes < standardShiftMinutes) {
+    attendance.minutesWorked = totalMinutes;
     attendance.workCredit = 0;
+  } else {
+    // Đã làm đủ hoặc làm quá giờ (OT): trừ thời gian nghỉ và chia cho định mức ca quy định
+    const netWorkedMinutes = Math.max(0, totalMinutes - breakMin);
+    attendance.minutesWorked = netWorkedMinutes;
+    attendance.workCredit = Number(
+      (netWorkedMinutes / standardShiftMinutes).toFixed(1),
+    );
   }
 
   await attendance.save();
 
   res.status(200).json({
     success: true,
-    message: "Check-out thành công và đã tự động quy đổi công chuẩn!",
+    message: "Check-out thành công và đã quy đổi công tự động!",
     data: attendance,
   });
 });
 
-// 3. GET /api/attendances
 exports.getAttendances = catchAsync(async (req, res, next) => {
-  const employeeId = req.user ? req.user._id : req.query.employeeId;
-  const { month } = req.query;
+  const { month, employeeId } = req.query;
+  const currentUserId = req.user ? req.user._id : null;
+  const userRole = req.user ? req.user.role : "employee";
+  const userPosition = (req.user?.position || "").toLowerCase();
+
+  const isBossAdmin =
+    userRole === "admin_hr" || (req.user?.email || "").includes("nam.duong");
+  const isDepartmentLead =
+    userPosition.includes("trưởng phòng") || userPosition.includes("leader");
+
   const filter = {};
 
-  if (employeeId) filter.employeeId = employeeId;
-  if (month) filter.workDate = { $regex: `^${month}` };
+  if (isBossAdmin) {
+    // Admin HR: Thấy toàn bộ, có thể lọc theo employeeId
+    if (employeeId) filter.employeeId = employeeId;
+  } else if (isDepartmentLead) {
+    // Trưởng phòng: Thấy tất cả ngoại trừ Admin HR
+    const adminEmployees = await Employee.find({
+      $or: [{ role: "admin_hr" }, { email: "nam.duong1@gmail.com" }],
+    }).select("_id");
+    const adminIds = adminEmployees.map((a) => a._id);
+
+    filter.employeeId = { $nin: adminIds };
+    if (employeeId && !adminIds.some((id) => id.equals(employeeId))) {
+      filter.employeeId = employeeId;
+    }
+  } else {
+    // Nhân viên thông thường: Chỉ thấy bản ghi của chính mình
+    filter.employeeId = currentUserId;
+  }
+
+  if (month) {
+    filter.workDate = { $regex: `^${month}` };
+  }
 
   const records = await Attendance.find(filter)
-    .populate("employeeId", "fullName employeeCode")
-    .sort({ workDate: -1 });
+    .populate("employeeId", "fullName employeeCode position email")
+    .sort({ workDate: -1, createdAt: -1 });
 
   res.status(200).json({
     success: true,
@@ -108,7 +158,6 @@ exports.getAttendances = catchAsync(async (req, res, next) => {
   });
 });
 
-// 4. POST /api/attendance-adjustments (Quy tắc 5: Tạo đơn trạng thái pending)[cite: 81]
 exports.createAdjustment = catchAsync(async (req, res, next) => {
   const employeeId = req.user ? req.user._id : req.body.employeeId;
   const { attendanceId, requestReason, proposedIn, proposedOut } = req.body;
@@ -142,7 +191,6 @@ exports.createAdjustment = catchAsync(async (req, res, next) => {
   });
 });
 
-// GET /api/attendance-adjustments
 exports.getAdjustments = catchAsync(async (req, res, next) => {
   const adjustments = await AttendanceAdjustment.find()
     .populate("employeeId", "fullName employeeCode email")
@@ -156,7 +204,6 @@ exports.getAdjustments = catchAsync(async (req, res, next) => {
   });
 });
 
-// 5. POST /api/attendance-adjustments/:id/approve (Quy tắc 5: Duyệt và cập nhật lại công)[cite: 81]
 exports.approveAdjustment = catchAsync(async (req, res, next) => {
   const adjustment = await AttendanceAdjustment.findById(req.params.id);
 
@@ -173,7 +220,6 @@ exports.approveAdjustment = catchAsync(async (req, res, next) => {
   adjustment.reviewNote = req.body.reviewNote || "Duyệt điều chỉnh giờ công";
   await adjustment.save();
 
-  // Tự động cập nhật công chính thức vào collection attendances
   const attendance = await Attendance.findById(adjustment.attendanceId);
   if (attendance) {
     attendance.checkInAt = adjustment.proposedIn;
@@ -186,11 +232,7 @@ exports.approveAdjustment = catchAsync(async (req, res, next) => {
     const actualMinutes = Math.max(0, workedMinutes - breakMin);
     attendance.minutesWorked = actualMinutes;
 
-    const ratio = actualMinutes / 480;
-    if (ratio >= 0.75) attendance.workCredit = 1;
-    else if (ratio >= 0.5) attendance.workCredit = 0.5;
-    else attendance.workCredit = 0;
-
+    attendance.workCredit = Number((actualMinutes / 480).toFixed(1));
     await attendance.save();
   }
 

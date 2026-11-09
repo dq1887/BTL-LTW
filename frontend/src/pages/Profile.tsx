@@ -13,7 +13,6 @@ interface UserProfile {
   duty: string;
 }
 
-// Bảng tính nhiệm vụ tự động chuẩn theo Chức vụ + Phòng ban thực tế
 const calculateDuty = (posName: string, deptName: string, roleName: string) => {
   const pos = (posName || "").toLowerCase();
   const dept = (deptName || "").toLowerCase();
@@ -33,7 +32,6 @@ const calculateDuty = (posName: string, deptName: string, roleName: string) => {
     return "Quản trị hệ thống, giám sát nhân sự và phân quyền";
   }
 
-  // Theo từng khối phòng ban
   if (dept.includes("marketing")) return "Truyền thông và quảng bá sản phẩm";
   if (
     dept.includes("kỹ thuật") ||
@@ -58,7 +56,6 @@ export default function Profile() {
   useEffect(() => {
     const fetchRealData = async () => {
       try {
-        // 1. Lấy thông tin sơ bộ từ session đăng nhập
         const rawUser = localStorage.getItem("user");
         let currentUser = rawUser ? JSON.parse(rawUser) : {};
         const token =
@@ -67,7 +64,6 @@ export default function Profile() {
           ? { Authorization: `Bearer ${token}` }
           : {};
 
-        // 2. Gọi API lấy thông tin chi tiết nhân viên từ MongoDB để tránh thiếu trường
         let dbUser = { ...currentUser };
         try {
           const empRes = await fetch("http://localhost:5000/api/employees", {
@@ -79,7 +75,6 @@ export default function Profile() {
               ? empData
               : empData.data || empData.employees || [];
 
-            // Tìm đúng nhân viên đang đăng nhập theo email hoặc _id
             const matched = list.find(
               (e: any) =>
                 (currentUser.email &&
@@ -94,11 +89,8 @@ export default function Profile() {
               dbUser = { ...dbUser, ...matched };
             }
           }
-        } catch {
-          // Bỏ qua nếu endpoint employees yêu cầu quyền riêng
-        }
+        } catch {}
 
-        // 3. Tra cứu phòng ban từ API departments
         let deptName = dbUser.departmentName || "";
         const targetDeptId =
           dbUser.departmentId ||
@@ -125,12 +117,9 @@ export default function Profile() {
                 deptName = foundDept.name;
               }
             }
-          } catch {
-            // Lỗi mạng hoặc server không phản hồi
-          }
+          } catch {}
         }
 
-        // Nếu DB không có tên phòng, fallback theo chức vụ (không gán bừa Marketing)
         if (!deptName) {
           if (
             dbUser.role === "admin_hr" ||
@@ -184,7 +173,6 @@ export default function Profile() {
 
   return (
     <div style={{ padding: "24px 32px", maxWidth: "1200px", margin: "0 auto" }}>
-      {/* Breadcrumb */}
       <div
         style={{
           display: "flex",
@@ -317,7 +305,6 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Grid thông tin chi tiết */}
       <div
         style={{
           display: "grid",
@@ -325,7 +312,6 @@ export default function Profile() {
           gap: "24px",
         }}
       >
-        {/* Khối 1: Thông tin công tác */}
         <div
           style={{
             backgroundColor: "#ffffff",

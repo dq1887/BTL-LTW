@@ -12,7 +12,7 @@ const attendanceSchema = new mongoose.Schema(
       default: null,
     },
     workDate: {
-      type: String, // Dạng chuỗi YYYY-MM-DD để tránh lệch múi giờ
+      type: String,
       required: [true, "Thiếu workDate"],
     },
     checkInAt: {
@@ -33,7 +33,6 @@ const attendanceSchema = new mongoose.Schema(
     },
     workCredit: {
       type: Number,
-      enum: [0, 0.5, 1],
       default: 0,
     },
     status: {
@@ -45,7 +44,6 @@ const attendanceSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// Mỗi nhân viên chỉ có 1 bản ghi công cho mỗi ngày làm việc (Quy tắc 1)
 attendanceSchema.index({ employeeId: 1, workDate: 1 }, { unique: true });
 
 module.exports = mongoose.model("Attendance", attendanceSchema);
