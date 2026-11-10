@@ -90,14 +90,17 @@ export default function AttendancePage() {
   const handleCheckOut = async () => {
     setLoading(true);
     try {
-      const todayStr = new Date().toISOString().split("T")[0];
-      const todayRecord = attendances.find((a) => a.workDate === todayStr);
+      // Tìm chính xác ca nào đang làm dở (đã có check-in nhưng chưa có checkOutAt)
+      const ongoingRecord = attendances.find((a) => !a.checkOutAt);
 
-      const targetId = todayRecord
-        ? todayRecord._id
-        : attendances[0]?._id || "current";
+      if (!ongoingRecord) {
+        throw new Error(
+          "Bạn hiện không có ca làm việc nào đang mở để bấm Tan ca!",
+        );
+      }
+
       const res = await fetch(
-        `http://localhost:5000/api/attendances/${targetId}/check-out`,
+        `http://localhost:5000/api/attendances/${ongoingRecord._id}/check-out`,
         {
           method: "POST",
           headers: getHeaders(),
@@ -105,7 +108,7 @@ export default function AttendancePage() {
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Lỗi check-out");
-      setMessage("✅ Check-out thành công! Đã tính số phút & quy đổi công.");
+      setMessage("✅ Tan ca thành công! Ca làm đã được chốt giờ.");
       fetchAttendances();
     } catch (err: any) {
       setMessage(`❌ ${err.message}`);

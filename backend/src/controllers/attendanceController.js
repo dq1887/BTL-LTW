@@ -16,7 +16,6 @@ const SHIFT_SPECS = {
   dem: { name: "Ca đêm", standardNetMinutes: 435, breakMinutes: 45 },
 };
 
-// Hàm tự động nhận diện ca dựa trên giờ Check-in
 const detectShiftSpec = (checkInDate) => {
   const hour = new Date(checkInDate).getHours();
   if (hour >= 20 || hour < 5) return SHIFT_SPECS.dem;
@@ -25,6 +24,7 @@ const detectShiftSpec = (checkInDate) => {
   return SHIFT_SPECS.hanh_chinh;
 };
 
+// 1. Vào ca (Check-in)
 exports.checkIn = catchAsync(async (req, res, next) => {
   const employeeId = req.user ? req.user._id : req.body.employeeId;
   const { scheduleId, workDate } = req.body;
@@ -32,18 +32,27 @@ exports.checkIn = catchAsync(async (req, res, next) => {
   const todayStr = new Date().toISOString().split("T")[0];
   const targetDate = workDate || todayStr;
 
-  if (targetDate !== todayStr) {
-    return next(
-      new AppError("Chỉ cho phép điểm danh đúng ngày làm việc hiện tại!", 400),
-    );
-  }
-
-  const existingRecord = await Attendance.findOne({
+  // Kiểm tra ca chưa checkout
+  const activeShift = await Attendance.findOne({
     employeeId,
-    workDate: targetDate,
-  });
-  if (existingRecord && existingRecord.checkInAt) {
-    return next(new AppError("Bạn đã Check-in ca làm việc này rồi!", 409));
+    checkInAt: { $ne: null },
+    checkOutAt: null,
+  }).sort({ checkInAt: -1 });
+
+  if (activeShift) {
+    const shiftTimeStr = new Date(activeShift.checkInAt).toLocaleTimeString(
+      "vi-VN",
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+      },
+    );
+    return next(
+      new AppError(
+        `Bạn vẫn còn ca làm việc (bắt đầu lúc ${shiftTimeStr} ngày ${activeShift.workDate}) chưa bấm Tan ca! Vui lòng bấm Tan ca trước khi vào ca mới.`,
+        400,
+      ),
+    );
   }
 
   const attendance = await Attendance.create({
@@ -61,6 +70,7 @@ exports.checkIn = catchAsync(async (req, res, next) => {
   });
 });
 
+// 2. Tan ca (Check-out)
 exports.checkOut = catchAsync(async (req, res, next) => {
   const attendance = await Attendance.findById(req.params.id);
 
@@ -71,17 +81,15 @@ exports.checkOut = catchAsync(async (req, res, next) => {
     return next(new AppError("Chưa Check-in, không thể Check-out!", 400));
   }
   if (attendance.checkOutAt) {
-    return next(new AppError("Bản ghi đã Check-out trước đó rồi!", 409));
+    return next(new AppError("Bản ghi này đã Check-out trước đó rồi!", 409));
   }
 
   const checkOutTime = new Date();
   attendance.checkOutAt = checkOutTime;
 
-  // 1. Tính tổng thời gian thực tế có mặt (phút)
   const totalMs = checkOutTime - new Date(attendance.checkInAt);
   const totalMinutes = Math.max(0, Math.round(totalMs / 60000));
 
-  // 2. Xác định ca làm việc tương ứng
   const shift = detectShiftSpec(attendance.checkInAt);
   const breakMin =
     attendance.breakMinutes !== undefined
@@ -89,12 +97,10 @@ exports.checkOut = catchAsync(async (req, res, next) => {
       : shift.breakMinutes;
   const standardShiftMinutes = shift.standardNetMinutes;
 
-  // 3. Tính công: Chưa đủ thời gian tối thiểu của ca thì công = 0
   if (totalMinutes < standardShiftMinutes) {
     attendance.minutesWorked = totalMinutes;
     attendance.workCredit = 0;
   } else {
-    // Đã làm đủ hoặc làm quá giờ (OT): trừ thời gian nghỉ và chia cho định mức ca quy định
     const netWorkedMinutes = Math.max(0, totalMinutes - breakMin);
     attendance.minutesWorked = netWorkedMinutes;
     attendance.workCredit = Number(
@@ -111,6 +117,7 @@ exports.checkOut = catchAsync(async (req, res, next) => {
   });
 });
 
+// 3. Lấy danh sách chấm công
 exports.getAttendances = catchAsync(async (req, res, next) => {
   const { month, employeeId } = req.query;
   const currentUserId = req.user ? req.user._id : null;
@@ -118,17 +125,19 @@ exports.getAttendances = catchAsync(async (req, res, next) => {
   const userPosition = (req.user?.position || "").toLowerCase();
 
   const isBossAdmin =
-    userRole === "admin_hr" || (req.user?.email || "").includes("nam.duong");
+    userRole === "admin_hr" ||
+    userPosition.includes("giám đốc") ||
+    (req.user?.email || "").includes("nam.duong");
   const isDepartmentLead =
     userPosition.includes("trưởng phòng") || userPosition.includes("leader");
 
   const filter = {};
 
   if (isBossAdmin) {
-    // Admin HR: Thấy toàn bộ, có thể lọc theo employeeId
+    // Admin HR/Giám đốc: Thấy toàn bộ danh sách
     if (employeeId) filter.employeeId = employeeId;
   } else if (isDepartmentLead) {
-    // Trưởng phòng: Thấy tất cả ngoại trừ Admin HR
+    // Trưởng phòng: Xem cấp dưới, không xem của Admin HR
     const adminEmployees = await Employee.find({
       $or: [{ role: "admin_hr" }, { email: "nam.duong1@gmail.com" }],
     }).select("_id");
@@ -139,8 +148,10 @@ exports.getAttendances = catchAsync(async (req, res, next) => {
       filter.employeeId = employeeId;
     }
   } else {
-    // Nhân viên thông thường: Chỉ thấy bản ghi của chính mình
-    filter.employeeId = currentUserId;
+    // Nhân viên thông thường: Chỉ thấy của chính mình
+    if (currentUserId) {
+      filter.employeeId = currentUserId;
+    }
   }
 
   if (month) {
@@ -158,6 +169,7 @@ exports.getAttendances = catchAsync(async (req, res, next) => {
   });
 });
 
+// 4. Tạo khiếu nại sửa công
 exports.createAdjustment = catchAsync(async (req, res, next) => {
   const employeeId = req.user ? req.user._id : req.body.employeeId;
   const { attendanceId, requestReason, proposedIn, proposedOut } = req.body;
@@ -191,6 +203,7 @@ exports.createAdjustment = catchAsync(async (req, res, next) => {
   });
 });
 
+// 5. Lấy danh sách duyệt sửa công
 exports.getAdjustments = catchAsync(async (req, res, next) => {
   const adjustments = await AttendanceAdjustment.find()
     .populate("employeeId", "fullName employeeCode email")
@@ -204,6 +217,7 @@ exports.getAdjustments = catchAsync(async (req, res, next) => {
   });
 });
 
+// 6. Duyệt khiếu nại
 exports.approveAdjustment = catchAsync(async (req, res, next) => {
   const adjustment = await AttendanceAdjustment.findById(req.params.id);
 

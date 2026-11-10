@@ -1,33 +1,33 @@
 const mongoose = require("mongoose");
 
-const adjustmentSchema = new mongoose.Schema(
+const attendanceAdjustmentSchema = new mongoose.Schema(
   {
     attendanceId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Attendance",
-      required: [true, "Thiếu attendanceId"],
+      required: true,
     },
     employeeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Employee",
-      required: [true, "Thiếu employeeId"],
+      required: true,
     },
     requestReason: {
       type: String,
-      required: [true, "Thiếu lý do sửa công"],
+      required: true,
     },
     proposedIn: {
       type: Date,
-      required: [true, "Thiếu giờ vào đề xuất"],
+      required: true,
     },
     proposedOut: {
       type: Date,
-      required: [true, "Thiếu giờ ra đề xuất"],
+      required: true,
     },
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
-      default: "pending", // Ban đầu luôn là pending (Quy tắc 5)
+      default: "pending",
     },
     reviewedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -44,6 +44,6 @@ const adjustmentSchema = new mongoose.Schema(
 
 module.exports = mongoose.model(
   "AttendanceAdjustment",
-  adjustmentSchema,
-  "attendanceAdjustments",
+  attendanceAdjustmentSchema,
+  "attendanceadjustments",
 );
