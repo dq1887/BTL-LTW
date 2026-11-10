@@ -44,7 +44,7 @@ const login = async (req, res) => {
     const token = jwt.sign(
       { id: employee._id, role: employee.role },
       process.env.JWT_SECRET || "HRM_SECRET_KEY",
-      { expiresIn: process.env.JWT_EXPIRES_IN || "1d" },
+      { expiresIn: "7d" },
     );
 
     res.status(200).json({

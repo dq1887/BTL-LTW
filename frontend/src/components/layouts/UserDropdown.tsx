@@ -11,6 +11,11 @@ export default function UserDropdown() {
   const handleLogout = () => {
     if (confirm("Bạn có chắc chắn muốn đăng xuất không?")) {
       authService.logout();
+      localStorage.removeItem("token");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
+      localStorage.clear();
+      window.location.href = "/login";
     }
   };
 

@@ -51,11 +51,25 @@ export default function AttendancePage() {
         headers: getHeaders(),
       });
       const result = await res.json();
+
+      if (!res.ok) {
+        if (
+          result.message?.includes("Token") ||
+          result.message?.includes("hết hạn")
+        ) {
+          localStorage.clear();
+          window.location.href = "/login";
+          return;
+        }
+        throw new Error(result.message);
+      }
+
       if (result.data) {
         setAttendances(result.data);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Lỗi fetch attendances:", err);
+      setMessage(`❌ ${err.message || "Lỗi tải dữ liệu"}`);
     }
   };
 
@@ -86,11 +100,9 @@ export default function AttendancePage() {
     }
   };
 
-  // 2. Check-out (Tan ca)
   const handleCheckOut = async () => {
     setLoading(true);
     try {
-      // Tìm chính xác ca nào đang làm dở (đã có check-in nhưng chưa có checkOutAt)
       const ongoingRecord = attendances.find((a) => !a.checkOutAt);
 
       if (!ongoingRecord) {
