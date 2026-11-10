@@ -13,7 +13,6 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Xử lý gửi form đăng nhập
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) {
@@ -25,7 +24,7 @@ export const Login: React.FC = () => {
       setLoading(true);
       setErrorMessage(null);
       await authService.login(email.trim(), password);
-      // Đăng nhập thành công, chuyển hướng đến trang tổng quan Dashboard
+
       navigate("/dashboard");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Đăng nhập thất bại!";
@@ -35,7 +34,6 @@ export const Login: React.FC = () => {
     }
   };
 
-  // Hàm chọn nhanh tài khoản mẫu (Demo)
   const handleSelectDemo = (demoEmail: string) => {
     setEmail(demoEmail);
     setPassword("123456");
@@ -67,8 +65,6 @@ export const Login: React.FC = () => {
           <h1>HRM System</h1>
           <p>Hệ thống Quản lý Nhân sự & Phân ca</p>
         </div>
-
-        {/* Thông báo lỗi */}
         {errorMessage && (
           <div className="login-error">
             <span>⚠️</span>
@@ -76,7 +72,6 @@ export const Login: React.FC = () => {
           </div>
         )}
 
-        {/* Form đăng nhập */}
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email">Email công ty</label>
@@ -116,12 +111,56 @@ export const Login: React.FC = () => {
             </div>
           </div>
 
-          <div className="form-options">
-            <label className="remember-me">
-              <input type="checkbox" defaultChecked />
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              width: "100%",
+              marginTop: "16px",
+              marginBottom: "24px",
+              boxSizing: "border-box",
+            }}
+          >
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                cursor: "pointer",
+                fontSize: "14px",
+                color: "#475569",
+                whiteSpace: "nowrap",
+                userSelect: "none",
+                margin: 0,
+              }}
+            >
+              <input
+                type="checkbox"
+                defaultChecked
+                style={{
+                  margin: 0,
+                  width: "16px",
+                  height: "16px",
+                  cursor: "pointer",
+                  accentColor: "#2563eb",
+                }}
+              />
               <span>Ghi nhớ đăng nhập</span>
             </label>
-            <span className="forgot-password">Quên mật khẩu?</span>
+
+            <span
+              className="forgot-password"
+              style={{
+                fontSize: "14px",
+                color: "#2563eb",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                fontWeight: "500",
+              }}
+            >
+              Quên mật khẩu?
+            </span>
           </div>
 
           <button type="submit" className="btn-submit" disabled={loading}>
@@ -129,7 +168,6 @@ export const Login: React.FC = () => {
           </button>
         </form>
 
-        {/* Khối gợi ý tài khoản Demo cho BTL */}
         <div className="demo-accounts">
           <div className="demo-title">⚡ Chọn nhanh tài khoản Demo (BTL):</div>
           <div className="demo-chips">
@@ -169,4 +207,3 @@ export const Login: React.FC = () => {
     </div>
   );
 };
-
