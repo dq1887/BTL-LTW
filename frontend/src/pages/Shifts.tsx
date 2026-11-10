@@ -39,7 +39,7 @@ export const Shifts: React.FC = () => {
 
   // Mở modal thêm mới
   const handleOpenAddModal = () => {
-    setCurrentShift({ name: "", startTime: "", endTime: "", breakMinutes: 0 });
+    setCurrentShift({ name: "", startTime: "", endTime: "" });
     setIsEditing(false);
     setIsModalOpen(true);
   };
@@ -74,7 +74,6 @@ export const Shifts: React.FC = () => {
         name: currentShift.name.trim(),
         startTime: currentShift.startTime,
         endTime: currentShift.endTime,
-        breakMinutes: Number(currentShift.breakMinutes) || 0,
       };
 
       if (isEditing && currentShift._id) {
@@ -107,7 +106,8 @@ export const Shifts: React.FC = () => {
       alert("Đã xóa ca làm việc thành công!");
       await loadShifts();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Không thể xóa ca làm!";
+      const message =
+        err instanceof Error ? err.message : "Không thể xóa ca làm!";
       alert(message);
     }
   };
@@ -124,8 +124,8 @@ export const Shifts: React.FC = () => {
               {currentUser?.role === "admin_hr"
                 ? "Admin HR (Toàn quyền)"
                 : currentUser?.role === "manager"
-                ? "Trưởng phòng (Thêm/Sửa)"
-                : "Nhân viên (Chỉ xem)"}
+                  ? "Trưởng phòng (Thêm/Sửa)"
+                  : "Nhân viên (Chỉ xem)"}
             </strong>
           </small>
         </div>
@@ -138,7 +138,15 @@ export const Shifts: React.FC = () => {
 
       {/* Hiển thị lỗi nếu có */}
       {error && (
-        <div style={{ color: "#ef4444", marginBottom: "16px", padding: "10px", background: "#fee2e2", borderRadius: "6px" }}>
+        <div
+          style={{
+            color: "#ef4444",
+            marginBottom: "16px",
+            padding: "10px",
+            background: "#fee2e2",
+            borderRadius: "6px",
+          }}
+        >
           ⚠️ {error}
         </div>
       )}
@@ -146,7 +154,9 @@ export const Shifts: React.FC = () => {
       {/* Bảng danh sách ca */}
       <div className="table-card">
         {loading ? (
-          <div style={{ textAlign: "center", padding: "30px", color: "#64748b" }}>
+          <div
+            style={{ textAlign: "center", padding: "30px", color: "#64748b" }}
+          >
             Đang tải dữ liệu từ máy chủ...
           </div>
         ) : (
@@ -156,7 +166,6 @@ export const Shifts: React.FC = () => {
                 <th>Tên ca</th>
                 <th>Giờ bắt đầu</th>
                 <th>Giờ kết thúc</th>
-                <th>Thời gian nghỉ (phút)</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
@@ -172,7 +181,6 @@ export const Shifts: React.FC = () => {
                   <td>
                     <span className="badge-time">{shift.endTime}</span>
                   </td>
-                  <td>{shift.breakMinutes} phút</td>
                   <td>
                     {canAddOrEdit && (
                       <button
@@ -209,7 +217,7 @@ export const Shifts: React.FC = () => {
               {shifts.length === 0 && !loading && (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={4}
                     style={{
                       textAlign: "center",
                       color: "#94a3b8",
@@ -279,20 +287,6 @@ export const Shifts: React.FC = () => {
                   required
                 />
               </div>
-              <div className="form-group">
-                <label>Thời gian nghỉ giữa ca (phút)</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={currentShift.breakMinutes ?? ""}
-                  onChange={(e) =>
-                    setCurrentShift({
-                      ...currentShift,
-                      breakMinutes: Number(e.target.value),
-                    })
-                  }
-                />
-              </div>
               <div className="modal-footer">
                 <button
                   type="button"
@@ -302,12 +296,16 @@ export const Shifts: React.FC = () => {
                 >
                   Hủy
                 </button>
-                <button type="submit" className="btn-primary" disabled={submitting}>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={submitting}
+                >
                   {submitting
                     ? "Đang lưu..."
                     : isEditing
-                    ? "Cập nhật"
-                    : "Thêm mới"}
+                      ? "Cập nhật"
+                      : "Thêm mới"}
                 </button>
               </div>
             </form>
