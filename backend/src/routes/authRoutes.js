@@ -1,8 +1,12 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { login } = require('../controllers/authController');
+const { login } = require("../controllers/authController");
+router.post("/login", login);
+const {
+  changePassword,
+  getLoginHistory,
+} = require("../controllers/authController");
 
-// API đăng nhập: POST /api/auth/login
-router.post('/login', login);
-
+router.put("/change-password", changePassword);
+router.get("/login-history", getLoginHistory);
 module.exports = router;

@@ -5,6 +5,7 @@ import { Shifts } from "./pages/Shifts";
 import { Login } from "./pages/Login";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Profile from "./pages/Profile";
+import AccountSettings from "./pages/AccountSettings";
 import AttendancePage from "./pages/AttendancePage";
 import AdjustmentsPage from "./pages/AdjustmentsPage";
 
@@ -31,6 +32,7 @@ function App() {
                     path="/attendance-adjustments"
                     element={<AdjustmentsPage />}
                   />
+                  <Route path="/settings" element={<AccountSettings />} />
                   <Route
                     path="*"
                     element={<Navigate to="/dashboard" replace />}

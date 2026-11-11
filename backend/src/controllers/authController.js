@@ -47,6 +47,23 @@ const login = async (req, res) => {
       { expiresIn: "7d" },
     );
 
+    const ip =
+      req.headers["x-forwarded-for"] || req.socket.remoteAddress || "127.0.0.1";
+    const userAgent = req.headers["user-agent"] || "Web Browser";
+    let device = "PC / Windows";
+    if (/mobile/i.test(userAgent)) device = "Mobile / Smartphone";
+    else if (/chrome/i.test(userAgent)) device = "Chrome Browser (PC)";
+    else if (/firefox/i.test(userAgent)) device = "Firefox (PC)";
+
+    employee.loginHistory = employee.loginHistory || [];
+    employee.loginHistory.unshift({
+      loginAt: new Date(),
+      ip: String(ip).replace("::ffff:", ""),
+      device: device,
+    });
+    if (employee.loginHistory.length > 10) employee.loginHistory.pop();
+    await employee.save({ validateBeforeSave: false });
+
     res.status(200).json({
       token,
       user: {
@@ -67,4 +84,82 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { login };
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    const employeeId = req.user ? req.user._id : req.body.employeeId;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng nhập đầy đủ thông tin!",
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Mật khẩu mới và xác nhận mật khẩu không khớp!",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "Mật khẩu mới phải có ít nhất 6 ký tự!",
+      });
+    }
+
+    const employee = await Employee.findById(employeeId).select("+password");
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy tài khoản nhân viên!",
+      });
+    }
+
+    let isMatch = false;
+    if (
+      employee.password &&
+      (employee.password.startsWith("$2a$") ||
+        employee.password.startsWith("$2b$"))
+    ) {
+      isMatch = await bcrypt.compare(currentPassword, employee.password);
+    } else {
+      isMatch = employee.password === currentPassword;
+    }
+
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Mật khẩu hiện tại không chính xác!",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    employee.password = await bcrypt.hash(newPassword, salt);
+    await employee.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      success: true,
+      message: "Đổi mật khẩu thành công! Hãy đăng nhập lại bằng mật khẩu mới.",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getLoginHistory = async (req, res) => {
+  try {
+    const employeeId = req.user ? req.user._id : req.query.employeeId;
+    const employee = await Employee.findById(employeeId).select("loginHistory");
+    res.status(200).json({
+      success: true,
+      data: employee?.loginHistory || [],
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = { login, changePassword, getLoginHistory };

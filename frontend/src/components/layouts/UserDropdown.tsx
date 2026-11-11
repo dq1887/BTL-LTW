@@ -61,7 +61,13 @@ export default function UserDropdown() {
           >
             <Icon name="user" size={16} /> Hồ sơ cá nhân
           </button>
-          <button>
+          <button
+            onClick={() => {
+              setOpen(false);
+              navigate("/settings");
+            }}
+            style={{ cursor: "pointer" }}
+          >
             <Icon name="settings" size={16} /> Cài đặt tài khoản
           </button>
           <button className="dropdown-logout" onClick={handleLogout}>
