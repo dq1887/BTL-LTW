@@ -4,6 +4,8 @@ import Dashboard from "./components/layouts/Dashboard";
 import { Shifts } from "./pages/Shifts";
 import { Login } from "./pages/Login";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { Employees } from "./pages/Employees";
+import { Departments } from "./pages/Departments";
 import Profile from "./pages/Profile";
 import AccountSettings from "./pages/AccountSettings";
 import AttendancePage from "./pages/AttendancePage";
@@ -26,6 +28,8 @@ function App() {
                   />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/employees" element={<Employees />} />
+                  <Route path="/departments" element={<Departments />} />
                   <Route path="/shifts" element={<Shifts />} />
                   <Route path="/attendance" element={<AttendancePage />} />
                   <Route
