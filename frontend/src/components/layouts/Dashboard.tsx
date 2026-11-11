@@ -316,7 +316,7 @@ export default function Dashboard() {
               marginTop: "38px",
               fontSize: "13px",
               fontWeight: "600",
-              color: "#475569",
+              color: "#88a7e6ff",
             }}
           >
             <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
