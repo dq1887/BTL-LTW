@@ -4,27 +4,6 @@ const AttendanceAdjustment = require("../models/AttendanceAdjustment");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 
-// Bảng cấu hình định mức các ca theo danh mục TV2
-const SHIFT_SPECS = {
-  hanh_chinh: {
-    name: "Ca hành chính",
-    standardNetMinutes: 480,
-    breakMinutes: 60,
-  },
-  sang: { name: "Ca sáng", standardNetMinutes: 255, breakMinutes: 15 },
-  chieu: { name: "Ca chiều", standardNetMinutes: 255, breakMinutes: 15 },
-  dem: { name: "Ca đêm", standardNetMinutes: 435, breakMinutes: 45 },
-};
-
-const detectShiftSpec = (checkInDate) => {
-  const hour = new Date(checkInDate).getHours();
-  if (hour >= 20 || hour < 5) return SHIFT_SPECS.dem;
-  if (hour >= 6 && hour < 10) return SHIFT_SPECS.hanh_chinh;
-  if (hour >= 12 && hour < 16) return SHIFT_SPECS.chieu;
-  return SHIFT_SPECS.hanh_chinh;
-};
-
-// 1. Vào ca (Check-in)
 exports.checkIn = catchAsync(async (req, res, next) => {
   const employeeId = req.user ? req.user._id : req.body.employeeId;
   const { scheduleId, workDate } = req.body;
@@ -32,7 +11,6 @@ exports.checkIn = catchAsync(async (req, res, next) => {
   const todayStr = new Date().toISOString().split("T")[0];
   const targetDate = workDate || todayStr;
 
-  // Kiểm tra ca chưa checkout
   const activeShift = await Attendance.findOne({
     employeeId,
     checkInAt: { $ne: null },
@@ -70,7 +48,6 @@ exports.checkIn = catchAsync(async (req, res, next) => {
   });
 });
 
-// 2. Tan ca (Check-out)
 exports.checkOut = catchAsync(async (req, res, next) => {
   const attendance = await Attendance.findById(req.params.id);
 
@@ -86,27 +63,14 @@ exports.checkOut = catchAsync(async (req, res, next) => {
 
   const checkOutTime = new Date();
   attendance.checkOutAt = checkOutTime;
+  const totalMs =
+    checkOutTime.getTime() - new Date(attendance.checkInAt).getTime();
+  const minutesWorked = Math.max(0, Math.floor(totalMs / (1000 * 60)));
+  const workCredit = Math.round((minutesWorked / 480) * 10) / 10;
 
-  const totalMs = checkOutTime - new Date(attendance.checkInAt);
-  const totalMinutes = Math.max(0, Math.round(totalMs / 60000));
-
-  const shift = detectShiftSpec(attendance.checkInAt);
-  const breakMin =
-    attendance.breakMinutes !== undefined
-      ? attendance.breakMinutes
-      : shift.breakMinutes;
-  const standardShiftMinutes = shift.standardNetMinutes;
-
-  if (totalMinutes < standardShiftMinutes) {
-    attendance.minutesWorked = totalMinutes;
-    attendance.workCredit = 0;
-  } else {
-    const netWorkedMinutes = Math.max(0, totalMinutes - breakMin);
-    attendance.minutesWorked = netWorkedMinutes;
-    attendance.workCredit = Number(
-      (netWorkedMinutes / standardShiftMinutes).toFixed(1),
-    );
-  }
+  attendance.minutesWorked = minutesWorked;
+  attendance.workCredit = workCredit;
+  attendance.status = minutesWorked > 0 ? "present" : "absent";
 
   await attendance.save();
 
@@ -117,7 +81,6 @@ exports.checkOut = catchAsync(async (req, res, next) => {
   });
 });
 
-// 3. Lấy danh sách chấm công
 exports.getAttendances = catchAsync(async (req, res, next) => {
   const { month, employeeId } = req.query;
   const currentUserId = req.user ? req.user._id : null;
@@ -134,10 +97,8 @@ exports.getAttendances = catchAsync(async (req, res, next) => {
   const filter = {};
 
   if (isBossAdmin) {
-    // Admin HR/Giám đốc: Thấy toàn bộ danh sách
     if (employeeId) filter.employeeId = employeeId;
   } else if (isDepartmentLead) {
-    // Trưởng phòng: Xem cấp dưới, không xem của Admin HR
     const adminEmployees = await Employee.find({
       $or: [{ role: "admin_hr" }, { email: "nam.duong1@gmail.com" }],
     }).select("_id");
@@ -148,7 +109,6 @@ exports.getAttendances = catchAsync(async (req, res, next) => {
       filter.employeeId = employeeId;
     }
   } else {
-    // Nhân viên thông thường: Chỉ thấy của chính mình
     if (currentUserId) {
       filter.employeeId = currentUserId;
     }
@@ -169,7 +129,6 @@ exports.getAttendances = catchAsync(async (req, res, next) => {
   });
 });
 
-// 4. Tạo khiếu nại sửa công
 exports.createAdjustment = catchAsync(async (req, res, next) => {
   const employeeId = req.user ? req.user._id : req.body.employeeId;
   const { attendanceId, requestReason, proposedIn, proposedOut } = req.body;
@@ -203,7 +162,6 @@ exports.createAdjustment = catchAsync(async (req, res, next) => {
   });
 });
 
-// 5. Lấy danh sách duyệt sửa công
 exports.getAdjustments = catchAsync(async (req, res, next) => {
   const adjustments = await AttendanceAdjustment.find()
     .populate("employeeId", "fullName employeeCode email")
@@ -217,7 +175,6 @@ exports.getAdjustments = catchAsync(async (req, res, next) => {
   });
 });
 
-// 6. Duyệt khiếu nại
 exports.approveAdjustment = catchAsync(async (req, res, next) => {
   const adjustment = await AttendanceAdjustment.findById(req.params.id);
 
@@ -238,15 +195,14 @@ exports.approveAdjustment = catchAsync(async (req, res, next) => {
   if (attendance) {
     attendance.checkInAt = adjustment.proposedIn;
     attendance.checkOutAt = adjustment.proposedOut;
-
     const workedMs =
-      new Date(adjustment.proposedOut) - new Date(adjustment.proposedIn);
-    const workedMinutes = Math.round(workedMs / 60000);
-    const breakMin = attendance.breakMinutes || 60;
-    const actualMinutes = Math.max(0, workedMinutes - breakMin);
-    attendance.minutesWorked = actualMinutes;
+      new Date(adjustment.proposedOut).getTime() -
+      new Date(adjustment.proposedIn).getTime();
+    const minutesWorked = Math.max(0, Math.floor(workedMs / (1000 * 60)));
+    const workCredit = Math.round((minutesWorked / 480) * 10) / 10;
 
-    attendance.workCredit = Number((actualMinutes / 480).toFixed(1));
+    attendance.minutesWorked = minutesWorked;
+    attendance.workCredit = workCredit;
     await attendance.save();
   }
 

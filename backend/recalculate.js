@@ -1,91 +1,61 @@
 const path = require("path");
+const dns = require("dns");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 dotenv.config({ path: path.join(__dirname, ".env") });
 
-const Attendance = require("./src/models/Attendance");
-
-const run = async () => {
+const recalculateAll = async () => {
   try {
     const mongoUri =
       process.env.MONGO_URI ||
       process.env.MONGODB_URI ||
       "mongodb+srv://admin:admin@hrm-database.87l2z1y.mongodb.net/EmployeeManagement?retryWrites=true&w=majority";
 
+    console.log(">>> Đang kết nối MongoDB Atlas...");
     await mongoose.connect(mongoUri);
-    console.log("Đã kết nối MongoDB thành công!");
+    console.log(">>> Đã kết nối thành công!");
 
-    const list = await Attendance.find({});
-    console.log(
-      `Bắt đầu chuẩn hóa ${list.length} bản ghi chấm công về đúng ca quy định...`,
-    );
+    const collectionsToFix = ["attendances", "attendanceadjustments"];
 
-    let count = 0;
-    for (const item of list) {
-      const dateStr = item.workDate;
-      if (!dateStr) continue;
+    for (const colName of collectionsToFix) {
+      const col = mongoose.connection.db.collection(colName);
+      const records = await col.find({ checkOutAt: { $ne: null } }).toArray();
 
-      const isToday = dateStr === new Date().toISOString().split("T")[0];
-      if (isToday && item.checkOutAt) {
-        const totalMs = new Date(item.checkOutAt) - new Date(item.checkInAt);
-        const totalMinutes = Math.max(0, Math.round(totalMs / 60000));
-        const breakMin =
-          item.breakMinutes !== undefined ? item.breakMinutes : 45;
+      if (records.length === 0) continue;
+      console.log(
+        `>>> Đang xử lý ${records.length} bản ghi tại collection '${colName}'...`,
+      );
 
-        if (totalMinutes < 480) {
-          item.minutesWorked = totalMinutes;
-          item.workCredit = 0;
-        } else {
-          const netMinutes = Math.max(0, totalMinutes - breakMin);
-          item.minutesWorked = netMinutes;
-          item.workCredit = Number((netMinutes / 480).toFixed(1));
+      for (const record of records) {
+        if (record.checkInAt && record.checkOutAt) {
+          const inTime = new Date(record.checkInAt).getTime();
+          let outTime = new Date(record.checkOutAt).getTime();
+
+          if (outTime < inTime) {
+            outTime += 24 * 60 * 60 * 1000;
+          }
+
+          const diffMs = outTime - inTime;
+          const minutesWorked = Math.max(0, Math.floor(diffMs / (1000 * 60)));
+
+          const workCredit = Math.round((minutesWorked / 480) * 10) / 10;
+
+          await col.updateOne(
+            { _id: record._id },
+            { $set: { minutesWorked, workCredit } },
+          );
         }
-        await item.save();
-        continue;
       }
-
-      const dayNum = parseInt(dateStr.split("-")[2], 10) || 1;
-
-      if (dayNum % 4 === 0) {
-        const nextDay = new Date(`${dateStr}T00:00:00.000Z`);
-        nextDay.setDate(nextDay.getDate() + 1);
-        const nextDayStr = nextDay.toISOString().split("T")[0];
-
-        item.checkInAt = new Date(`${dateStr}T22:00:00.000+07:00`);
-        item.checkOutAt = new Date(`${nextDayStr}T06:00:00.000+07:00`);
-        item.breakMinutes = 45;
-        item.minutesWorked = 435;
-        item.workCredit = 1;
-        item.status = "present";
-      } else if (dayNum % 5 === 0) {
-        item.checkInAt = new Date(`${dateStr}T07:00:00.000+07:00`);
-        item.checkOutAt = new Date(`${dateStr}T11:30:00.000+07:00`);
-        item.breakMinutes = 15;
-        item.minutesWorked = 255;
-        item.workCredit = 0.5;
-        item.status = "present";
-      } else {
-        item.checkInAt = new Date(`${dateStr}T08:00:00.000+07:00`);
-        item.checkOutAt = new Date(`${dateStr}T17:00:00.000+07:00`);
-        item.breakMinutes = 60;
-        item.minutesWorked = 480;
-        item.workCredit = 1;
-        item.status = "present";
-      }
-
-      await item.save();
-      count++;
     }
 
-    console.log(
-      `=> Đã chuẩn hóa thành công ${count} bản ghi về đúng ca cố định!`,
-    );
+    console.log("✅ HOÀN TẤT: Toàn bộ dữ liệu đã được tính lại chuẩn xác!");
     process.exit(0);
-  } catch (error) {
-    console.error("Lỗi:", error.message);
+  } catch (err) {
+    console.error("❌ Lỗi:", err.message);
     process.exit(1);
   }
 };
 
-run();
+recalculateAll();

@@ -3,6 +3,23 @@ import Icon from "./Icons";
 import "./Dashboard.css";
 import { authService } from "../../services/authService";
 
+const today = new Date();
+const dayNames = [
+  "Chủ Nhật",
+  "Thứ Hai",
+  "Thứ Ba",
+  "Thứ Tư",
+  "Thứ Năm",
+  "Thứ Sáu",
+  "Thứ Bảy",
+];
+const dayOfWeek = dayNames[today.getDay()];
+const day = String(today.getDate()).padStart(2, "0");
+const month = String(today.getMonth() + 1).padStart(2, "0");
+const year = today.getFullYear();
+
+const formattedDate = `${dayOfWeek}, ${day}/${month}/${year}`;
+
 const stats = [
   {
     title: "Tổng nhân viên",
@@ -38,7 +55,6 @@ const stats = [
   },
 ] as const;
 
-// 5 phòng ban chuẩn MongoDB (Mỗi phòng 10 người, tổng 50 người)
 const departments = [
   { name: "Hành chính NS", values: [5, 5] },
   { name: "Kinh doanh", values: [6, 4] },
@@ -85,9 +101,7 @@ export default function Dashboard() {
   const currentUser = authService.getCurrentUser();
   const userName = currentUser?.fullName || currentUser?.name || "Bạn";
   const userRole = currentUser?.role || "admin_hr";
-
   const [period, setPeriod] = useState<"week" | "month" | "year">("month");
-  // State quản lý hiển thị Modal Giám sát hệ thống
   const [showSystemHealth, setShowSystemHealth] = useState(false);
 
   return (
@@ -100,7 +114,7 @@ export default function Dashboard() {
           <p>Chúc bạn có một ngày làm việc hiệu quả!</p>
         </div>
         <div className="today-date">
-          <Icon name="calendar" size={18} /> Thứ Ba, 04/11/2026
+          <Icon name="calendar" size={18} /> <span>{formattedDate}</span>
         </div>
       </div>
 
@@ -181,7 +195,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* ĐỒ THỊ CĂN CHUẨN VẠCH CHIA 15 - 10 - 5 - 0 */}
           <div
             style={{
               display: "flex",
@@ -416,7 +429,6 @@ export default function Dashboard() {
           </div>
         </article>
 
-        {/* THẺ PROMO ĐƯỢC GẮN SỰ KIỆN onClick */}
         <article className="promo-card">
           <div>
             <h2>HRM Internal</h2>
@@ -431,10 +443,8 @@ export default function Dashboard() {
         </article>
       </section>
 
-      {/* MODAL GIÁM SÁT HỆ THỐNG & API HEALTH */}
       {showSystemHealth && (
         <div
-          /* 1. Click vào khoảng đen bên ngoài là tự thoát */
           onClick={() => setShowSystemHealth(false)}
           style={{
             position: "fixed",
@@ -449,7 +459,6 @@ export default function Dashboard() {
           }}
         >
           <div
-            /* 2. Chặn nổi bọt sự kiện: Click bên trong khung trắng KHÔNG bị đóng */
             onClick={(e) => e.stopPropagation()}
             style={{
               backgroundColor: "#ffffff",
@@ -464,7 +473,6 @@ export default function Dashboard() {
               fontFamily: "inherit",
             }}
           >
-            {/* Header Modal */}
             <div
               style={{
                 display: "flex",
@@ -525,7 +533,6 @@ export default function Dashboard() {
               </button>
             </div>
 
-            {/* Thông số kỹ thuật */}
             <div
               style={{
                 display: "flex",
@@ -534,7 +541,6 @@ export default function Dashboard() {
                 marginBottom: "16px",
               }}
             >
-              {/* Database */}
               <div
                 style={{
                   display: "flex",
@@ -586,7 +592,6 @@ export default function Dashboard() {
                 </span>
               </div>
 
-              {/* Express Server */}
               <div
                 style={{
                   display: "flex",
@@ -637,7 +642,6 @@ export default function Dashboard() {
                 </span>
               </div>
 
-              {/* JWT Auth */}
               <div
                 style={{
                   display: "flex",
@@ -680,7 +684,6 @@ export default function Dashboard() {
                 </span>
               </div>
 
-              {/* Cụm API toàn bộ hệ thống */}
               <div
                 style={{
                   padding: "14px 16px",
@@ -770,7 +773,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Footer */}
             <div
               style={{
                 display: "flex",

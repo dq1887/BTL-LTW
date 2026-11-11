@@ -420,12 +420,10 @@ export default function AttendancePage() {
                     {att.minutesWorked || 0} phút
                   </td>
                   <td style={{ padding: "14px 20px", fontWeight: "700" }}>
-                    <span
-                      style={{
-                        color: att.workCredit > 1 ? "#16a34a" : "#0f172a",
-                      }}
-                    >
-                      {att.workCredit}
+                    <span style={{ color: "#0f172a" }}>
+                      {att.workCredit !== undefined && att.workCredit !== null
+                        ? att.workCredit
+                        : 0}
                     </span>
                   </td>
                   <td style={{ padding: "14px 20px" }}>
