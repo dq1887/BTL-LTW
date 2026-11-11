@@ -1,5 +1,5 @@
-#                                         BÀI TẬP LỚN MÔN LẬP TRÌNH WEB
-#                        DỰ ÁN HRM INTERNAL - HỆ THỐNG QUẢN LÝ NHÂN SỰ & CHẤM CÔNG NỘI BỘ
+# BÀI TẬP LỚN MÔN LẬP TRÌNH WEB
+# DỰ ÁN HRM INTERNAL - HỆ THỐNG QUẢN LÝ NHÂN SỰ & CHẤM CÔNG NỘI BỘ
 
 **Quy mô:** nhóm 5 thành viên (Mô hình Fullstack khép kín 5 Module)
 
@@ -53,10 +53,6 @@ Hệ thống được phát triển dựa trên hệ sinh thái JavaScript toàn
 ## 4. Cấu trúc thư mục
 
 ```
-
-```
-## 5. Hướng dẫn cài đặt
-
 BTL-LTW
 ├── backend/
 |   ├── src/
@@ -87,3 +83,6 @@ BTL-LTW
 │
 ├── .gitignore                    # Cấu hình Git toàn dự án
 └── README.md                     # Tài liệu giới thiệu dự án
+```
+## 5. Hướng dẫn cài đặt
+

@@ -11,9 +11,12 @@ import AccountSettings from "./pages/AccountSettings";
 import AttendancePage from "./pages/AttendancePage";
 import AdjustmentsPage from "./pages/AdjustmentsPage";
 
+import { ThemeProvider } from "./context/ThemeContext";
+
 function App() {
   return (
-    <BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route element={<ProtectedRoute />}>
@@ -48,7 +51,8 @@ function App() {
         </Route>
       </Routes>
     </BrowserRouter>
-  );
+  </ThemeProvider>
+);
 }
 
 export default App;

@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import Icon from "./Icons";
 import type { ComponentProps } from "react";
 import { authService } from "../../services/authService";
+import { useTheme } from "../../context/ThemeContext";
 
 type SidebarProps = { collapsed: boolean };
 
@@ -21,6 +22,7 @@ const menu = [
 export default function Sidebar({ collapsed }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isDark, toggleTheme } = useTheme();
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -73,10 +75,16 @@ export default function Sidebar({ collapsed }: SidebarProps) {
       </nav>
 
       <div className="sidebar-bottom">
-        <div className="theme-switch" title="Giao diện">
-          <span>☾</span>
-          <span>☼</span>
-        </div>
+        <button
+          type="button"
+          className={`theme-switch ${isDark ? "dark-mode" : "light-mode"}`}
+          onClick={toggleTheme}
+          title={isDark ? "Đang ở chế độ Tối (bấm để chuyển Sáng)" : "Đang ở chế độ Sáng (bấm để chuyển Tối)"}
+          aria-label="Chuyển chế độ sáng tối"
+        >
+          <span className={`theme-opt ${isDark ? "active" : ""}`}>☾</span>
+          <span className={`theme-opt ${!isDark ? "active" : ""}`}>☼</span>
+        </button>
         <button
           className="logout-link"
           onClick={handleLogout}

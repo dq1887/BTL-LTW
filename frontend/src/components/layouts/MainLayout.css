@@ -150,16 +150,43 @@ button {
 }
 .theme-switch {
   width: 78px;
-  height: 34px;
+  height: 36px;
   margin: 0 auto 16px;
-  border: 1px solid #ffffff25;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 20px;
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  color: #e6edff;
-  background: #ffffff0b;
-  font-size: 19px;
+  justify-content: space-between;
+  padding: 3px 4px;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.25s ease;
+}
+.theme-switch:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.theme-opt {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: #a5b4fc;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.theme-switch.dark-mode .theme-opt.active {
+  background: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+.theme-switch.light-mode .theme-opt.active {
+  background: #f59e0b;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 .logout-link {
   min-height: 45px;
@@ -420,3 +447,659 @@ button {
     padding: 18px 13px 28px;
   }
 }
+
+/* ==========================================================================
+   CHẾ ĐỘ TỐI TOÀN DIỆN (DARK MODE ĐẸP MẮT & RÕ NÉT)
+   ========================================================================== */
+
+html.dark,
+html.dark body,
+html.dark .app-shell,
+html.dark .main-area {
+  background-color: #0b1120 !important;
+  color: #f1f5f9 !important;
+}
+
+/* --------------------------------------------------------------------------
+   1. HEADER & TOPBAR (CHẾ ĐỘ TỐI)
+   -------------------------------------------------------------------------- */
+html.dark .topbar {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border-bottom: 1px solid #1e293b !important;
+  backdrop-filter: blur(10px);
+}
+
+html.dark .sidebar-toggle {
+  color: #cbd5e1;
+}
+
+html.dark .sidebar-toggle:hover {
+  background: #1e293b;
+  color: #60a5fa;
+}
+
+html.dark .global-search {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: #94a3b8 !important;
+}
+
+html.dark .global-search input {
+  color: #f8fafc !important;
+}
+
+html.dark .global-search input::placeholder {
+  color: #64748b;
+}
+
+html.dark .notification-button {
+  color: #cbd5e1;
+}
+
+html.dark .notification-button:hover {
+  background: #1e293b;
+  color: #60a5fa;
+}
+
+html.dark .user-profile {
+  border-left-color: #1e293b;
+  color: #f8fafc;
+}
+
+html.dark .user-info strong {
+  color: #f8fafc;
+}
+
+html.dark .user-info small {
+  color: #94a3b8;
+}
+
+html.dark .user-dropdown {
+  background: #1e293b;
+  border: 1px solid #334155;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+}
+
+html.dark .user-dropdown button {
+  color: #e2e8f0;
+}
+
+html.dark .user-dropdown button:hover {
+  background: #334155;
+  color: #60a5fa;
+}
+
+/* --------------------------------------------------------------------------
+   2. TRANG TỔNG QUAN (DASHBOARD) - HÌNH ẢNH, BIỂU ĐỒ VÀ CHỮ
+   -------------------------------------------------------------------------- */
+html.dark .welcome-row h1 {
+  color: #f8fafc !important;
+}
+
+html.dark .welcome-row p {
+  color: #94a3b8 !important;
+}
+
+html.dark .today-date {
+  background: #1e293b;
+  color: #93c5fd;
+  border: 1px solid #334155;
+}
+
+/* 4 Thẻ Stat Cards đa màu sắc ở Dashboard */
+html.dark .stat-card {
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+html.dark .stat-card.blue {
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.5), #111e38) !important;
+  border: 1px solid rgba(59, 130, 246, 0.45) !important;
+}
+
+html.dark .stat-card.blue .stat-copy strong {
+  color: #60a5fa !important;
+}
+
+html.dark .stat-card.green {
+  background: linear-gradient(135deg, rgba(6, 78, 59, 0.5), #0c2720) !important;
+  border: 1px solid rgba(16, 185, 129, 0.45) !important;
+}
+
+html.dark .stat-card.green .stat-copy strong {
+  color: #34d399 !important;
+}
+
+html.dark .stat-card.orange {
+  background: linear-gradient(135deg, rgba(124, 45, 18, 0.5), #2e180d) !important;
+  border: 1px solid rgba(249, 115, 22, 0.45) !important;
+}
+
+html.dark .stat-card.orange .stat-copy strong {
+  color: #fb923c !important;
+}
+
+html.dark .stat-card.purple {
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.5), #221238) !important;
+  border: 1px solid rgba(168, 85, 247, 0.45) !important;
+}
+
+html.dark .stat-card.purple .stat-copy strong {
+  color: #c084fc !important;
+}
+
+html.dark .stat-copy span {
+  color: #cbd5e1 !important;
+}
+
+html.dark .stat-icon {
+  background: rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* Các Panel trên Dashboard */
+html.dark .panel {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+html.dark .panel-heading h2 {
+  color: #f8fafc !important;
+}
+
+html.dark .period-select {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+/* Biểu đồ cột phòng ban */
+html.dark .y-labels {
+  color: #94a3b8 !important;
+}
+
+html.dark .chart-main {
+  border-bottom-color: #334155 !important;
+}
+
+html.dark .chart-grid-lines i {
+  border-top-color: #24354c !important;
+}
+
+html.dark .bar-group small {
+  color: #e2e8f0 !important;
+}
+
+html.dark .bar {
+  background: #3b82f6 !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+html.dark .bar-1 {
+  background: #60a5fa !important;
+}
+
+html.dark .bar-2 {
+  background: #93c5fd !important;
+}
+
+html.dark .chart-legend {
+  color: #cbd5e1 !important;
+}
+
+/* Biểu đồ tròn chấm công (Donut Chart) */
+html.dark .donut {
+  background: conic-gradient(#10b981 0 98%, #334155 98% 100%) !important;
+}
+
+html.dark .donut::before {
+  background: #1e293b !important;
+}
+
+html.dark .donut strong {
+  color: #f8fafc !important;
+}
+
+html.dark .donut-wrap b {
+  color: #f8fafc !important;
+}
+
+html.dark .donut-wrap {
+  color: #94a3b8 !important;
+}
+
+html.dark .attendance-legend p {
+  color: #e2e8f0 !important;
+}
+
+html.dark .attendance-legend b {
+  color: #f8fafc !important;
+}
+
+/* Lịch phân ca (Schedule List) */
+html.dark .schedule-date {
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  border: 1px solid #334155 !important;
+}
+
+html.dark .schedule-detail b {
+  color: #f8fafc !important;
+}
+
+html.dark .schedule-detail small {
+  color: #94a3b8 !important;
+}
+
+html.dark .schedule-detail.blue {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  color: #60a5fa !important;
+}
+
+html.dark .schedule-detail.purple {
+  background: rgba(168, 85, 247, 0.15) !important;
+  border: 1px solid rgba(168, 85, 247, 0.3) !important;
+  color: #c084fc !important;
+}
+
+html.dark .schedule-detail.green {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  color: #34d399 !important;
+}
+
+/* Hoạt động gần đây (Activities) */
+html.dark .activity-item p {
+  color: #f8fafc !important;
+}
+
+html.dark .activity-item > span {
+  color: #94a3b8 !important;
+}
+
+html.dark .activity-item:not(:last-child)::after {
+  background: #334155 !important;
+}
+
+/* Banner khuyến mãi / giới thiệu (.promo-card) */
+html.dark .promo-card {
+  background: linear-gradient(140deg, #1e293b, #172554) !important;
+  border: 1px solid #334155 !important;
+}
+
+html.dark .promo-card h2 {
+  color: #f8fafc !important;
+}
+
+html.dark .promo-card p {
+  color: #cbd5e1 !important;
+}
+
+html.dark .promo-illustration {
+  color: #60a5fa !important;
+  opacity: 0.9 !important;
+}
+
+/* --------------------------------------------------------------------------
+   3. TRANG NHÂN SỰ (EMPLOYEES) & BẢNG BIỂU
+   -------------------------------------------------------------------------- */
+html.dark .employees-header h2 {
+  color: #f8fafc !important;
+}
+
+html.dark .employees-header p {
+  color: #94a3b8 !important;
+}
+
+html.dark .stat-box {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+}
+
+html.dark .stat-box-info h4 {
+  color: #94a3b8 !important;
+}
+
+html.dark .stat-box-info .value {
+  color: #f8fafc !important;
+}
+
+html.dark .filter-bar {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+}
+
+html.dark .search-box input {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .filter-select {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .employees-table-card {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+}
+
+html.dark .employees-table th {
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  border-bottom: 1.5px solid #334155 !important;
+}
+
+html.dark .employees-table td {
+  border-bottom: 1px solid #273549 !important;
+  color: #e2e8f0 !important;
+}
+
+html.dark .employees-table tbody tr:hover {
+  background: #24344d !important;
+}
+
+html.dark .emp-code-badge {
+  background: #0f172a !important;
+  color: #93c5fd !important;
+  border: 1px solid #1e3a8a !important;
+}
+
+html.dark .emp-name-text {
+  color: #f8fafc !important;
+}
+
+html.dark .emp-position-badge {
+  background: rgba(59, 130, 246, 0.2) !important;
+  color: #93c5fd !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+}
+
+html.dark .emp-dept-tag {
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  border: 1px solid #334155 !important;
+}
+
+html.dark .btn-icon-action {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .btn-icon-action:hover {
+  background: #334155 !important;
+  color: #ffffff !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. TRANG PHÒNG BAN (DEPARTMENTS)
+   -------------------------------------------------------------------------- */
+html.dark .departments-header h2 {
+  color: #f8fafc !important;
+}
+
+html.dark .departments-header p {
+  color: #94a3b8 !important;
+}
+
+html.dark .dept-card-item {
+  background: #1e293b !important;
+  border: 1.5px solid #334155 !important;
+}
+
+html.dark .dept-card-item:hover {
+  border-color: #3b82f6 !important;
+  background: #24344d !important;
+}
+
+html.dark .dept-card-item.selected {
+  background: #192742 !important;
+  border-color: #3b82f6 !important;
+}
+
+html.dark .dept-card-item.selected::before {
+  background: #3b82f6 !important;
+  box-shadow: 0 0 10px #3b82f6;
+}
+
+html.dark .dept-name {
+  color: #f8fafc !important;
+}
+
+html.dark .dept-desc {
+  color: #94a3b8 !important;
+}
+
+html.dark .dept-code-pill {
+  background: rgba(59, 130, 246, 0.25) !important;
+  color: #93c5fd !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+html.dark .dept-emp-count {
+  color: #94a3b8 !important;
+}
+
+html.dark .dept-detail-panel {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+}
+
+html.dark .dept-detail-header {
+  border-bottom-color: #334155 !important;
+}
+
+html.dark .dept-detail-title h3 {
+  color: #f8fafc !important;
+}
+
+html.dark .dept-detail-title p {
+  color: #94a3b8 !important;
+}
+
+html.dark .dept-big-icon {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: #60a5fa !important;
+}
+
+html.dark .dept-employees-section h4 {
+  color: #f8fafc !important;
+}
+
+html.dark .dept-emp-table-wrap {
+  border: 1px solid #334155 !important;
+}
+
+html.dark .dept-emp-table th {
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  border-bottom: 1.5px solid #334155 !important;
+}
+
+html.dark .dept-emp-table td {
+  border-bottom: 1px solid #273549 !important;
+  color: #e2e8f0 !important;
+}
+
+html.dark .dept-emp-table tr:hover {
+  background: #24344d !important;
+}
+
+html.dark .btn-secondary-sm {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .btn-secondary-sm:hover {
+  background: #334155 !important;
+  color: #fff !important;
+}
+
+/* --------------------------------------------------------------------------
+   5. TRANG CA LÀM VIỆC (SHIFTS)
+   -------------------------------------------------------------------------- */
+html.dark .shifts-header-top h2 {
+  color: #f8fafc !important;
+}
+
+html.dark .table-card {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+}
+
+html.dark .shifts-table th {
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  border-bottom: 1.5px solid #334155 !important;
+}
+
+html.dark .shifts-table td {
+  border-bottom: 1px solid #273549 !important;
+  color: #e2e8f0 !important;
+}
+
+html.dark .shifts-table tbody tr:hover {
+  background: #24344d !important;
+}
+
+html.dark .badge-time {
+  background: #0f172a !important;
+  color: #60a5fa !important;
+  border: 1px solid #1e3a8a !important;
+}
+
+html.dark .btn-action {
+  background: #0f172a !important;
+  border: 1px solid #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .btn-action:hover {
+  background: #334155 !important;
+}
+
+/* --------------------------------------------------------------------------
+   6. HỒ SƠ CÁ NHÂN (PROFILE) & ACCOUNT SETTINGS (OVERRIDE INLINE STYLES)
+   -------------------------------------------------------------------------- */
+html.dark div[style*="backgroundColor: \"#ffffff\""],
+html.dark div[style*="background-color: rgb(255, 255, 255)"],
+html.dark div[style*="background: rgb(255, 255, 255)"] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4 {
+  color: #f8fafc !important;
+}
+
+html.dark a[style*="color: rgb(100, 116, 139)"] {
+  color: #94a3b8 !important;
+}
+
+/* --------------------------------------------------------------------------
+   7. MODAL DIALOGS VÀ FORM CONTROLS
+   -------------------------------------------------------------------------- */
+html.dark .modal-content {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+  color: #f8fafc !important;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6) !important;
+}
+
+html.dark .modal-header {
+  border-bottom: 1px solid #334155 !important;
+}
+
+html.dark .modal-header h3 {
+  color: #f8fafc !important;
+}
+
+html.dark .modal-footer {
+  border-top: 1px solid #334155 !important;
+}
+
+html.dark .form-group label {
+  color: #cbd5e1 !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #0f172a !important;
+  border: 1.5px solid #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark input:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+}
+
+html.dark .close-btn {
+  color: #94a3b8 !important;
+}
+
+html.dark .close-btn:hover {
+  color: #f8fafc !important;
+}
+
+html.dark .btn-secondary {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+  border-color: #475569 !important;
+}
+
+/* Profile Page Dark Mode Overrides */
+html.dark .profile-page-wrap div[style*="background"] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .profile-page-wrap div[style*="background: rgb(248, 250, 252)"],
+html.dark .profile-page-wrap div[style*="backgroundColor: \"#f8fafc\""] {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+html.dark .profile-page-wrap button[style*="backgroundColor: \"#ffffff\""],
+html.dark .profile-page-wrap button[style*="background: rgb(255, 255, 255)"] {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .profile-page-wrap h1,
+html.dark .profile-page-wrap h2,
+html.dark .profile-page-wrap h3,
+html.dark .profile-page-wrap strong {
+  color: #f8fafc !important;
+}
+
+html.dark .profile-page-wrap span[style*="color: rgb(15, 23, 42)"],
+html.dark .profile-page-wrap span[style*="color: \"#0f172a\""] {
+  color: #f8fafc !important;
+}
+
+html.dark .profile-page-wrap span[style*="color: rgb(100, 116, 139)"],
+html.dark .profile-page-wrap span[style*="color: \"#64748b\""],
+html.dark .profile-page-wrap p[style*="color: rgb(100, 116, 139)"],
+html.dark .profile-page-wrap p[style*="color: \"#64748b\""] {
+  color: #94a3b8 !important;
+}
+
+
+

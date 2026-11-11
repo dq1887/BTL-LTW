@@ -1,33 +1,11 @@
-import { useState, useEffect } from "react";
 import Icon from "./Icons";
 import UserDropdown from "./UserDropdown";
+import { useTheme } from "../../context/ThemeContext";
 
 type HeaderProps = { onToggleSidebar: () => void; collapsed: boolean };
 
 export default function Header({ onToggleSidebar, collapsed }: HeaderProps) {
-  const [isDark, setIsDark] = useState(() => {
-    return localStorage.getItem("theme") === "dark";
-  });
-
-  const toggleTheme = () => {
-    const nextDark = !isDark;
-    setIsDark(nextDark);
-    if (nextDark) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  };
-
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [isDark]);
+  const { isDark, toggleTheme } = useTheme();
 
   return (
     <header className="topbar">

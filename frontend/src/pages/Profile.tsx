@@ -172,7 +172,7 @@ export default function Profile() {
   }
 
   return (
-    <div style={{ padding: "24px 32px", maxWidth: "1200px", margin: "0 auto" }}>
+    <div className="profile-page-wrap" style={{ padding: "24px 32px", maxWidth: "1200px", margin: "0 auto" }}>
       <div
         style={{
           display: "flex",
