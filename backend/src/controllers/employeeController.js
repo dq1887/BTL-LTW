@@ -1,28 +1,42 @@
 const Employee = require('../models/Employee');
 const Department = require('../models/Department');
 
-// [GET] /api/employees - Lấy danh sách nhân viên (Có tìm kiếm & phân trang)
+// [GET] /api/employees - Lấy danh sách nhân viên (Có tìm kiếm, lọc phòng ban & phân trang)
 const getEmployees = async (req, res) => {
     try {
         const page = Number(req.query.page) || 1;
-        const limit = Number(req.query.limit) || 10;
+        const limit = req.query.limit !== undefined ? Number(req.query.limit) : 0;
         const search = req.query.search || '';
+        const departmentId = req.query.departmentId;
 
-        const query = search
-            ? { fullName: { $regex: search, $options: 'i' } }
-            : {};
+        const query = {};
+        if (search) {
+            query.$or = [
+                { fullName: { $regex: search, $options: 'i' } },
+                { employeeCode: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+                { position: { $regex: search, $options: 'i' } }
+            ];
+        }
+        if (departmentId) {
+            query.departmentId = departmentId;
+        }
 
         const count = await Employee.countDocuments(query);
-        const employees = await Employee.find(query)
+        let queryBuilder = Employee.find(query)
             .populate('departmentId', 'name code')
-            .limit(limit)
-            .skip(limit * (page - 1))
             .sort({ createdAt: -1 });
+
+        if (limit > 0) {
+            queryBuilder = queryBuilder.limit(limit).skip(limit * (page - 1));
+        }
+
+        const employees = await queryBuilder;
 
         res.json({
             employees,
             page,
-            pages: Math.ceil(count / limit),
+            pages: limit > 0 ? Math.ceil(count / limit) : 1,
             total: count
         });
     } catch (error) {

@@ -1,22 +1,55 @@
 const Department = require('../models/Department');
 const Employee = require('../models/Employee');
 
-// [GET] /api/departments - Lấy danh sách phòng ban
+// [GET] /api/departments - Lấy danh sách phòng ban kèm nhân viên trực thuộc
 const getDepartments = async (req, res) => {
     try {
-        const departments = await Department.find().sort({ createdAt: -1 });
-        res.json(departments);
+        const departments = await Department.find().sort({ createdAt: 1 });
+        const departmentsWithEmployees = await Promise.all(
+            departments.map(async (dept) => {
+                const employees = await Employee.find({ departmentId: dept._id })
+                    .select('employeeCode fullName email phone position role status')
+                    .sort({ role: 1, fullName: 1 });
+                return {
+                    ...dept.toObject(),
+                    employeeCount: employees.length,
+                    employees: employees
+                };
+            })
+        );
+        res.json(departmentsWithEmployees);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// [GET] /api/departments/:id - Xem chi tiết 1 phòng ban
+// [GET] /api/departments/:id - Xem chi tiết 1 phòng ban kèm danh sách nhân viên
 const getDepartmentById = async (req, res) => {
     try {
         const department = await Department.findById(req.params.id);
         if (!department) return res.status(404).json({ message: 'Không tìm thấy phòng ban' });
-        res.json(department);
+        
+        const employees = await Employee.find({ departmentId: department._id })
+            .select('employeeCode fullName email phone position role status')
+            .sort({ role: 1, fullName: 1 });
+
+        res.json({
+            ...department.toObject(),
+            employeeCount: employees.length,
+            employees
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// [GET] /api/departments/:id/employees - Lấy riêng danh sách nhân viên thuộc phòng ban
+const getDepartmentEmployees = async (req, res) => {
+    try {
+        const employees = await Employee.find({ departmentId: req.params.id })
+            .select('-password')
+            .sort({ role: 1, fullName: 1 });
+        res.json(employees);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -81,6 +114,7 @@ const deleteDepartment = async (req, res) => {
 module.exports = {
     getDepartments,
     getDepartmentById,
+    getDepartmentEmployees,
     createDepartment,
     updateDepartment,
     deleteDepartment

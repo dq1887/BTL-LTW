@@ -74,6 +74,7 @@ export const Shifts: React.FC = () => {
         name: currentShift.name.trim(),
         startTime: currentShift.startTime,
         endTime: currentShift.endTime,
+        breakMinutes: Number(currentShift.breakMinutes) || 0,
       };
 
       if (isEditing && currentShift._id) {
