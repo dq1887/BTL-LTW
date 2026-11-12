@@ -1,27 +1,30 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const departmentSchema = new mongoose.Schema({
+const departmentSchema = new mongoose.Schema(
+  {
     code: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-        uppercase: true // Ví dụ: HR, IT, MKT
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      uppercase: true,
     },
     name: {
-        type: String,
-        required: true,
-        trim: true
+      type: String,
+      required: true,
+      trim: true,
     },
     description: {
-        type: String,
-        default: ''
+      type: String,
+      default: "",
     },
     status: {
-        type: String,
-        enum: ['active', 'inactive'],
-        default: 'active'
-    }
-}, { timestamps: true });
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
+    },
+  },
+  { timestamps: true },
+);
 
-module.exports = mongoose.model('Department', departmentSchema);
+module.exports = mongoose.model("Department", departmentSchema);

@@ -6,11 +6,21 @@ import {
   type Department,
 } from "../services/departmentService";
 import { authService } from "../services/authService";
+import { useSearchParams } from "react-router-dom";
 
 export const Employees: React.FC = () => {
   const currentUser = authService.getCurrentUser();
+
   const canManage =
     currentUser?.role === "admin_hr" || currentUser?.role === "manager";
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const keywordFromHeader = searchParams.get("search");
+    if (keywordFromHeader !== null) {
+      setSearchTerm(keywordFromHeader);
+    }
+  }, [searchParams]);
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -177,7 +187,6 @@ export const Employees: React.FC = () => {
 
   return (
     <div className="employees-container">
-      {/* Tiêu đề & Nút Thêm mới */}
       <div className="employees-header">
         <div>
           <h2>👥 Quản lý Danh sách Nhân sự</h2>
@@ -193,7 +202,6 @@ export const Employees: React.FC = () => {
         )}
       </div>
 
-      {/* Thẻ thống kê */}
       <div className="stats-strip">
         <div className="stat-box">
           <div className="stat-box-icon blue">👨‍💼</div>
@@ -217,8 +225,6 @@ export const Employees: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Thanh tìm kiếm & Lọc */}
       <div className="filter-bar">
         <div className="search-box">
           <span className="search-icon-inside">🔍</span>
@@ -256,7 +262,6 @@ export const Employees: React.FC = () => {
         </div>
       </div>
 
-      {/* Báo lỗi nếu có */}
       {error && (
         <div
           style={{
@@ -270,7 +275,6 @@ export const Employees: React.FC = () => {
         </div>
       )}
 
-      {/* Bảng nhân sự */}
       <div className="employees-table-card">
         {loading ? (
           <div
@@ -315,7 +319,6 @@ export const Employees: React.FC = () => {
                     </div>
                   </td>
                   <td>
-                    {/* Hiển thị rõ ràng Chức vụ */}
                     <span className="emp-position-badge">
                       ⭐ {emp.position || "Nhân viên"}
                     </span>
@@ -382,7 +385,6 @@ export const Employees: React.FC = () => {
         )}
       </div>
 
-      {/* Modal Thêm nhân viên mới */}
       {isAddModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: "540px" }}>
@@ -548,7 +550,6 @@ export const Employees: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Điều chuyển phòng ban */}
       {transferModalOpen && selectedEmpForTransfer && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: "460px" }}>
