@@ -76,16 +76,6 @@ export default function Sidebar({ collapsed }: SidebarProps) {
 
       <div className="sidebar-bottom">
         <button
-          type="button"
-          className={`theme-switch ${isDark ? "dark-mode" : "light-mode"}`}
-          onClick={toggleTheme}
-          title={isDark ? "Đang ở chế độ Tối (bấm để chuyển Sáng)" : "Đang ở chế độ Sáng (bấm để chuyển Tối)"}
-          aria-label="Chuyển chế độ sáng tối"
-        >
-          <span className={`theme-opt ${isDark ? "active" : ""}`}>☾</span>
-          <span className={`theme-opt ${!isDark ? "active" : ""}`}>☼</span>
-        </button>
-        <button
           className="logout-link"
           onClick={handleLogout}
           title={collapsed ? "Đăng xuất" : undefined}

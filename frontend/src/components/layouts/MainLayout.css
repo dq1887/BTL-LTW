@@ -62,7 +62,7 @@ button {
   width: var(--sidebar-width);
   display: flex;
   flex-direction: column;
-  padding: 22px 15px 20px;
+  padding: 18px 14px 16px;
   color: #eef3ff;
   background:
     radial-gradient(ellipse at 100% 75%, #29477f 0, transparent 35%),
@@ -70,7 +70,13 @@ button {
   transition:
     width 0.25s ease,
     transform 0.25s ease;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 .sidebar--collapsed {
@@ -80,40 +86,48 @@ button {
 }
 
 .brand {
-  min-height: 70px;
+  min-height: 56px;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 8px;
-  margin-bottom: 34px;
+  padding: 6px 8px 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   white-space: nowrap;
 }
 
 .brand-mark {
-  flex: 0 0 48px;
-  width: 48px;
-  height: 48px;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
-  color: #4d83ff;
+  border-radius: 12px;
+  background: rgba(77, 131, 255, 0.15);
+  border: 1px solid rgba(77, 131, 255, 0.28);
+  color: #60a5fa;
 }
 
 .brand-copy {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  gap: 3px;
   min-width: 0;
 }
 
 .brand-copy strong {
-  color: #fff;
-  font-size: 19px;
-  line-height: 1.35;
+  color: #ffffff;
+  font-size: 17px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
   font-weight: 700;
 }
 
 .brand-copy span {
-  color: #b9c6e3;
-  font-size: 10px;
+  color: #a9b8d8;
+  font-size: 11px;
+  line-height: 1.25;
   white-space: nowrap;
 }
 
@@ -167,53 +181,8 @@ button {
 
 .sidebar-bottom {
   margin-top: auto;
-  border-top: 1px solid #ffffff20;
-  padding-top: 20px;
-}
-
-.theme-switch {
-  width: 78px;
-  height: 36px;
-  margin: 0 auto 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 3px 4px;
-  background: rgba(255, 255, 255, 0.08);
-  cursor: pointer;
-  outline: none;
-  transition: all 0.25s ease;
-}
-
-.theme-switch:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.35);
-}
-
-.theme-opt {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  color: #a5b4fc;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.theme-switch.dark-mode .theme-opt.active {
-  background: #6366f1;
-  color: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-}
-
-.theme-switch.light-mode .theme-opt.active {
-  background: #f59e0b;
-  color: #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  border-top: 1px solid #ffffff1a;
+  padding-top: 12px;
 }
 
 .logout-link {
@@ -232,7 +201,6 @@ button {
   color: #fff;
 }
 
-/* Header */
 .topbar {
   height: 86px;
   width: 100%;
@@ -409,7 +377,6 @@ button {
   color: #dc4b55;
 }
 
-/* Responsive */
 @media (max-width: 1100px) {
   .topbar {
     padding: 0 20px;
@@ -464,7 +431,6 @@ button {
 }
 
 @media (max-width: 600px) {
-
   .app-shell,
   .app-shell.sidebar-is-collapsed {
     --sidebar-width: 0px;
@@ -516,10 +482,6 @@ button {
   }
 }
 
-/* ==========================================================================
-   CHẾ ĐỘ TỐI TOÀN DIỆN (DARK MODE ĐẸP MẮT & RÕ NÉT)
-   ========================================================================== */
-
 html.dark,
 html.dark body,
 html.dark .app-shell,
@@ -528,9 +490,6 @@ html.dark .main-area {
   color: #f1f5f9 !important;
 }
 
-/* --------------------------------------------------------------------------
-   1. HEADER & TOPBAR (CHẾ ĐỘ TỐI)
-   -------------------------------------------------------------------------- */
 html.dark .topbar {
   background: rgba(15, 23, 42, 0.95) !important;
   border-bottom: 1px solid #1e293b !important;
@@ -597,9 +556,6 @@ html.dark .user-dropdown button:hover {
   color: #60a5fa;
 }
 
-/* --------------------------------------------------------------------------
-   2. TRANG TỔNG QUAN (DASHBOARD) - HÌNH ẢNH, BIỂU ĐỒ VÀ CHỮ
-   -------------------------------------------------------------------------- */
 html.dark .welcome-row h1 {
   color: #f8fafc !important;
 }
@@ -614,14 +570,17 @@ html.dark .today-date {
   border: 1px solid #334155;
 }
 
-/* 4 Thẻ Stat Cards đa màu sắc ở Dashboard */
 html.dark .stat-card {
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 html.dark .stat-card.blue {
-  background: linear-gradient(135deg, rgba(30, 58, 138, 0.5), #111e38) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(30, 58, 138, 0.5),
+    #111e38
+  ) !important;
   border: 1px solid rgba(59, 130, 246, 0.45) !important;
 }
 
@@ -639,7 +598,11 @@ html.dark .stat-card.green .stat-copy strong {
 }
 
 html.dark .stat-card.orange {
-  background: linear-gradient(135deg, rgba(124, 45, 18, 0.5), #2e180d) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(124, 45, 18, 0.5),
+    #2e180d
+  ) !important;
   border: 1px solid rgba(249, 115, 22, 0.45) !important;
 }
 
@@ -648,7 +611,11 @@ html.dark .stat-card.orange .stat-copy strong {
 }
 
 html.dark .stat-card.purple {
-  background: linear-gradient(135deg, rgba(88, 28, 135, 0.5), #221238) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(88, 28, 135, 0.5),
+    #221238
+  ) !important;
   border: 1px solid rgba(168, 85, 247, 0.45) !important;
 }
 
@@ -665,7 +632,6 @@ html.dark .stat-icon {
   backdrop-filter: blur(4px);
 }
 
-/* Các Panel trên Dashboard */
 html.dark .panel {
   background: #1e293b !important;
   border: 1px solid #334155 !important;
@@ -682,7 +648,6 @@ html.dark .period-select {
   color: #cbd5e1 !important;
 }
 
-/* Biểu đồ cột phòng ban */
 html.dark .y-labels {
   color: #94a3b8 !important;
 }
@@ -717,7 +682,6 @@ html.dark .chart-legend {
   color: #cbd5e1 !important;
 }
 
-/* Biểu đồ tròn chấm công (Donut Chart) */
 html.dark .donut {
   background: conic-gradient(#10b981 0 98%, #334155 98% 100%) !important;
 }
@@ -746,7 +710,6 @@ html.dark .attendance-legend b {
   color: #f8fafc !important;
 }
 
-/* Lịch phân ca (Schedule List) */
 html.dark .schedule-date {
   background: #0f172a !important;
   color: #cbd5e1 !important;
@@ -779,12 +742,11 @@ html.dark .schedule-detail.green {
   color: #34d399 !important;
 }
 
-/* Hoạt động gần đây (Activities) */
 html.dark .activity-item p {
   color: #f8fafc !important;
 }
 
-html.dark .activity-item>span {
+html.dark .activity-item > span {
   color: #94a3b8 !important;
 }
 
@@ -792,7 +754,6 @@ html.dark .activity-item:not(:last-child)::after {
   background: #334155 !important;
 }
 
-/* Banner khuyến mãi / giới thiệu (.promo-card) */
 html.dark .promo-card {
   background: linear-gradient(140deg, #1e293b, #172554) !important;
   border: 1px solid #334155 !important;
@@ -811,9 +772,6 @@ html.dark .promo-illustration {
   opacity: 0.9 !important;
 }
 
-/* --------------------------------------------------------------------------
-   3. TRANG NHÂN SỰ (EMPLOYEES) & BẢNG BIỂU
-   -------------------------------------------------------------------------- */
 html.dark .employees-header h2 {
   color: #f8fafc !important;
 }
@@ -905,9 +863,6 @@ html.dark .btn-icon-action:hover {
   color: #ffffff !important;
 }
 
-/* --------------------------------------------------------------------------
-   4. TRANG PHÒNG BAN (DEPARTMENTS)
-   -------------------------------------------------------------------------- */
 html.dark .departments-header h2 {
   color: #f8fafc !important;
 }
@@ -1011,9 +966,6 @@ html.dark .btn-secondary-sm:hover {
   color: #fff !important;
 }
 
-/* --------------------------------------------------------------------------
-   5. TRANG CA LÀM VIỆC (SHIFTS)
-   -------------------------------------------------------------------------- */
 html.dark .shifts-header-top h2 {
   color: #f8fafc !important;
 }
@@ -1054,10 +1006,7 @@ html.dark .btn-action:hover {
   background: #334155 !important;
 }
 
-/* --------------------------------------------------------------------------
-   6. HỒ SƠ CÁ NHÂN (PROFILE) & ACCOUNT SETTINGS (OVERRIDE INLINE STYLES)
-   -------------------------------------------------------------------------- */
-html.dark div[style*="backgroundColor: \"#ffffff\""],
+html.dark div[style*='backgroundColor: "#ffffff"'],
 html.dark div[style*="background-color: rgb(255, 255, 255)"],
 html.dark div[style*="background: rgb(255, 255, 255)"] {
   background-color: #1e293b !important;
@@ -1076,9 +1025,6 @@ html.dark a[style*="color: rgb(100, 116, 139)"] {
   color: #94a3b8 !important;
 }
 
-/* --------------------------------------------------------------------------
-   7. MODAL DIALOGS VÀ FORM CONTROLS
-   -------------------------------------------------------------------------- */
 html.dark .modal-content {
   background: #1e293b !important;
   border: 1px solid #334155 !important;
@@ -1131,7 +1077,6 @@ html.dark .btn-secondary {
   border-color: #475569 !important;
 }
 
-/* Profile Page Dark Mode Overrides */
 html.dark .profile-page-wrap div[style*="background"] {
   background-color: #1e293b !important;
   border-color: #334155 !important;
@@ -1139,12 +1084,12 @@ html.dark .profile-page-wrap div[style*="background"] {
 }
 
 html.dark .profile-page-wrap div[style*="background: rgb(248, 250, 252)"],
-html.dark .profile-page-wrap div[style*="backgroundColor: \"#f8fafc\""] {
+html.dark .profile-page-wrap div[style*='backgroundColor: "#f8fafc"'] {
   background-color: #0f172a !important;
   border-color: #334155 !important;
 }
 
-html.dark .profile-page-wrap button[style*="backgroundColor: \"#ffffff\""],
+html.dark .profile-page-wrap button[style*='backgroundColor: "#ffffff"'],
 html.dark .profile-page-wrap button[style*="background: rgb(255, 255, 255)"] {
   background-color: #1e293b !important;
   border-color: #334155 !important;
@@ -1159,13 +1104,13 @@ html.dark .profile-page-wrap strong {
 }
 
 html.dark .profile-page-wrap span[style*="color: rgb(15, 23, 42)"],
-html.dark .profile-page-wrap span[style*="color: \"#0f172a\""] {
+html.dark .profile-page-wrap span[style*='color: "#0f172a"'] {
   color: #f8fafc !important;
 }
 
 html.dark .profile-page-wrap span[style*="color: rgb(100, 116, 139)"],
-html.dark .profile-page-wrap span[style*="color: \"#64748b\""],
+html.dark .profile-page-wrap span[style*='color: "#64748b"'],
 html.dark .profile-page-wrap p[style*="color: rgb(100, 116, 139)"],
-html.dark .profile-page-wrap p[style*="color: \"#64748b\""] {
+html.dark .profile-page-wrap p[style*='color: "#64748b"'] {
   color: #94a3b8 !important;
 }
