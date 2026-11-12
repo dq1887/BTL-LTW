@@ -13,14 +13,8 @@ export const Employees: React.FC = () => {
 
   const canManage =
     currentUser?.role === "admin_hr" || currentUser?.role === "manager";
-  const [searchParams] = useSearchParams();
 
-  useEffect(() => {
-    const keywordFromHeader = searchParams.get("search");
-    if (keywordFromHeader !== null) {
-      setSearchTerm(keywordFromHeader);
-    }
-  }, [searchParams]);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -28,6 +22,7 @@ export const Employees: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [headerQuery, setHeaderQuery] = useState("");
   const [selectedDept, setSelectedDept] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
 
@@ -47,6 +42,41 @@ export const Employees: React.FC = () => {
   const [selectedEmpForTransfer, setSelectedEmpForTransfer] =
     useState<Employee | null>(null);
   const [targetDeptId, setTargetDeptId] = useState("");
+
+  const normalizeText = (s: string) =>
+    (s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .trim();
+
+  // Nhận từ khóa tìm kiếm từ Header trên trang chủ
+  useEffect(() => {
+    const q = (searchParams.get("search") || "").trim();
+    if (!q) {
+      setHeaderQuery("");
+      return;
+    }
+
+    if (employees.length > 0) {
+      const exactEmp = employees.find(
+        (emp) => normalizeText(emp.fullName || "") === normalizeText(q),
+      );
+
+      if (exactEmp) {
+        // Nhập đúng chuẩn họ và tên -> hiện đầy đủ họ tên vào ô tìm kiếm
+        setSearchTerm(exactEmp.fullName);
+        setHeaderQuery("");
+      } else {
+        // Chỉ nhập một phần tên (vd: "Nam") -> để trống ô tìm kiếm và lọc ngầm
+        setSearchTerm("");
+        setHeaderQuery(q);
+      }
+    } else {
+      setHeaderQuery(q);
+    }
+  }, [searchParams, employees]);
 
   const loadData = async () => {
     try {
@@ -73,13 +103,15 @@ export const Employees: React.FC = () => {
     loadData();
   }, []);
 
+  const activeKeyword = normalizeText(searchTerm || headerQuery);
+
   const filteredEmployees = employees.filter((emp) => {
     const matchSearch =
-      !searchTerm.trim() ||
-      emp.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.employeeCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.email.toLowerCase().includes(searchTerm.toLowerCase());
+      !activeKeyword ||
+      normalizeText(emp.fullName || "").includes(activeKeyword) ||
+      normalizeText(emp.employeeCode || "").includes(activeKeyword) ||
+      normalizeText(emp.position || "").includes(activeKeyword) ||
+      normalizeText(emp.email || "").includes(activeKeyword);
 
     const empDeptId =
       typeof emp.departmentId === "object"
@@ -225,6 +257,7 @@ export const Employees: React.FC = () => {
           </div>
         </div>
       </div>
+
       <div className="filter-bar">
         <div className="search-box">
           <span className="search-icon-inside">🔍</span>
@@ -232,7 +265,13 @@ export const Employees: React.FC = () => {
             type="text"
             placeholder="Tìm theo tên, mã NV, chức vụ, email..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              if (headerQuery) setHeaderQuery("");
+              if (searchParams.get("search")) {
+                setSearchParams({}, { replace: true });
+              }
+            }}
           />
         </div>
 

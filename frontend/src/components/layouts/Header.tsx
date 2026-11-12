@@ -63,41 +63,25 @@ export default function Header({ onToggleSidebar, collapsed }: HeaderProps) {
 
     const keyword = normalizeText(raw);
 
-    // 1. Kiểm tra xem từ khóa có khớp với Phòng ban nào không
     const matchedDept = departments.find((d) => {
       const name = normalizeText(d.name || d.departmentName || "");
       const code = normalizeText(d.code || "");
       return name.includes(keyword) || code === keyword;
     });
 
-    // 2. Kiểm tra xem từ khóa có khớp với Nhân viên nào không
     const matchedEmp = employees.find((e) => {
       const fullName = normalizeText(e.fullName || e.name || "");
       const code = normalizeText(e.employeeCode || e.code || "");
       return fullName.includes(keyword) || code === keyword;
     });
 
-    // Nếu khớp Phòng ban (và không khớp Nhân viên) -> sang trang Phòng ban
     if (matchedDept && !matchedEmp) {
       const deptName = matchedDept.name || matchedDept.departmentName;
       navigate(`/departments?search=${encodeURIComponent(deptName)}`);
       return;
     }
 
-    // Nếu khớp Nhân viên -> sang trang Nhân sự
-    if (matchedEmp) {
-      const empName = matchedEmp.fullName || matchedEmp.name;
-      navigate(`/employees?search=${encodeURIComponent(empName)}`);
-      return;
-    }
-
-    // Fallback nếu trùng cả hai hoặc chưa tải xong danh sách
-    if (matchedDept) {
-      const deptName = matchedDept.name || matchedDept.departmentName;
-      navigate(`/departments?search=${encodeURIComponent(deptName)}`);
-    } else {
-      navigate(`/employees?search=${encodeURIComponent(raw)}`);
-    }
+    navigate(`/employees?search=${encodeURIComponent(raw)}`);
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
