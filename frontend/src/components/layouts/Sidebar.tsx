@@ -22,7 +22,6 @@ const menu = [
 export default function Sidebar({ collapsed }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isDark, toggleTheme } = useTheme();
 
   const handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
