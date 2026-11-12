@@ -27,6 +27,8 @@ export default function UserDropdown() {
         return "Trưởng phòng";
       case "employee":
         return "Nhân viên";
+      case "accountant":
+        return "Kế toán";
       default:
         return role || "Người dùng";
     }

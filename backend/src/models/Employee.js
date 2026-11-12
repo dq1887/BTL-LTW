@@ -19,7 +19,11 @@ const employeeSchema = new mongoose.Schema(
       trim: true,
     },
     password: { type: String, required: true },
-    phone: { type: String, default: "" },
+    phone: {
+      type: String,
+      unique: true,
+      trim: true,
+    },
     departmentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",

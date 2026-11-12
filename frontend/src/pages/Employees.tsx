@@ -1,26 +1,26 @@
-// frontend/src/pages/Employees.tsx
-
 import React, { useState, useEffect } from "react";
 import "./Employees.css";
 import { employeeService, type Employee } from "../services/employeeService";
-import { departmentService, type Department } from "../services/departmentService";
+import {
+  departmentService,
+  type Department,
+} from "../services/departmentService";
 import { authService } from "../services/authService";
 
 export const Employees: React.FC = () => {
   const currentUser = authService.getCurrentUser();
-  const canManage = currentUser?.role === "admin_hr" || currentUser?.role === "manager";
+  const canManage =
+    currentUser?.role === "admin_hr" || currentUser?.role === "manager";
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Bộ lọc
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDept, setSelectedDept] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
 
-  // Modal Thêm nhân viên mới
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newEmp, setNewEmp] = useState({
     employeeCode: "",
@@ -33,27 +33,26 @@ export const Employees: React.FC = () => {
     role: "employee",
   });
 
-  // Modal Điều chuyển phòng ban
   const [transferModalOpen, setTransferModalOpen] = useState(false);
-  const [selectedEmpForTransfer, setSelectedEmpForTransfer] = useState<Employee | null>(null);
+  const [selectedEmpForTransfer, setSelectedEmpForTransfer] =
+    useState<Employee | null>(null);
   const [targetDeptId, setTargetDeptId] = useState("");
 
-  // Tải dữ liệu từ Backend
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Gọi đồng thời lấy danh sách tất cả nhân viên và các phòng ban
       const [empRes, deptRes] = await Promise.all([
-        employeeService.getAll({ limit: 0 }), // limit=0 để lấy tất cả nhân viên
+        employeeService.getAll({ limit: 0 }),
         departmentService.getAll(),
       ]);
 
       setEmployees(empRes.employees);
       setDepartments(deptRes);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Đã xảy ra lỗi khi tải dữ liệu!";
+      const msg =
+        err instanceof Error ? err.message : "Đã xảy ra lỗi khi tải dữ liệu!";
       setError(msg);
     } finally {
       setLoading(false);
@@ -64,9 +63,7 @@ export const Employees: React.FC = () => {
     loadData();
   }, []);
 
-  // Lọc dữ liệu hiển thị phía client
   const filteredEmployees = employees.filter((emp) => {
-    // Tìm kiếm
     const matchSearch =
       !searchTerm.trim() ||
       emp.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -74,12 +71,12 @@ export const Employees: React.FC = () => {
       emp.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Lọc phòng ban
     const empDeptId =
-      typeof emp.departmentId === "object" ? emp.departmentId?._id : emp.departmentId;
+      typeof emp.departmentId === "object"
+        ? emp.departmentId?._id
+        : emp.departmentId;
     const matchDept = !selectedDept || empDeptId === selectedDept;
 
-    // Lọc trạng thái
     const matchStatus =
       selectedStatus === "all" ||
       (selectedStatus === "active" && emp.status === "active") ||
@@ -88,10 +85,14 @@ export const Employees: React.FC = () => {
     return matchSearch && matchDept && matchStatus;
   });
 
-  // Xử lý tạo mới nhân viên
   const handleCreateEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEmp.employeeCode || !newEmp.fullName || !newEmp.email || !newEmp.departmentId) {
+    if (
+      !newEmp.employeeCode ||
+      !newEmp.fullName ||
+      !newEmp.email ||
+      !newEmp.departmentId
+    ) {
       alert("Vui lòng điền đầy đủ các trường bắt buộc (*)");
       return;
     }
@@ -117,34 +118,40 @@ export const Employees: React.FC = () => {
     }
   };
 
-  // Mở modal điều chuyển phòng ban
   const handleOpenTransfer = (emp: Employee) => {
     setSelectedEmpForTransfer(emp);
     const currentDeptId =
-      typeof emp.departmentId === "object" ? emp.departmentId?._id : emp.departmentId;
+      typeof emp.departmentId === "object"
+        ? emp.departmentId?._id
+        : emp.departmentId;
     setTargetDeptId(currentDeptId || "");
     setTransferModalOpen(true);
   };
 
-  // Thực hiện điều chuyển
   const handleTransferSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEmpForTransfer || !targetDeptId) return;
 
     try {
       await employeeService.transfer(selectedEmpForTransfer._id, targetDeptId);
-      alert(`Đã điều chuyển nhân viên ${selectedEmpForTransfer.fullName} thành công!`);
+      alert(
+        `Đã điều chuyển nhân viên ${selectedEmpForTransfer.fullName} thành công!`,
+      );
       setTransferModalOpen(false);
       loadData();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Lỗi điều chuyển phòng ban";
+      const msg =
+        err instanceof Error ? err.message : "Lỗi điều chuyển phòng ban";
       alert(msg);
     }
   };
 
-  // Xử lý xóa mềm nhân viên
   const handleDelete = async (emp: Employee) => {
-    if (!confirm(`Bạn có chắc muốn chuyển trạng thái của ${emp.fullName} sang Inactive (Xóa mềm)?`)) {
+    if (
+      !confirm(
+        `Bạn có chắc muốn chuyển trạng thái của ${emp.fullName} sang Inactive (Xóa mềm)?`,
+      )
+    ) {
       return;
     }
 
@@ -158,7 +165,6 @@ export const Employees: React.FC = () => {
     }
   };
 
-  // Helper lấy tên phòng ban
   const getDepartmentName = (deptId?: any) => {
     if (!deptId) return "Chưa phân bổ";
     if (typeof deptId === "object" && deptId.name) return deptId.name;
@@ -166,7 +172,6 @@ export const Employees: React.FC = () => {
     return found ? found.name : "Chưa phân bổ";
   };
 
-  // Thống kê nhanh
   const totalEmployees = employees.length;
   const activeEmployees = employees.filter((e) => e.status === "active").length;
 
@@ -179,7 +184,10 @@ export const Employees: React.FC = () => {
           <p>Hiển thị toàn bộ nhân viên và chức vụ trong tổ chức</p>
         </div>
         {canManage && (
-          <button className="btn-primary" onClick={() => setIsAddModalOpen(true)}>
+          <button
+            className="btn-primary"
+            onClick={() => setIsAddModalOpen(true)}
+          >
             + Thêm nhân viên mới
           </button>
         )}
@@ -250,7 +258,14 @@ export const Employees: React.FC = () => {
 
       {/* Báo lỗi nếu có */}
       {error && (
-        <div style={{ color: "#ef4444", padding: "12px", background: "#fee2e2", borderRadius: "8px" }}>
+        <div
+          style={{
+            color: "#ef4444",
+            padding: "12px",
+            background: "#fee2e2",
+            borderRadius: "8px",
+          }}
+        >
           ⚠️ {error}
         </div>
       )}
@@ -258,7 +273,9 @@ export const Employees: React.FC = () => {
       {/* Bảng nhân sự */}
       <div className="employees-table-card">
         {loading ? (
-          <div style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>
+          <div
+            style={{ padding: "40px", textAlign: "center", color: "#64748b" }}
+          >
             Đang tải danh sách nhân viên từ máy chủ...
           </div>
         ) : (
@@ -291,8 +308,8 @@ export const Employees: React.FC = () => {
                           {emp.role === "admin_hr"
                             ? "Admin HR"
                             : emp.role === "manager"
-                            ? "Quản lý"
-                            : "Nhân viên"}
+                              ? "Quản lý"
+                              : "Nhân viên"}
                         </small>
                       </div>
                     </div>
@@ -310,12 +327,16 @@ export const Employees: React.FC = () => {
                   </td>
                   <td>
                     <div>{emp.email}</div>
-                    <small style={{ color: "#64748b" }}>{emp.phone || "---"}</small>
+                    <small style={{ color: "#64748b" }}>
+                      {emp.phone || "---"}
+                    </small>
                   </td>
                   <td>
                     <span className={`emp-status ${emp.status}`}>
                       <span className="emp-status-dot"></span>
-                      {emp.status === "active" ? "Đang làm việc" : "Đã nghỉ / Inactive"}
+                      {emp.status === "active"
+                        ? "Đang làm việc"
+                        : "Đã nghỉ / Inactive"}
                     </span>
                   </td>
                   {canManage && (
@@ -344,7 +365,14 @@ export const Employees: React.FC = () => {
               ))}
               {filteredEmployees.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: "center", padding: "30px", color: "#94a3b8" }}>
+                  <td
+                    colSpan={7}
+                    style={{
+                      textAlign: "center",
+                      padding: "30px",
+                      color: "#94a3b8",
+                    }}
+                  >
                     Không tìm thấy nhân viên nào phù hợp với điều kiện tìm kiếm.
                   </td>
                 </tr>
@@ -360,19 +388,30 @@ export const Employees: React.FC = () => {
           <div className="modal-content" style={{ maxWidth: "540px" }}>
             <div className="modal-header">
               <h3>Thêm nhân viên mới</h3>
-              <button className="close-btn" onClick={() => setIsAddModalOpen(false)}>
+              <button
+                className="close-btn"
+                onClick={() => setIsAddModalOpen(false)}
+              >
                 ✕
               </button>
             </div>
             <form onSubmit={handleCreateEmployee}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "12px",
+                }}
+              >
                 <div className="form-group">
                   <label>Mã nhân viên *</label>
                   <input
                     type="text"
                     placeholder="Ví dụ: EMP051"
                     value={newEmp.employeeCode}
-                    onChange={(e) => setNewEmp({ ...newEmp, employeeCode: e.target.value })}
+                    onChange={(e) =>
+                      setNewEmp({ ...newEmp, employeeCode: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -382,20 +421,30 @@ export const Employees: React.FC = () => {
                     type="text"
                     placeholder="Nguyễn Văn A"
                     value={newEmp.fullName}
-                    onChange={(e) => setNewEmp({ ...newEmp, fullName: e.target.value })}
+                    onChange={(e) =>
+                      setNewEmp({ ...newEmp, fullName: e.target.value })
+                    }
                     required
                   />
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "12px",
+                }}
+              >
                 <div className="form-group">
                   <label>Email *</label>
                   <input
                     type="email"
                     placeholder="a.nguyen@company.com"
                     value={newEmp.email}
-                    onChange={(e) => setNewEmp({ ...newEmp, email: e.target.value })}
+                    onChange={(e) =>
+                      setNewEmp({ ...newEmp, email: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -405,18 +454,33 @@ export const Employees: React.FC = () => {
                     type="text"
                     placeholder="0912345678"
                     value={newEmp.phone}
-                    onChange={(e) => setNewEmp({ ...newEmp, phone: e.target.value })}
+                    onChange={(e) =>
+                      setNewEmp({ ...newEmp, phone: e.target.value })
+                    }
                   />
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "12px",
+                }}
+              >
                 <div className="form-group">
                   <label>Phòng ban trực thuộc *</label>
                   <select
-                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                    }}
                     value={newEmp.departmentId}
-                    onChange={(e) => setNewEmp({ ...newEmp, departmentId: e.target.value })}
+                    onChange={(e) =>
+                      setNewEmp({ ...newEmp, departmentId: e.target.value })
+                    }
                     required
                   >
                     <option value="">-- Chọn phòng ban --</option>
@@ -433,7 +497,9 @@ export const Employees: React.FC = () => {
                     type="text"
                     placeholder="Ví dụ: Trưởng phòng, Kỹ sư, Chuyên viên..."
                     value={newEmp.position}
-                    onChange={(e) => setNewEmp({ ...newEmp, position: e.target.value })}
+                    onChange={(e) =>
+                      setNewEmp({ ...newEmp, position: e.target.value })
+                    }
                     required
                   />
                 </div>
@@ -442,18 +508,35 @@ export const Employees: React.FC = () => {
               <div className="form-group">
                 <label>Vai trò hệ thống</label>
                 <select
-                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                  }}
                   value={newEmp.role}
-                  onChange={(e) => setNewEmp({ ...newEmp, role: e.target.value })}
+                  onChange={(e) =>
+                    setNewEmp({ ...newEmp, role: e.target.value })
+                  }
                 >
-                  <option value="employee">Nhân viên thông thường (Employee)</option>
-                  <option value="manager">Trưởng phòng / Quản lý (Manager)</option>
-                  <option value="admin_hr">Quản trị viên Nhân sự (Admin HR)</option>
+                  <option value="employee">
+                    Nhân viên thông thường (Employee)
+                  </option>
+                  <option value="manager">
+                    Trưởng phòng / Quản lý (Manager)
+                  </option>
+                  <option value="admin_hr">
+                    Quản trị viên Nhân sự (Admin HR)
+                  </option>
                 </select>
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setIsAddModalOpen(false)}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setIsAddModalOpen(false)}
+                >
                   Hủy
                 </button>
                 <button type="submit" className="btn-primary">
@@ -471,17 +554,29 @@ export const Employees: React.FC = () => {
           <div className="modal-content" style={{ maxWidth: "460px" }}>
             <div className="modal-header">
               <h3>Điều chuyển phòng ban</h3>
-              <button className="close-btn" onClick={() => setTransferModalOpen(false)}>
+              <button
+                className="close-btn"
+                onClick={() => setTransferModalOpen(false)}
+              >
                 ✕
               </button>
             </div>
             <form onSubmit={handleTransferSubmit}>
               <div style={{ marginBottom: "16px" }}>
-                <p style={{ margin: "0 0 6px 0", color: "#64748b" }}>Nhân viên:</p>
+                <p style={{ margin: "0 0 6px 0", color: "#64748b" }}>
+                  Nhân viên:
+                </p>
                 <strong style={{ fontSize: "16px", color: "#0f172a" }}>
-                  {selectedEmpForTransfer.fullName} ({selectedEmpForTransfer.employeeCode})
+                  {selectedEmpForTransfer.fullName} (
+                  {selectedEmpForTransfer.employeeCode})
                 </strong>
-                <p style={{ margin: "6px 0 0 0", fontSize: "13px", color: "#64748b" }}>
+                <p
+                  style={{
+                    margin: "6px 0 0 0",
+                    fontSize: "13px",
+                    color: "#64748b",
+                  }}
+                >
                   Phòng ban hiện tại:{" "}
                   <strong style={{ color: "#2563eb" }}>
                     {getDepartmentName(selectedEmpForTransfer.departmentId)}
@@ -492,7 +587,12 @@ export const Employees: React.FC = () => {
               <div className="form-group">
                 <label>Chọn phòng ban mới cần chuyển đến *</label>
                 <select
-                  style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1.5px solid #cbd5e1" }}
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: "8px",
+                    border: "1.5px solid #cbd5e1",
+                  }}
                   value={targetDeptId}
                   onChange={(e) => setTargetDeptId(e.target.value)}
                   required
@@ -507,7 +607,11 @@ export const Employees: React.FC = () => {
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setTransferModalOpen(false)}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setTransferModalOpen(false)}
+                >
                   Hủy
                 </button>
                 <button type="submit" className="btn-primary">
@@ -521,4 +625,3 @@ export const Employees: React.FC = () => {
     </div>
   );
 };
-
