@@ -19,11 +19,7 @@ const employeeSchema = new mongoose.Schema(
       trim: true,
     },
     password: { type: String, required: true },
-    phone: {
-      type: String,
-      unique: true,
-      trim: true,
-    },
+    phone: { type: String, default: "" },
     departmentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
@@ -32,7 +28,7 @@ const employeeSchema = new mongoose.Schema(
     position: { type: String, default: "Nhân viên" },
     role: {
       type: String,
-      enum: ["admin_hr", "manager", "employee"],
+      enum: ["admin_hr", "manager", "accountant", "employee"],
       default: "employee",
     },
     salary: { type: Number, default: 0 },

@@ -3,7 +3,7 @@ const SalaryRequest = require("../models/SalaryRequest");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 const {
-  canManagePayroll,
+  isPayrollManager,
   currentMonth,
   round1,
   round2,
@@ -16,7 +16,7 @@ const {
 // Chỉ tính và hiển thị, không ghi gì vào database
 exports.getPayrolls = catchAsync(async (req, res) => {
   const month = req.query.month || currentMonth();
-  const canManage = canManagePayroll(req.user);
+  const canManage = await isPayrollManager(req);
 
   // Người không có quyền quản lý chỉ xem lương của chính mình
   const data = await loadPayrollRows(month, canManage ? null : req.user._id);
@@ -32,7 +32,7 @@ exports.getPayrolls = catchAsync(async (req, res) => {
 
 // PUT /api/payroll/edit  { employeeId, month, baseSalary, hourRate, allowance, adjustment, note }
 // Lưu thay đổi vào database và chuyển phiếu về "Nháp" (kể cả khi đã chốt),
-// để kế toán bấm "Chốt lương" lần nữa thì database được cập nhật lại.
+// để bấm "Chốt lương" lần nữa thì database được cập nhật lại.
 exports.updatePayroll = catchAsync(async (req, res, next) => {
   const { employeeId, month, baseSalary, hourRate, allowance, adjustment, note } =
     req.body;
@@ -129,7 +129,7 @@ exports.createRequest = catchAsync(async (req, res, next) => {
 
 // GET /api/payroll/requests
 exports.getRequests = catchAsync(async (req, res) => {
-  const canManage = canManagePayroll(req.user);
+  const canManage = await isPayrollManager(req);
   const filter = canManage ? {} : { employeeId: req.user._id };
 
   const data = await SalaryRequest.find(filter)

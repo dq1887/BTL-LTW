@@ -17,6 +17,10 @@ const round2 = (n) => Math.round(n * 100) / 100;
 const round1 = (n) => Math.round(n * 10) / 10;
 
 // Xác định vai trò tính lương của một nhân viên
+//  - Giám đốc    : role admin_hr, hoặc position chứa "giám đốc", hoặc email nam.duong
+//  - Kế toán     : role accountant, hoặc position chứa "kế toán"
+//  - Trưởng phòng: role manager, hoặc position chứa "trưởng phòng" / "leader"
+//  - Còn lại là nhân viên
 function getPayrollRole(emp) {
   const pos = norm(emp?.position);
   const role = norm(emp?.role);
@@ -28,7 +32,13 @@ function getPayrollRole(emp) {
   )
     return "director";
 
-  if (pos.includes("kế toán") || pos.includes("accountant")) return "accountant";
+  if (
+    role === "accountant" ||
+    role === "ke_toan" ||
+    pos.includes("kế toán") ||
+    pos.includes("accountant")
+  )
+    return "accountant";
 
   if (
     role === "manager" ||
@@ -40,9 +50,25 @@ function getPayrollRole(emp) {
   return "employee";
 }
 
-// Chỉ kế toán và giám đốc được sửa/chốt lương, xem lương mọi người
+// Kế toán và giám đốc có quyền như nhau: xem lương mọi người, sửa lương, chốt lương
 const canManagePayroll = (emp) =>
   ["director", "accountant"].includes(getPayrollRole(emp));
+
+// Đọc lại người đang đăng nhập từ DATABASE (role, position, email luôn mới nhất)
+// thay vì tin vào những gì middleware đăng nhập đã gắn vào req.user
+async function loadActor(req) {
+  if (req._payrollActor) return req._payrollActor;
+  const id = req.user?._id || req.user?.id;
+  const emp = id
+    ? await Employee.findById(id).select("role position email").lean()
+    : null;
+  req._payrollActor = emp || req.user || {};
+  return req._payrollActor;
+}
+
+async function isPayrollManager(req) {
+  return canManagePayroll(await loadActor(req));
+}
 
 const currentMonth = () => {
   const d = new Date();
@@ -215,6 +241,8 @@ module.exports = {
   round2,
   getPayrollRole,
   canManagePayroll,
+  loadActor,
+  isPayrollManager,
   currentMonth,
   loadStats,
   loadPayrollRows,
