@@ -11,6 +11,7 @@ import AccountSettings from "./pages/AccountSettings";
 import AttendancePage from "./pages/AttendancePage";
 import AdjustmentsPage from "./pages/AdjustmentsPage";
 import PayrollPage from "./pages/PayrollPage";
+import LeaveRequests from "./pages/LeaveRequests";
 
 import { ThemeProvider } from "./context/ThemeContext";
 
@@ -36,6 +37,7 @@ function App() {
                     <Route path="/departments" element={<Departments />} />
                     <Route path="/shifts" element={<Shifts />} />
                     <Route path="/attendance" element={<AttendancePage />} />
+                    <Route path="/leave-requests" element={<LeaveRequests />} />
                     <Route
                       path="/attendance-adjustments"
                       element={<AdjustmentsPage />}
