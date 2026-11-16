@@ -15,6 +15,7 @@ app.use(express.json());
 app.use("/api/employees", require("./src/routes/employeeRoutes"));
 app.use("/api/departments", require("./src/routes/departmentRoutes"));
 app.use("/api/shifts", require("./src/routes/shiftRoutes"));
+app.use("/api/schedules", require("./src/routes/scheduleRoutes"));
 app.use("/api/auth", require("./src/routes/authRoutes"));
 app.use("/api/attendances", require("./src/routes/attendanceRoutes"));
 app.use(

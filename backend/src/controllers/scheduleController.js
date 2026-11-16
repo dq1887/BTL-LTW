@@ -5,7 +5,7 @@ const Employee = require("../models/Employee");
 const getSchedules = async (req, res) => {
   try {
     const schedules = await Schedule.find()
-      .populate("employeeId", "name email status")
+      .populate("employeeId", "employeeCode fullName role")
       .populate("shiftId", "name startTime endTime breakMinutes");
     res.status(200).json(schedules);
   } catch (error) {
