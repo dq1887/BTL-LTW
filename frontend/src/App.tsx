@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import AccountSettings from "./pages/AccountSettings";
 import AttendancePage from "./pages/AttendancePage";
 import AdjustmentsPage from "./pages/AdjustmentsPage";
+import Schedules from "./pages/Schedules";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
                   <Route path="/employees" element={<Employees />} />
                   <Route path="/departments" element={<Departments />} />
                   <Route path="/shifts" element={<Shifts />} />
+                  <Route path="/schedules" element={<Schedules />}></Route>
                   <Route path="/attendance" element={<AttendancePage />} />
                   <Route
                     path="/attendance-adjustments"

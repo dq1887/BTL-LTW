@@ -10,6 +10,7 @@ const menu = [
   { label: "Nhân sự", icon: "users", arrow: true, path: "/employees" },
   { label: "Phòng ban", icon: "network", path: "/departments" },
   { label: "Ca làm việc", icon: "calendar", path: "/shifts" },
+  { label: "Lịch phân ca", icon: "calendar", path: "/schedules" },
   { label: "Chấm công", icon: "clock", path: "/attendance" },
   { label: "Duyệt sửa công", icon: "check", path: "/attendance-adjustments" },
   { label: "Nghỉ phép", icon: "send", path: "/leave-requests" },
