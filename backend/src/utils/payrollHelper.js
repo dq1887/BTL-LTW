@@ -55,7 +55,6 @@ const canManagePayroll = (emp) =>
   ["director", "accountant"].includes(getPayrollRole(emp));
 
 // Đọc lại người đang đăng nhập từ DATABASE (role, position, email luôn mới nhất)
-// thay vì tin vào những gì middleware đăng nhập đã gắn vào req.user
 async function loadActor(req) {
   if (req._payrollActor) return req._payrollActor;
   const id = req.user?._id || req.user?.id;
@@ -74,6 +73,13 @@ const currentMonth = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
+
+// Tháng này có dữ liệu chấm công không? (của cả công ty, hoặc của 1 nhân viên)
+async function hasAttendance(month, employeeId) {
+  const filter = { workDate: { $regex: `^${month}` } };
+  if (employeeId) filter.employeeId = employeeId;
+  return !!(await Attendance.exists(filter));
+}
 
 // Tổng phút + tổng công từ bảng chấm công, gộp theo nhân viên (1 truy vấn)
 async function loadStats(month, employeeId) {
@@ -140,9 +146,11 @@ function buildRow(emp, stored, stat, month) {
   };
 }
 
-// Tải bảng lương của cả công ty (hoặc 1 người). 3 truy vấn gộp, KHÔNG ghi database
+// Tải bảng lương của cả công ty (hoặc 1 người). KHÔNG ghi database.
+// Tháng không có dữ liệu chấm công thì trả về danh sách rỗng (không tính lương).
 async function loadPayrollRows(month, onlyEmployeeId) {
-  const [employees, storedList, statMap] = await Promise.all([
+  const [hasData, employees, storedList, statMap] = await Promise.all([
+    hasAttendance(month, onlyEmployeeId),
     Employee.find(onlyEmployeeId ? { _id: onlyEmployeeId } : {})
       .select("fullName employeeCode position email role")
       .lean(),
@@ -151,6 +159,8 @@ async function loadPayrollRows(month, onlyEmployeeId) {
     ).lean(),
     loadStats(month, onlyEmployeeId),
   ]);
+
+  if (!hasData) return [];
 
   const storedMap = new Map(storedList.map((p) => [String(p.employeeId), p]));
 
@@ -221,7 +231,6 @@ async function finalizeMonth(month, userId) {
 
 // Tự cập nhật khi nhân viên vào ca / tan ca:
 // chỉ cập nhật bản ghi nháp đã có trong database, bản đã chốt thì giữ nguyên.
-// (Bản chưa có trong database luôn được tính mới mỗi lần mở trang.)
 async function recalcPayroll(employeeId, month) {
   const payroll = await Payroll.findOne({ employeeId, month });
   if (!payroll || payroll.status === "finalized") return payroll;
@@ -244,6 +253,7 @@ module.exports = {
   loadActor,
   isPayrollManager,
   currentMonth,
+  hasAttendance,
   loadStats,
   loadPayrollRows,
   finalizeMonth,

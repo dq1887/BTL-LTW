@@ -5,6 +5,7 @@ const catchAsync = require("../utils/catchAsync");
 const {
   isPayrollManager,
   currentMonth,
+  hasAttendance,
   round1,
   round2,
   loadStats,
@@ -13,7 +14,8 @@ const {
 } = require("../utils/payrollHelper");
 
 // GET /api/payroll?month=2026-11
-// Chỉ tính và hiển thị, không ghi gì vào database
+// Chỉ tính và hiển thị, không ghi gì vào database.
+// Tháng không có dữ liệu chấm công thì trả về danh sách rỗng.
 exports.getPayrolls = catchAsync(async (req, res) => {
   const month = req.query.month || currentMonth();
   const canManage = await isPayrollManager(req);
@@ -25,6 +27,7 @@ exports.getPayrolls = catchAsync(async (req, res) => {
     success: true,
     canManage,
     currentUserId: String(req.user._id),
+    hasData: data.length > 0,
     count: data.length,
     data,
   });
@@ -42,7 +45,14 @@ exports.updatePayroll = catchAsync(async (req, res, next) => {
   }
 
   const [row] = await loadPayrollRows(month, employeeId);
-  if (!row) return next(new AppError("Không tìm thấy nhân viên!", 404));
+  if (!row) {
+    return next(
+      new AppError(
+        `Không tìm thấy bảng lương: tháng ${month} chưa có dữ liệu chấm công!`,
+        404,
+      ),
+    );
+  }
 
   const num = (field, value, allowNegative = false) => {
     if (value === undefined) return row[field];
@@ -95,8 +105,19 @@ exports.updatePayroll = catchAsync(async (req, res, next) => {
 });
 
 // POST /api/payroll/finalize  { month }
-exports.finalizePayroll = catchAsync(async (req, res) => {
+// Tháng không có dữ liệu chấm công thì không được chốt.
+exports.finalizePayroll = catchAsync(async (req, res, next) => {
   const month = req.body.month || currentMonth();
+
+  if (!(await hasAttendance(month))) {
+    return next(
+      new AppError(
+        `Tháng ${month} chưa có dữ liệu chấm công, không thể chốt lương!`,
+        400,
+      ),
+    );
+  }
+
   const result = await finalizeMonth(month, req.user._id);
 
   res.status(200).json({

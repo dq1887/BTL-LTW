@@ -26,6 +26,17 @@ const REQUEST_STATUS: Record<string, { label: string; cls: string }> = {
 const getErr = (e: unknown) =>
   e instanceof Error ? e.message : "Đã có lỗi xảy ra!";
 
+// Nhận biết giao diện đang sáng hay tối bằng màu chữ của trang
+const detectDark = (): boolean => {
+  if (typeof document === "undefined") return true;
+  const el = document.querySelector(".page-content") || document.body;
+  const m = getComputedStyle(el).color.match(/[\d.]+/g);
+  if (!m || m.length < 3) return true;
+  const [r, g, b] = m.map(Number);
+  // Chữ sáng thì nền tối
+  return 0.299 * r + 0.587 * g + 0.114 * b > 140;
+};
+
 type NumberField = "baseSalary" | "hourRate" | "allowance" | "adjustment";
 
 const FIELDS: { key: NumberField; label: string }[] = [
@@ -48,6 +59,29 @@ export default function PayrollPage() {
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState("");
   const [finalizing, setFinalizing] = useState(false);
+  const [isDark, setIsDark] = useState(detectDark);
+
+  // Tự đổi màu khi bấm nút đổi giao diện sáng/tối
+  useEffect(() => {
+    let timer: number | undefined;
+    const check = () => {
+      setIsDark(detectDark());
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setIsDark(detectDark()), 400); // đợi hiệu ứng chuyển màu
+    };
+    const observer = new MutationObserver(check);
+    const opts = {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ["class", "data-theme", "style"],
+    };
+    observer.observe(document.documentElement, opts);
+    observer.observe(document.body, opts);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   // Tải lại dữ liệu sau khi thao tác (chốt, sửa, gửi yêu cầu...)
   const reload = () => {
@@ -100,12 +134,22 @@ export default function PayrollPage() {
     });
   }, [rows, search, currentUserId]);
 
+  // Tháng có dữ liệu chấm công thì mới có bảng lương
+  const hasData = rows.length > 0;
+  const monthLabel = month.split("-").reverse().join("/");
+
   const finalizedCount = rows.filter((r) => r.status === "finalized").length;
   const draftCount = rows.length - finalizedCount;
-  const allFinalized = rows.length > 0 && draftCount === 0;
+  const allFinalized = hasData && draftCount === 0;
   const totalPay = rows.reduce((s, r) => s + (r.total || 0), 0);
   const totalHours = rows.reduce((s, r) => s + (r.totalHours || 0), 0);
   const totalCredit = rows.reduce((s, r) => s + (r.totalCredit || 0), 0);
+
+  // Tổng lương cứng của mọi nhân viên (đã tính cả phần lương cơ bản vừa sửa)
+  const totalBase = rows.reduce((s, r) => s + (r.baseSalary || 0), 0);
+  // Tiền thưởng theo giờ làm, được cộng thêm vào khi nhân viên có giờ làm
+  const totalHourBonus = rows.reduce((s, r) => s + (r.hourBonus || 0), 0);
+  const fixedPlusHours = totalBase + totalHourBonus;
 
   // CHỐT LƯƠNG: ghi các bảng lương chưa chốt vào database
   const onFinalize = async () => {
@@ -181,7 +225,7 @@ export default function PayrollPage() {
     : 0;
 
   return (
-    <div className="pay-page">
+    <div className="pay-page" data-pay-theme={isDark ? "dark" : "light"}>
       {/* Tiêu đề + công cụ */}
       <div className="pay-header">
         <div>
@@ -203,7 +247,7 @@ export default function PayrollPage() {
             }}
             className="pay-input"
           />
-          {canManage && (
+          {canManage && hasData && (
             <input
               type="text"
               placeholder="🔍 Tìm nhân viên..."
@@ -215,14 +259,16 @@ export default function PayrollPage() {
           {canManage && (
             <button
               onClick={onFinalize}
-              disabled={allFinalized || loading || finalizing}
+              disabled={!hasData || allFinalized || loading || finalizing}
               className="pay-btn green"
             >
               {finalizing
                 ? "Đang lưu..."
-                : allFinalized
-                  ? "✔ Đã chốt lương"
-                  : `Chốt lương tháng (${draftCount})`}
+                : !hasData
+                  ? "Chưa có dữ liệu để chốt"
+                  : allFinalized
+                    ? "✔ Đã chốt lương"
+                    : `Chốt lương tháng (${draftCount})`}
             </button>
           )}
         </div>
@@ -238,154 +284,175 @@ export default function PayrollPage() {
         </div>
       )}
 
+      {/* Tháng không có dữ liệu chấm công */}
+      {!loading && !hasData && (
+        <div className="pay-nodata">
+          <div className="pay-nodata-icon">📭</div>
+          <h3>Không có dữ liệu</h3>
+          <p>
+            Tháng {monthLabel} chưa có dữ liệu chấm công nên chưa tính lương.
+            Chọn tháng khác hoặc chờ nhân viên chấm công.
+          </p>
+        </div>
+      )}
+
       {/* Thẻ thống kê */}
-      <div className="pay-stats">
-        {canManage ? (
-          <>
-            <div className="pay-stat">
-              <span className="pay-stat-label">Số nhân viên</span>
-              <span className="pay-stat-value">{rows.length}</span>
-            </div>
-            <div className="pay-stat">
-              <span className="pay-stat-label">Tổng giờ làm</span>
-              <span className="pay-stat-value">
-                {totalHours.toFixed(1)} giờ
-              </span>
-            </div>
-            <div className="pay-stat accent">
-              <span className="pay-stat-label">Tổng chi lương</span>
-              <span className="pay-stat-value">{money(totalPay)}</span>
-            </div>
-            <div className="pay-stat">
-              <span className="pay-stat-label">Đã chốt</span>
-              <span className="pay-stat-value">
-                {finalizedCount}/{rows.length}
-              </span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="pay-stat">
-              <span className="pay-stat-label">Tổng công</span>
-              <span className="pay-stat-value">{totalCredit.toFixed(1)}</span>
-            </div>
-            <div className="pay-stat">
-              <span className="pay-stat-label">Tổng giờ làm</span>
-              <span className="pay-stat-value">
-                {totalHours.toFixed(1)} giờ
-              </span>
-            </div>
-            <div className="pay-stat accent">
-              <span className="pay-stat-label">Thực nhận</span>
-              <span className="pay-stat-value">{money(totalPay)}</span>
-            </div>
-          </>
-        )}
-      </div>
+      {(loading || hasData) && (
+        <div className="pay-stats">
+          {canManage ? (
+            <>
+              <div className="pay-stat">
+                <span className="pay-stat-label">Số nhân viên</span>
+                <span className="pay-stat-value">{rows.length}</span>
+              </div>
+              <div className="pay-stat">
+                <span className="pay-stat-label">Tổng lương cứng</span>
+                <span className="pay-stat-value">{money(fixedPlusHours)}</span>
+                <span className="pay-stat-sub">
+                  Lương cơ bản {money(totalBase)}
+                  <br />
+                  {totalHours.toFixed(1)} giờ làm · thưởng giờ{" "}
+                  {signed(totalHourBonus)}
+                </span>
+              </div>
+              <div className="pay-stat accent">
+                <span className="pay-stat-label">Tổng chi lương</span>
+                <span className="pay-stat-value">{money(totalPay)}</span>
+                <span className="pay-stat-sub">
+                  Gồm cả phụ cấp và điều chỉnh
+                </span>
+              </div>
+              <div className="pay-stat">
+                <span className="pay-stat-label">Đã chốt</span>
+                <span className="pay-stat-value">
+                  {finalizedCount}/{rows.length}
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="pay-stat">
+                <span className="pay-stat-label">Tổng công</span>
+                <span className="pay-stat-value">{totalCredit.toFixed(1)}</span>
+              </div>
+              <div className="pay-stat">
+                <span className="pay-stat-label">Tổng giờ làm</span>
+                <span className="pay-stat-value">
+                  {totalHours.toFixed(1)} giờ
+                </span>
+              </div>
+              <div className="pay-stat accent">
+                <span className="pay-stat-label">Thực nhận</span>
+                <span className="pay-stat-value">{money(totalPay)}</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Danh sách phiếu lương */}
-      <div className="pay-grid">
-        {loading &&
-          Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="pc skeleton">
-              <div className="sk-line w60" />
-              <div className="sk-line w40 big" />
-              <div className="sk-line" />
-              <div className="sk-line" />
-              <div className="sk-line w80" />
-            </div>
-          ))}
-
-        {!loading && visibleRows.length === 0 && (
-          <div className="pay-empty">
-            {search ? "Không tìm thấy nhân viên phù hợp" : "Chưa có dữ liệu"}
-          </div>
-        )}
-
-        {!loading &&
-          visibleRows.map((r) => {
-            const isMe = r.employeeId?._id === currentUserId;
-            const isFinal = r.status === "finalized";
-            return (
-              <div
-                key={r.employeeId._id}
-                className={`pc ${isMe ? "me" : ""} ${isFinal ? "final" : ""}`}
-              >
-                <div className="pc-top">
-                  <span className="pay-avatar">
-                    {initial(r.employeeId?.fullName)}
-                  </span>
-                  <div className="pc-id">
-                    <div className="pc-name">
-                      {r.employeeId?.fullName}
-                      {isMe && <span className="pay-me">Bạn</span>}
-                    </div>
-                    <div className="pc-sub">
-                      {r.employeeId?.employeeCode} ·{" "}
-                      {r.employeeId?.position || "Nhân viên"}
-                    </div>
-                  </div>
-                  <span className={`pay-pill ${isFinal ? "final" : "draft"}`}>
-                    {isFinal ? "Đã chốt" : "Nháp"}
-                  </span>
-                </div>
-
-                <div className="pc-net">
-                  <span className="pc-net-label">Thực nhận</span>
-                  <span className="pc-net-value">{money(r.total)}</span>
-                </div>
-
-                <div className="pc-meta">
-                  <span>⏱ {r.totalHours} giờ</span>
-                  <span>📅 {r.totalCredit} công</span>
-                </div>
-
-                <ul className="pc-lines">
-                  <li>
-                    <span>Lương cơ bản</span>
-                    <b>{money(r.baseSalary)}</b>
-                  </li>
-                  <li>
-                    <span>
-                      Thưởng giờ ({r.totalHours}h ×{" "}
-                      {r.hourRate.toLocaleString("vi-VN")})
-                    </span>
-                    <b className="plus">{signed(r.hourBonus)}</b>
-                  </li>
-                  <li>
-                    <span>Phụ cấp</span>
-                    <b className="plus">{signed(r.allowance)}</b>
-                  </li>
-                  <li>
-                    <span>Điều chỉnh</span>
-                    <b
-                      className={
-                        r.adjustment > 0
-                          ? "plus"
-                          : r.adjustment < 0
-                            ? "minus"
-                            : ""
-                      }
-                    >
-                      {r.adjustment === 0 ? "0 đ" : signed(r.adjustment)}
-                    </b>
-                  </li>
-                </ul>
-
-                {r.note && <p className="pc-note">📝 {r.note}</p>}
-
-                {canManage && (
-                  <button
-                    onClick={() => setEditing({ ...r })}
-                    className="pay-edit pc-btn"
-                  >
-                    ✏️ Sửa lương
-                  </button>
-                )}
+      {(loading || hasData) && (
+        <div className="pay-grid">
+          {loading &&
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="pc skeleton">
+                <div className="sk-line w60" />
+                <div className="sk-line w40 big" />
+                <div className="sk-line" />
+                <div className="sk-line" />
+                <div className="sk-line w80" />
               </div>
-            );
-          })}
-      </div>
+            ))}
+
+          {!loading && visibleRows.length === 0 && (
+            <div className="pay-empty">Không tìm thấy nhân viên phù hợp</div>
+          )}
+
+          {!loading &&
+            visibleRows.map((r) => {
+              const isMe = r.employeeId?._id === currentUserId;
+              const isFinal = r.status === "finalized";
+              return (
+                <div
+                  key={r.employeeId._id}
+                  className={`pc ${isMe ? "me" : ""} ${isFinal ? "final" : ""}`}
+                >
+                  <div className="pc-top">
+                    <span className="pay-avatar">
+                      {initial(r.employeeId?.fullName)}
+                    </span>
+                    <div className="pc-id">
+                      <div className="pc-name">
+                        {r.employeeId?.fullName}
+                        {isMe && <span className="pay-me">Bạn</span>}
+                      </div>
+                      <div className="pc-sub">
+                        {r.employeeId?.employeeCode} ·{" "}
+                        {r.employeeId?.position || "Nhân viên"}
+                      </div>
+                    </div>
+                    <span className={`pay-pill ${isFinal ? "final" : "draft"}`}>
+                      {isFinal ? "Đã chốt" : "Nháp"}
+                    </span>
+                  </div>
+
+                  <div className="pc-net">
+                    <span className="pc-net-label">Thực nhận</span>
+                    <span className="pc-net-value">{money(r.total)}</span>
+                  </div>
+
+                  <div className="pc-meta">
+                    <span>⏱ {r.totalHours} giờ</span>
+                    <span>📅 {r.totalCredit} công</span>
+                  </div>
+
+                  <ul className="pc-lines">
+                    <li>
+                      <span>Lương cơ bản</span>
+                      <b>{money(r.baseSalary)}</b>
+                    </li>
+                    <li>
+                      <span>
+                        Thưởng giờ ({r.totalHours}h ×{" "}
+                        {r.hourRate.toLocaleString("vi-VN")})
+                      </span>
+                      <b className="plus">{signed(r.hourBonus)}</b>
+                    </li>
+                    <li>
+                      <span>Phụ cấp</span>
+                      <b className="plus">{signed(r.allowance)}</b>
+                    </li>
+                    <li>
+                      <span>Điều chỉnh</span>
+                      <b
+                        className={
+                          r.adjustment > 0
+                            ? "plus"
+                            : r.adjustment < 0
+                              ? "minus"
+                              : ""
+                        }
+                      >
+                        {r.adjustment === 0 ? "0 đ" : signed(r.adjustment)}
+                      </b>
+                    </li>
+                  </ul>
+
+                  {r.note && <p className="pc-note">📝 {r.note}</p>}
+
+                  {canManage && (
+                    <button
+                      onClick={() => setEditing({ ...r })}
+                      className="pay-edit pc-btn"
+                    >
+                      ✏️ Sửa lương
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+        </div>
+      )}
 
       {/* Nhân viên gửi yêu cầu cho kế toán */}
       {!canManage && (

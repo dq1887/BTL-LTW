@@ -1,8 +1,129 @@
+/* ================= BẢNG MÀU ================= */
+
+/* Nền trắng */
+.pay-page[data-pay-theme="light"] {
+  --p-text: #0f172a;
+  --p-muted: #64748b;
+  --p-card: #ffffff;
+  --p-card-border: #e2e8f0;
+  --p-card-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --p-card-shadow-hover: 0 14px 30px rgba(79, 70, 229, 0.14);
+  --p-me-bg: linear-gradient(160deg, #eef2ff, #ffffff 70%);
+  --p-me-border: #818cf8;
+  --p-net-bg: #f1f5f9;
+  --p-net-text: #4338ca;
+  --p-net-final: #15803d;
+  --p-net-label: #64748b;
+  --p-line: #e2e8f0;
+  --p-plus: #15803d;
+  --p-minus: #dc2626;
+  --p-input-bg: #ffffff;
+  --p-input-border: #cbd5e1;
+  --p-focus: rgba(99, 102, 241, 0.25);
+  --p-soft-bg: #eef2ff;
+  --p-soft-border: #c7d2fe;
+  --p-soft-text: #4338ca;
+  --p-soft-hover: #e0e7ff;
+  --p-note-bg: #fffbeb;
+  --p-note-text: #92400e;
+  --p-notice-bg: #dcfce7;
+  --p-notice-border: #86efac;
+  --p-notice-text: #166534;
+  --p-stat-bg: #ffffff;
+  --p-accent-bg: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  --p-accent-border: #a5b4fc;
+  --p-accent-text: #3730a3;
+  --p-pill-draft-bg: #fef3c7;
+  --p-pill-draft-fg: #b45309;
+  --p-pill-final-bg: #dcfce7;
+  --p-pill-final-fg: #15803d;
+  --p-pill-rej-bg: #fee2e2;
+  --p-pill-rej-fg: #b91c1c;
+  /* Nhãn "Bạn": nền tím đậm, chữ trắng */
+  --p-me-tag-bg: linear-gradient(135deg, #4f46e5, #6366f1);
+  --p-me-tag-text: #ffffff;
+  --p-me-tag-shadow: 0 2px 6px rgba(79, 70, 229, 0.35);
+  --p-modal-bg: #ffffff;
+  --p-modal-text: #0f172a;
+  --p-modal-border: #e2e8f0;
+  --p-overlay: rgba(15, 23, 42, 0.45);
+  --p-sk1: #eef2f7;
+  --p-sk2: #dde4ee;
+  --p-ghost-border: #cbd5e1;
+  --p-draft-bar: #f59e0b;
+  --p-final-bar: #22c55e;
+}
+
+/* Nền đen */
+.pay-page[data-pay-theme="dark"] {
+  --p-text: #e8ecf5;
+  --p-muted: #94a3b8;
+  --p-card: rgba(148, 163, 184, 0.07);
+  --p-card-border: rgba(148, 163, 184, 0.22);
+  --p-card-shadow: none;
+  --p-card-shadow-hover: 0 12px 28px rgba(0, 0, 0, 0.3);
+  --p-me-bg: linear-gradient(
+    160deg,
+    rgba(99, 102, 241, 0.2),
+    rgba(99, 102, 241, 0.05)
+  );
+  --p-me-border: rgba(99, 102, 241, 0.75);
+  --p-net-bg: rgba(15, 23, 42, 0.35);
+  --p-net-text: #a5b4fc;
+  --p-net-final: #4ade80;
+  --p-net-label: #94a3b8;
+  --p-line: rgba(148, 163, 184, 0.25);
+  --p-plus: #22c55e;
+  --p-minus: #ef4444;
+  --p-input-bg: rgba(148, 163, 184, 0.08);
+  --p-input-border: rgba(148, 163, 184, 0.35);
+  --p-focus: rgba(99, 102, 241, 0.3);
+  --p-soft-bg: rgba(99, 102, 241, 0.12);
+  --p-soft-border: rgba(99, 102, 241, 0.5);
+  --p-soft-text: #818cf8;
+  --p-soft-hover: rgba(99, 102, 241, 0.25);
+  --p-note-bg: rgba(245, 158, 11, 0.12);
+  --p-note-text: #fcd34d;
+  --p-notice-bg: rgba(34, 197, 94, 0.14);
+  --p-notice-border: rgba(34, 197, 94, 0.45);
+  --p-notice-text: #4ade80;
+  --p-stat-bg: rgba(148, 163, 184, 0.08);
+  --p-accent-bg: linear-gradient(
+    135deg,
+    rgba(79, 70, 229, 0.3),
+    rgba(99, 102, 241, 0.12)
+  );
+  --p-accent-border: rgba(99, 102, 241, 0.5);
+  --p-accent-text: #e8ecf5;
+  --p-pill-draft-bg: rgba(245, 158, 11, 0.18);
+  --p-pill-draft-fg: #fbbf24;
+  --p-pill-final-bg: rgba(34, 197, 94, 0.18);
+  --p-pill-final-fg: #4ade80;
+  --p-pill-rej-bg: rgba(239, 68, 68, 0.18);
+  --p-pill-rej-fg: #f87171;
+  /* Nhãn "Bạn": nền tím sáng, chữ trắng */
+  --p-me-tag-bg: linear-gradient(135deg, #6366f1, #818cf8);
+  --p-me-tag-text: #ffffff;
+  --p-me-tag-shadow: 0 2px 8px rgba(99, 102, 241, 0.45);
+  --p-modal-bg: #111a33;
+  --p-modal-text: #ffffff;
+  --p-modal-border: rgba(148, 163, 184, 0.25);
+  --p-overlay: rgba(0, 0, 0, 0.6);
+  --p-sk1: rgba(148, 163, 184, 0.12);
+  --p-sk2: rgba(148, 163, 184, 0.28);
+  --p-ghost-border: rgba(148, 163, 184, 0.45);
+  --p-draft-bar: #f59e0b;
+  --p-final-bar: #22c55e;
+}
+
+/* ================= BỐ CỤC ================= */
+
 .pay-page {
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  color: var(--p-text);
 }
 
 /* ===== Header ===== */
@@ -21,7 +142,7 @@
 .pay-sub {
   margin: 4px 0 0;
   font-size: 14px;
-  opacity: 0.65;
+  color: var(--p-muted);
 }
 .pay-tools {
   display: flex;
@@ -33,11 +154,11 @@
 /* ===== Input / Button ===== */
 .pay-input,
 .pay-textarea {
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 1px solid var(--p-input-border);
   border-radius: 10px;
   padding: 9px 12px;
-  background: rgba(148, 163, 184, 0.08);
-  color: inherit;
+  background: var(--p-input-bg);
+  color: var(--p-text);
   font: inherit;
   font-size: 14px;
   outline: none;
@@ -46,7 +167,7 @@
 .pay-input:focus,
 .pay-textarea:focus {
   border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 0 3px var(--p-focus);
 }
 .pay-search {
   min-width: 220px;
@@ -66,10 +187,10 @@
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.1s, filter 0.15s;
+  transition: transform 0.1s, filter 0.15s, box-shadow 0.15s;
 }
 .pay-btn:hover:not(:disabled) {
-  filter: brightness(1.1);
+  filter: brightness(1.08);
   transform: translateY(-1px);
 }
 .pay-btn:disabled {
@@ -78,14 +199,17 @@
 }
 .pay-btn.green {
   background: linear-gradient(135deg, #16a34a, #22c55e);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
 }
 .pay-btn.blue {
   background: linear-gradient(135deg, #4f46e5, #6366f1);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 .pay-btn.ghost {
   background: transparent;
-  color: inherit;
-  border: 1px solid rgba(148, 163, 184, 0.45);
+  color: var(--p-text);
+  border: 1px solid var(--p-ghost-border);
+  box-shadow: none;
 }
 
 .pay-link {
@@ -97,21 +221,21 @@
   cursor: pointer;
 }
 .pay-link.green {
-  color: #22c55e;
+  color: var(--p-plus);
 }
 .pay-link.red {
-  color: #ef4444;
+  color: var(--p-minus);
 }
 .pay-link:hover {
   text-decoration: underline;
 }
 
 .pay-edit {
-  border: 1px solid rgba(99, 102, 241, 0.5);
-  background: rgba(99, 102, 241, 0.12);
-  color: #818cf8;
+  border: 1px solid var(--p-soft-border);
+  background: var(--p-soft-bg);
+  color: var(--p-soft-text);
   border-radius: 10px;
-  padding: 8px 14px;
+  padding: 9px 14px;
   font: inherit;
   font-size: 13.5px;
   font-weight: 700;
@@ -119,7 +243,7 @@
   transition: background 0.15s;
 }
 .pay-edit:hover {
-  background: rgba(99, 102, 241, 0.25);
+  background: var(--p-soft-hover);
 }
 
 /* ===== Thông báo đã lưu ===== */
@@ -130,9 +254,9 @@
   gap: 12px;
   padding: 12px 16px;
   border-radius: 12px;
-  background: rgba(34, 197, 94, 0.14);
-  border: 1px solid rgba(34, 197, 94, 0.45);
-  color: #4ade80;
+  background: var(--p-notice-bg);
+  border: 1px solid var(--p-notice-border);
+  color: var(--p-notice-text);
   font-size: 14px;
   font-weight: 600;
 }
@@ -147,7 +271,7 @@
 /* ===== Thẻ thống kê ===== */
 .pay-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 14px;
 }
 .pay-stat {
@@ -156,24 +280,29 @@
   gap: 6px;
   padding: 16px 18px;
   border-radius: 14px;
-  background: rgba(148, 163, 184, 0.08);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: var(--p-stat-bg);
+  border: 1px solid var(--p-card-border);
+  box-shadow: var(--p-card-shadow);
 }
 .pay-stat-label {
   font-size: 13px;
-  opacity: 0.65;
+  color: var(--p-muted);
 }
 .pay-stat-value {
   font-size: 22px;
   font-weight: 800;
 }
+.pay-stat-sub {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--p-muted);
+}
 .pay-stat.accent {
-  background: linear-gradient(
-    135deg,
-    rgba(79, 70, 229, 0.3),
-    rgba(99, 102, 241, 0.12)
-  );
-  border-color: rgba(99, 102, 241, 0.5);
+  background: var(--p-accent-bg);
+  border-color: var(--p-accent-border);
+}
+.pay-stat.accent .pay-stat-value {
+  color: var(--p-accent-text);
 }
 
 /* ===== Lưới phiếu lương ===== */
@@ -186,7 +315,7 @@
   grid-column: 1 / -1;
   text-align: center;
   padding: 40px;
-  opacity: 0.7;
+  color: var(--p-muted);
 }
 
 .pc {
@@ -196,8 +325,9 @@
   gap: 14px;
   padding: 18px;
   border-radius: 18px;
-  background: rgba(148, 163, 184, 0.07);
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: var(--p-card);
+  border: 1px solid var(--p-card-border);
+  box-shadow: var(--p-card-shadow);
   overflow: hidden;
   transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
 }
@@ -208,24 +338,18 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: #f59e0b; /* nháp: màu vàng */
+  background: var(--p-draft-bar);
 }
 .pc.final::before {
-  background: #22c55e; /* đã chốt: màu xanh */
+  background: var(--p-final-bar);
 }
 .pc:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
-  border-color: rgba(148, 163, 184, 0.45);
+  box-shadow: var(--p-card-shadow-hover);
 }
 .pc.me {
-  border-color: rgba(99, 102, 241, 0.75);
-  background: linear-gradient(
-    160deg,
-    rgba(99, 102, 241, 0.2),
-    rgba(99, 102, 241, 0.05)
-  );
-  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.35);
+  background: var(--p-me-bg);
+  border-color: var(--p-me-border);
 }
 
 .pc-top {
@@ -261,7 +385,7 @@
 }
 .pc-sub {
   font-size: 12.5px;
-  opacity: 0.6;
+  color: var(--p-muted);
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -275,28 +399,28 @@
   gap: 2px;
   padding: 12px 14px;
   border-radius: 12px;
-  background: rgba(15, 23, 42, 0.35);
+  background: var(--p-net-bg);
 }
 .pc-net-label {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  opacity: 0.6;
+  color: var(--p-net-label);
 }
 .pc-net-value {
   font-size: 26px;
   font-weight: 800;
-  color: #a5b4fc;
+  color: var(--p-net-text);
 }
 .pc.final .pc-net-value {
-  color: #4ade80;
+  color: var(--p-net-final);
 }
 
 .pc-meta {
   display: flex;
   gap: 16px;
   font-size: 13px;
-  opacity: 0.8;
+  color: var(--p-muted);
 }
 
 .pc-lines {
@@ -313,31 +437,32 @@
   justify-content: space-between;
   gap: 10px;
   padding-bottom: 8px;
-  border-bottom: 1px dashed rgba(148, 163, 184, 0.25);
+  border-bottom: 1px dashed var(--p-line);
 }
 .pc-lines li:last-child {
   border-bottom: none;
   padding-bottom: 0;
 }
 .pc-lines li span {
-  opacity: 0.7;
+  color: var(--p-muted);
 }
 .pc-lines b {
   font-weight: 700;
   white-space: nowrap;
 }
 .pc-lines .plus {
-  color: #22c55e;
+  color: var(--p-plus);
 }
 .pc-lines .minus {
-  color: #ef4444;
+  color: var(--p-minus);
 }
 
 .pc-note {
   margin: 0;
   padding: 8px 12px;
   border-radius: 10px;
-  background: rgba(245, 158, 11, 0.12);
+  background: var(--p-note-bg);
+  color: var(--p-note-text);
   font-size: 13px;
 }
 .pc-btn {
@@ -345,15 +470,18 @@
   margin-top: auto;
 }
 
-/* Nhãn "Bạn" */
+/* Nhãn "Bạn": nền tím đậm, chữ trắng, rõ trên cả nền trắng và nền đen */
 .pay-me {
-  padding: 2px 9px;
-  border-radius: 6px;
-  background: rgba(99, 102, 241, 0.25);
-  border: 1px solid rgba(99, 102, 241, 0.6);
-  color: #a5b4fc;
+  display: inline-block;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: var(--p-me-tag-bg);
+  color: var(--p-me-tag-text);
+  box-shadow: var(--p-me-tag-shadow);
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  line-height: 1.4;
 }
 
 /* Nhãn trạng thái */
@@ -367,17 +495,17 @@
 }
 .pay-pill.draft,
 .pay-pill.pending {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fbbf24;
+  background: var(--p-pill-draft-bg);
+  color: var(--p-pill-draft-fg);
 }
 .pay-pill.final,
 .pay-pill.resolved {
-  background: rgba(34, 197, 94, 0.18);
-  color: #4ade80;
+  background: var(--p-pill-final-bg);
+  color: var(--p-pill-final-fg);
 }
 .pay-pill.rejected {
-  background: rgba(239, 68, 68, 0.18);
-  color: #f87171;
+  background: var(--p-pill-rej-bg);
+  color: var(--p-pill-rej-fg);
 }
 
 /* ===== Khung chờ tải dữ liệu ===== */
@@ -385,16 +513,16 @@
   min-height: 250px;
 }
 .pc.skeleton::before {
-  background: rgba(148, 163, 184, 0.3);
+  background: var(--p-sk2);
 }
 .sk-line {
   height: 14px;
   border-radius: 8px;
   background: linear-gradient(
     90deg,
-    rgba(148, 163, 184, 0.12) 25%,
-    rgba(148, 163, 184, 0.28) 50%,
-    rgba(148, 163, 184, 0.12) 75%
+    var(--p-sk1) 25%,
+    var(--p-sk2) 50%,
+    var(--p-sk1) 75%
   );
   background-size: 200% 100%;
   animation: pay-shimmer 1.2s infinite;
@@ -422,13 +550,14 @@
 
 /* ===== Khối yêu cầu ===== */
 .pay-card {
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  border: 1px solid var(--p-card-border);
   border-radius: 14px;
   padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: rgba(148, 163, 184, 0.06);
+  background: var(--p-card);
+  box-shadow: var(--p-card-shadow);
 }
 .pay-card h2,
 .pay-section h2 {
@@ -441,16 +570,17 @@
   gap: 10px;
 }
 .pay-muted {
-  opacity: 0.65;
+  color: var(--p-muted);
   margin: 0;
 }
 
 .pay-request {
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  border: 1px solid var(--p-card-border);
   border-radius: 12px;
   padding: 14px 18px;
   font-size: 14px;
-  background: rgba(148, 163, 184, 0.06);
+  background: var(--p-card);
+  box-shadow: var(--p-card-shadow);
 }
 .pay-request-head {
   display: flex;
@@ -463,6 +593,9 @@
 .pay-request p {
   margin: 8px 0 0;
 }
+.pay-request p.pay-muted {
+  color: var(--p-muted);
+}
 .pay-request-actions {
   margin-top: 10px;
   display: flex;
@@ -473,7 +606,7 @@
 .pay-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--p-overlay);
   backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
@@ -481,9 +614,9 @@
   z-index: 1000;
 }
 .pay-modal {
-  background: #111a33;
-  color: #fff;
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: var(--p-modal-bg);
+  color: var(--p-modal-text);
+  border: 1px solid var(--p-modal-border);
   border-radius: 16px;
   padding: 24px;
   width: 100%;
@@ -491,7 +624,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
 }
 .pay-modal h3 {
   margin: 0;
@@ -505,15 +638,16 @@
   font-weight: 600;
 }
 .pay-modal .warn {
-  color: #f59e0b;
+  color: #d97706;
   font-size: 13px;
   margin: 0;
 }
 .pay-preview {
   padding: 10px 14px;
   border-radius: 10px;
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  background: var(--p-soft-bg);
+  border: 1px solid var(--p-soft-border);
+  color: var(--p-modal-text);
   font-size: 14px;
 }
 .pay-modal-actions {
@@ -521,4 +655,30 @@
   justify-content: flex-end;
   gap: 8px;
   margin-top: 4px;
+}
+/* ===== Tháng không có dữ liệu chấm công ===== */
+.pay-nodata {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 56px 20px;
+  text-align: center;
+  border-radius: 18px;
+  border: 2px dashed var(--p-card-border);
+  background: var(--p-card);
+}
+.pay-nodata-icon {
+  font-size: 44px;
+}
+.pay-nodata h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+.pay-nodata p {
+  margin: 0;
+  max-width: 440px;
+  line-height: 1.6;
+  color: var(--p-muted);
 }
