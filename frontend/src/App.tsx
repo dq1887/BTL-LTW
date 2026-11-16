@@ -11,45 +11,52 @@ import AccountSettings from "./pages/AccountSettings";
 import AttendancePage from "./pages/AttendancePage";
 import AdjustmentsPage from "./pages/AdjustmentsPage";
 import Schedules from "./pages/Schedules";
+import PayrollPage from "./pages/PayrollPage";
+import LeaveRequests from "./pages/LeaveRequests";
+import { ThemeProvider } from "./context/ThemeContext";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route element={<ProtectedRoute />}>
-          <Route
-            path="/*"
-            element={
-              <MainLayout>
-                <Routes>
-                  <Route
-                    path="/"
-                    element={<Navigate to="/dashboard" replace />}
-                  />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/employees" element={<Employees />} />
-                  <Route path="/departments" element={<Departments />} />
-                  <Route path="/shifts" element={<Shifts />} />
-                  <Route path="/schedules" element={<Schedules />}></Route>
-                  <Route path="/attendance" element={<AttendancePage />} />
-                  <Route
-                    path="/attendance-adjustments"
-                    element={<AdjustmentsPage />}
-                  />
-                  <Route path="/settings" element={<AccountSettings />} />
-                  <Route
-                    path="*"
-                    element={<Navigate to="/dashboard" replace />}
-                  />
-                </Routes>
-              </MainLayout>
-            }
-          />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route element={<ProtectedRoute />}>
+            <Route
+              path="/*"
+              element={
+                <MainLayout>
+                  <Routes>
+                    <Route
+                      path="/"
+                      element={<Navigate to="/dashboard" replace />}
+                    />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/employees" element={<Employees />} />
+                    <Route path="/departments" element={<Departments />} />
+                    <Route path="/shifts" element={<Shifts />} />
+                    <Route path="/schedules" element={<Schedules />}></Route>
+                    <Route path="/attendance" element={<AttendancePage />} />
+                    <Route path="/leave-requests" element={<LeaveRequests />} />
+                    <Route
+                      path="/attendance-adjustments"
+                      element={<AdjustmentsPage />}
+                    />
+                    <Route path="/payroll" element={<PayrollPage />} />
+                    <Route path="/settings" element={<AccountSettings />} />
+                    <Route
+                      path="*"
+                      element={<Navigate to="/dashboard" replace />}
+                    />
+                  </Routes>
+                </MainLayout>
+              }
+            />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 

@@ -3,6 +3,16 @@ const Attendance = require("../models/Attendance");
 const AttendanceAdjustment = require("../models/AttendanceAdjustment");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
+const { recalcPayroll } = require("../utils/payrollHelper"); // [LƯƠNG]
+
+// [LƯƠNG] Tự cập nhật lương tháng của nhân viên, lỗi không làm hỏng chấm công
+const refreshPayroll = (employeeId, workDate) => {
+  const month = String(workDate || "").slice(0, 7);
+  if (!employeeId || !/^\d{4}-\d{2}$/.test(month)) return;
+  recalcPayroll(employeeId, month).catch((err) =>
+    console.error("Lỗi cập nhật lương:", err.message),
+  );
+};
 
 exports.checkIn = catchAsync(async (req, res, next) => {
   const employeeId = req.user ? req.user._id : req.body.employeeId;
@@ -41,6 +51,8 @@ exports.checkIn = catchAsync(async (req, res, next) => {
     status: "present",
   });
 
+  refreshPayroll(employeeId, targetDate); // [LƯƠNG] vào ca -> tạo/cập nhật bảng lương
+
   res.status(201).json({
     success: true,
     message: "Check-in thành công!",
@@ -73,6 +85,8 @@ exports.checkOut = catchAsync(async (req, res, next) => {
   attendance.status = minutesWorked > 0 ? "present" : "absent";
 
   await attendance.save();
+
+  refreshPayroll(attendance.employeeId, attendance.workDate); // [LƯƠNG] tan ca -> cộng giờ vào lương
 
   res.status(200).json({
     success: true,
@@ -204,6 +218,8 @@ exports.approveAdjustment = catchAsync(async (req, res, next) => {
     attendance.minutesWorked = minutesWorked;
     attendance.workCredit = workCredit;
     await attendance.save();
+
+    refreshPayroll(attendance.employeeId, attendance.workDate); // [LƯƠNG] sửa công -> cập nhật lại lương
   }
 
   res.status(200).json({

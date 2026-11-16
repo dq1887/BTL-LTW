@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import Icon from "./Icons";
 import type { ComponentProps } from "react";
 import { authService } from "../../services/authService";
+import { useTheme } from "../../context/ThemeContext";
 
 type SidebarProps = { collapsed: boolean };
 
@@ -74,10 +75,6 @@ export default function Sidebar({ collapsed }: SidebarProps) {
       </nav>
 
       <div className="sidebar-bottom">
-        <div className="theme-switch" title="Giao diện">
-          <span>☾</span>
-          <span>☼</span>
-        </div>
         <button
           className="logout-link"
           onClick={handleLogout}

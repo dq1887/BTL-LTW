@@ -324,7 +324,6 @@ export default function AccountSettings() {
               </div>
             </div>
 
-            {/* 3. XÁC NHẬN MẬT KHẨU MỚI */}
             <div style={{ marginBottom: "24px" }}>
               <label
                 style={{
@@ -454,15 +453,6 @@ export default function AccountSettings() {
                   >
                     Thiết bị
                   </th>
-                  <th
-                    style={{
-                      padding: "10px",
-                      fontSize: "13px",
-                      color: "#64748b",
-                    }}
-                  >
-                    Địa chỉ IP
-                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -495,16 +485,6 @@ export default function AccountSettings() {
                       >
                         {item.device}
                       </span>
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px 10px",
-                        fontSize: "13px",
-                        color: "#2563eb",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {item.ip}
                     </td>
                   </tr>
                 ))}

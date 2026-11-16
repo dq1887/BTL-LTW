@@ -28,7 +28,7 @@ const employeeSchema = new mongoose.Schema(
     position: { type: String, default: "Nhân viên" },
     role: {
       type: String,
-      enum: ["admin_hr", "manager", "employee"],
+      enum: ["admin_hr", "manager", "accountant", "employee"],
       default: "employee",
     },
     salary: { type: Number, default: 0 },

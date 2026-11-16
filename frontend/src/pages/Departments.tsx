@@ -1,11 +1,14 @@
-// frontend/src/pages/Departments.tsx
-
 import React, { useState, useEffect } from "react";
 import "./Departments.css";
-import { departmentService, type Department } from "../services/departmentService";
+import {
+  departmentService,
+  type Department,
+} from "../services/departmentService";
 import { authService } from "../services/authService";
+import { useSearchParams } from "react-router-dom";
 
 export const Departments: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const currentUser = authService.getCurrentUser();
   const canManage = currentUser?.role === "admin_hr";
 
@@ -14,10 +17,8 @@ export const Departments: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Bộ lọc tìm kiếm nhân viên trong phòng ban
   const [empSearch, setEmpSearch] = useState("");
 
-  // Modal Thêm / Sửa phòng ban
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentDept, setCurrentDept] = useState({
@@ -26,7 +27,31 @@ export const Departments: React.FC = () => {
     description: "",
   });
 
-  // Tải danh sách phòng ban kèm nhân viên trực thuộc
+  useEffect(() => {
+    const deptQuery = searchParams.get("search");
+    if (deptQuery && departments.length > 0) {
+      const normalize = (s: string) =>
+        (s || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/đ/g, "d")
+          .trim();
+
+      const target = normalize(deptQuery);
+      const found = departments.find(
+        (d) =>
+          normalize(d.name || "").includes(target) ||
+          normalize(d.code || "").includes(target),
+      );
+
+      if (found) {
+        setSelectedDeptId(found._id);
+        setEmpSearch("");
+      }
+    }
+  }, [searchParams, departments]);
+
   const loadDepartments = async () => {
     try {
       setLoading(true);
@@ -37,7 +62,8 @@ export const Departments: React.FC = () => {
         setSelectedDeptId(data[0]._id);
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Lỗi khi tải danh sách phòng ban";
+      const msg =
+        err instanceof Error ? err.message : "Lỗi khi tải danh sách phòng ban";
       setError(msg);
     } finally {
       setLoading(false);
@@ -48,11 +74,9 @@ export const Departments: React.FC = () => {
     loadDepartments();
   }, []);
 
-  // Phòng ban đang được chọn
   const activeDepartment =
     departments.find((d) => d._id === selectedDeptId) || departments[0];
 
-  // Danh sách nhân viên của phòng ban đang chọn (có lọc tìm kiếm)
   const activeEmployees = (activeDepartment?.employees || []).filter((emp) => {
     if (!empSearch.trim()) return true;
     const term = empSearch.toLowerCase();
@@ -64,14 +88,12 @@ export const Departments: React.FC = () => {
     );
   });
 
-  // Mở modal thêm phòng ban
   const handleOpenAddModal = () => {
     setCurrentDept({ code: "", name: "", description: "" });
     setIsEditing(false);
     setIsModalOpen(true);
   };
 
-  // Mở modal sửa phòng ban
   const handleOpenEditModal = (dept: Department) => {
     setCurrentDept({
       code: dept.code,
@@ -82,7 +104,6 @@ export const Departments: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // Lưu form phòng ban
   const handleSaveDept = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentDept.code.trim() || !currentDept.name.trim()) {
@@ -110,11 +131,10 @@ export const Departments: React.FC = () => {
     }
   };
 
-  // Xóa phòng ban (Backend chặn nếu còn nhân viên)
   const handleDeleteDept = async (dept: Department) => {
     if (
       !confirm(
-        `Bạn có chắc chắn muốn xóa phòng ban "${dept.name}" (${dept.code})?`
+        `Bạn có chắc chắn muốn xóa phòng ban "${dept.name}" (${dept.code})?`,
       )
     ) {
       return;
@@ -126,7 +146,8 @@ export const Departments: React.FC = () => {
       setSelectedDeptId(null);
       loadDepartments();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Không thể xóa phòng ban";
+      const msg =
+        err instanceof Error ? err.message : "Không thể xóa phòng ban";
       alert(msg);
     }
   };
@@ -138,8 +159,8 @@ export const Departments: React.FC = () => {
         <div>
           <h2>🏢 Quản lý Phòng ban & Cơ cấu Tổ chức</h2>
           <p>
-            Theo dõi danh sách các phòng ban và toàn bộ nhân viên trực thuộc từng
-            phòng ban
+            Theo dõi danh sách các phòng ban và toàn bộ nhân viên trực thuộc
+            từng phòng ban
           </p>
         </div>
         {canManage && (
@@ -149,7 +170,6 @@ export const Departments: React.FC = () => {
         )}
       </div>
 
-      {/* Thông báo lỗi */}
       {error && (
         <div
           style={{
@@ -169,7 +189,6 @@ export const Departments: React.FC = () => {
         </div>
       ) : (
         <div className="dept-layout">
-          {/* CỘT TRÁI: DANH SÁCH PHÒNG BAN */}
           <div className="dept-list-panel">
             <h4
               style={{
@@ -198,9 +217,7 @@ export const Departments: React.FC = () => {
                 >
                   <div className="dept-card-top">
                     <span className="dept-code-pill">{dept.code}</span>
-                    <span className="dept-emp-count">
-                      👥 {count} nhân viên
-                    </span>
+                    <span className="dept-emp-count">👥 {count} nhân viên</span>
                   </div>
                   <h4 className="dept-name">{dept.name}</h4>
                   <p className="dept-desc">
@@ -217,7 +234,6 @@ export const Departments: React.FC = () => {
             )}
           </div>
 
-          {/* CỘT PHẢI: CHI TIẾT & DANH SÁCH NHÂN VIÊN THUỘC PHÒNG BAN */}
           {activeDepartment ? (
             <div className="dept-detail-panel">
               {/* Header chi tiết phòng ban */}
@@ -266,7 +282,6 @@ export const Departments: React.FC = () => {
                 )}
               </div>
 
-              {/* Danh sách nhân viên thuộc phòng ban */}
               <div className="dept-employees-section">
                 <h4>
                   <span>
@@ -426,12 +441,13 @@ export const Departments: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Thêm / Sửa phòng ban */}
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: "460px" }}>
             <div className="modal-header">
-              <h3>{isEditing ? "Chỉnh sửa phòng ban" : "Thêm phòng ban mới"}</h3>
+              <h3>
+                {isEditing ? "Chỉnh sửa phòng ban" : "Thêm phòng ban mới"}
+              </h3>
               <button
                 className="close-btn"
                 onClick={() => setIsModalOpen(false)}
@@ -509,4 +525,3 @@ export const Departments: React.FC = () => {
     </div>
   );
 };
-

@@ -21,6 +21,8 @@ app.use(
   "/api/attendance-adjustments",
   require("./src/routes/adjustmentRoutes"),
 );
+app.use("/api/payroll", require("./src/routes/payrollRoutes"));
+app.use("/api/leave", require("./src/routes/leaveRoutes"));
 
 app.get("/", (req, res) => {
   res.send("HRM Backend Server is running...");
