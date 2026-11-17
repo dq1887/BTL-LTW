@@ -15,9 +15,10 @@ const leaveRequestSchema = new mongoose.Schema(
     },
     startDate: { type: String, required: true },
     endDate: { type: String, required: true },
-    // Snapshot các ngày thực sự có ca được phân công tại thời điểm gửi đơn.
+    // Các ngày đã công bố; rỗng nếu chưa có lịch chính thức.
     scheduledDates: { type: [String], required: true, default: [] },
-    totalDays: { type: Number, required: true, min: 1 },
+    // null = đơn hợp lệ nhưng chưa thể tính ngày công do thiếu lịch công bố.
+    totalDays: { type: Number, default: null, min: 1 },
     reason: { type: String, required: true, trim: true, maxlength: 1000 },
     status: {
       type: String,

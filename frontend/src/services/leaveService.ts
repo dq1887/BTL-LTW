@@ -23,7 +23,7 @@ export interface LeaveRequest {
   startDate: string;
   endDate: string;
   scheduledDates: string[];
-  totalDays: number;
+  totalDays: number | null;
   reason: string;
   status: "pending" | "approved" | "rejected" | "cancelled";
   reviewedBy?: { _id: string; fullName: string; employeeCode: string } | null;
@@ -48,7 +48,8 @@ interface SchedulePreview {
   success: boolean;
   count: number;
   dates: string[];
-  data: { date: string; shift: { id: string; name: string; startTime: string; endTime: string } }[];
+  draftDates?: string[];
+  data: { date: string; source?: string; shift: { id: string; name: string; startTime: string; endTime: string } }[];
 }
 
 export const leaveService = {
