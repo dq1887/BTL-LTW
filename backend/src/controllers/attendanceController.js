@@ -23,8 +23,8 @@ const calculateCredits = (inTime, outTime, shiftStartStr, shiftEndStr) => {
 
   if (!shiftStartStr || !shiftEndStr) {
     return {
-      workCredit: 0,
-      overtimeCredit: round2(totalMinutes / 60),
+      workCredit: round2(totalMinutes / 480),
+      overtimeCredit: 0,
       totalMinutes: Math.round(totalMinutes),
     };
   }
@@ -44,13 +44,8 @@ const calculateCredits = (inTime, outTime, shiftStartStr, shiftEndStr) => {
 
   let overtimeMinutes = Math.max(0, totalMinutes - inShiftMinutes);
 
-  const TOLERANCE_MINUTES = 0;
-  if (inShiftMinutes < shiftTotalMins - TOLERANCE_MINUTES) {
-    overtimeMinutes = 0;
-  }
-
-  const workCredit = round2(inShiftMinutes / 480);
-
+  const effectiveWorkMins = inShiftMinutes > 0 ? inShiftMinutes : totalMinutes;
+  const workCredit = round2(effectiveWorkMins / 480);
   const overtimeCredit = round2(overtimeMinutes / 60);
 
   return { workCredit, overtimeCredit, totalMinutes: Math.round(totalMinutes) };
@@ -296,6 +291,7 @@ exports.approveAdjustment = catchAsync(async (req, res, next) => {
     attendance.minutesWorked = totalMinutes;
     attendance.workCredit = workCredit;
     attendance.overtimeCredit = overtimeCredit;
+    attendance.status = totalMinutes > 0 ? "present" : "absent";
     await attendance.save();
 
     refreshPayroll(attendance.employeeId, attendance.workDate);
@@ -343,5 +339,14 @@ exports.getDashboardStats = catchAsync(async (req, res, next) => {
         absentCount,
       },
     },
+  });
+});
+
+exports.resetAllAttendancesAPI = catchAsync(async (req, res, next) => {
+  await Attendance.deleteMany({});
+  await AttendanceAdjustment.deleteMany({});
+  res.status(200).json({
+    success: true,
+    message: "Đã reset và xóa sạch toàn bộ dữ liệu chấm công thành công!",
   });
 });

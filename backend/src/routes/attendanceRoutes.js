@@ -7,7 +7,10 @@ const {
   checkOut,
   getAttendances,
   getDashboardStats,
+  resetAllAttendancesAPI,
 } = require("../controllers/attendanceController");
+
+router.delete("/reset-all", protect, resetAllAttendancesAPI);
 
 router.post("/check-in", protect, checkIn);
 router.post("/:id/check-out", protect, checkOut);
