@@ -106,6 +106,10 @@ const transferDepartment = async (req, res) => {
 
         if (!employee) return res.status(404).json({ message: 'Không tìm thấy nhân viên' });
 
+        if (employee.status !== 'active') {
+            return res.status(400).json({ message: 'Không thể điều chuyển nhân viên đã bị vô hiệu hóa hoặc nghỉ việc!' });
+        }
+
         const oldDepartmentId = employee.departmentId;
 
         // Báo lỗi nếu chuyển vào đúng phòng ban hiện tại

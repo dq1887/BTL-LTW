@@ -120,6 +120,7 @@ export default function Dashboard() {
         if (departmentsList.length > 0) {
           const computedStats = departmentsList.map((dept: any) => {
             const count = employeesList.filter((emp: any) => {
+              if (emp.status === "inactive") return false;
               const empDeptId = String(
                 emp.departmentId?._id || emp.departmentId || "",
               );

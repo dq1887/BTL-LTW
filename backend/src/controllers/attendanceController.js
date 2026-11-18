@@ -307,7 +307,8 @@ exports.approveAdjustment = catchAsync(async (req, res, next) => {
 exports.getDashboardStats = catchAsync(async (req, res, next) => {
   const todayStr = new Date().toISOString().split("T")[0];
 
-  const totalEmployees = await Employee.countDocuments();
+  const totalEmployees = await Employee.countDocuments({ status: "active" });
+  const totalInactive = await Employee.countDocuments({ status: "inactive" });
   const totalDepartments = await Department.countDocuments();
 
   const todayAttendances = await Attendance.find({ workDate: todayStr });
@@ -330,6 +331,7 @@ exports.getDashboardStats = catchAsync(async (req, res, next) => {
     success: true,
     data: {
       totalEmployees,
+      totalInactive,
       totalDepartments,
       attendanceRate,
       attendanceStats: {

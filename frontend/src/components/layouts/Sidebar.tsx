@@ -2,7 +2,6 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import Icon from "./Icons";
 import type { ComponentProps } from "react";
 import { authService } from "../../services/authService";
-import { useTheme } from "../../context/ThemeContext";
 
 type SidebarProps = { collapsed: boolean };
 

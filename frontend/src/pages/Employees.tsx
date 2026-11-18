@@ -161,6 +161,10 @@ export const Employees: React.FC = () => {
   };
 
   const handleOpenTransfer = (emp: Employee) => {
+    if (emp.status !== "active") {
+      alert("Không thể điều chuyển nhân viên đã bị vô hiệu hóa hoặc nghỉ việc!");
+      return;
+    }
     setSelectedEmpForTransfer(emp);
     const currentDeptId =
       typeof emp.departmentId === "object"
@@ -214,8 +218,8 @@ export const Employees: React.FC = () => {
     return found ? found.name : "Chưa phân bổ";
   };
 
-  const totalEmployees = employees.length;
   const activeEmployees = employees.filter((e) => e.status === "active").length;
+  const inactiveEmployees = employees.filter((e) => e.status === "inactive").length;
 
   return (
     <div className="employees-container">
@@ -239,14 +243,14 @@ export const Employees: React.FC = () => {
           <div className="stat-box-icon blue">👨‍💼</div>
           <div className="stat-box-info">
             <h4>Tổng số nhân viên</h4>
-            <div className="value">{totalEmployees}</div>
+            <div className="value">{activeEmployees}</div>
           </div>
         </div>
         <div className="stat-box">
-          <div className="stat-box-icon green">✅</div>
+          <div className="stat-box-icon green">📁</div>
           <div className="stat-box-info">
-            <h4>Đang hoạt động</h4>
-            <div className="value">{activeEmployees}</div>
+            <h4>Đã nghỉ việc / Inactive</h4>
+            <div className="value">{inactiveEmployees}</div>
           </div>
         </div>
         <div className="stat-box">
@@ -384,21 +388,33 @@ export const Employees: React.FC = () => {
                   {canManage && (
                     <td>
                       <div className="action-buttons">
-                        <button
-                          className="btn-icon-action transfer"
-                          title="Điều chuyển phòng ban"
-                          onClick={() => handleOpenTransfer(emp)}
-                        >
-                          🔄 Chuyển phòng
-                        </button>
-                        {emp.status === "active" && (
-                          <button
-                            className="btn-icon-action delete"
-                            title="Xóa mềm nhân viên"
-                            onClick={() => handleDelete(emp)}
+                        {emp.status === "active" ? (
+                          <>
+                            <button
+                              className="btn-icon-action transfer"
+                              title="Điều chuyển phòng ban"
+                              onClick={() => handleOpenTransfer(emp)}
+                            >
+                              🔄 Chuyển phòng
+                            </button>
+                            <button
+                              className="btn-icon-action delete"
+                              title="Xóa mềm nhân viên"
+                              onClick={() => handleDelete(emp)}
+                            >
+                              🗑️
+                            </button>
+                          </>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: "12px",
+                              color: "#94a3b8",
+                              fontStyle: "italic",
+                            }}
                           >
-                            🗑️
-                          </button>
+                            Đã nghỉ việc
+                          </span>
                         )}
                       </div>
                     </td>

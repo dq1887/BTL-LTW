@@ -7,7 +7,7 @@ const getDepartments = async (req, res) => {
         const departments = await Department.find().sort({ createdAt: 1 });
         const departmentsWithEmployees = await Promise.all(
             departments.map(async (dept) => {
-                const employees = await Employee.find({ departmentId: dept._id })
+                const employees = await Employee.find({ departmentId: dept._id, status: 'active' })
                     .select('employeeCode fullName email phone position role status')
                     .sort({ role: 1, fullName: 1 });
                 return {
@@ -29,7 +29,7 @@ const getDepartmentById = async (req, res) => {
         const department = await Department.findById(req.params.id);
         if (!department) return res.status(404).json({ message: 'Không tìm thấy phòng ban' });
         
-        const employees = await Employee.find({ departmentId: department._id })
+        const employees = await Employee.find({ departmentId: department._id, status: 'active' })
             .select('employeeCode fullName email phone position role status')
             .sort({ role: 1, fullName: 1 });
 
