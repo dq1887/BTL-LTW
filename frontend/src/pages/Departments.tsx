@@ -368,16 +368,27 @@ export const Departments: React.FC = () => {
                                 fontSize: "12.5px",
                                 fontWeight: 600,
                                 background:
-                                  emp.role === "manager"
+                                  emp.role === "admin_hr"
                                     ? "#fef3c7"
-                                    : "#dbeafe",
+                                    : emp.role === "manager"
+                                      ? "#e2e8f0"
+                                      : "#dbeafe",
                                 color:
-                                  emp.role === "manager"
+                                  emp.role === "admin_hr"
                                     ? "#b45309"
-                                    : "#1e40af",
+                                    : emp.role === "manager"
+                                      ? "#1e40af"
+                                      : "#1e40af",
+                                border:
+                                  emp.role === "admin_hr"
+                                    ? "1px solid #fde68a"
+                                    : emp.role === "manager"
+                                      ? "1px solid #cbd5e1"
+                                      : "none",
                               }}
                             >
-                              {emp.role === "manager" ? "⭐ " : ""}
+                              {emp.role === "admin_hr" && <span>⭐</span>}
+                              {emp.role === "manager" && <span>🔑</span>}
                               {emp.position || "Nhân viên"}
                             </span>
                           </td>
