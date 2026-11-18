@@ -211,6 +211,28 @@ export const Employees: React.FC = () => {
     }
   };
 
+  const handleRestore = async (emp: Employee) => {
+    if (
+      !confirm(
+        `Bạn có chắc chắn muốn kích hoạt lại tài khoản cho nhân viên "${emp.fullName}" (${emp.employeeCode}) quay trở lại làm việc không?`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await employeeService.restore(emp._id);
+      alert(
+        `Kích hoạt lại tài khoản thành công! Nhân viên ${emp.fullName} hiện đã có thể đăng nhập và làm việc bình thường.`,
+      );
+      loadData();
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Lỗi kích hoạt lại tài khoản";
+      alert(msg);
+    }
+  };
+
   const getDepartmentName = (deptId?: any) => {
     if (!deptId) return "Chưa phân bổ";
     if (typeof deptId === "object" && deptId.name) return deptId.name;
@@ -406,15 +428,30 @@ export const Employees: React.FC = () => {
                             </button>
                           </>
                         ) : (
-                          <span
-                            style={{
-                              fontSize: "12px",
-                              color: "#94a3b8",
-                              fontStyle: "italic",
-                            }}
-                          >
-                            Đã nghỉ việc
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span
+                              style={{
+                                fontSize: "12px",
+                                color: "#94a3b8",
+                                fontStyle: "italic",
+                              }}
+                            >
+                              Đã nghỉ việc
+                            </span>
+                            <button
+                              className="btn-icon-action restore"
+                              title="Kích hoạt lại tài khoản nhân viên"
+                              onClick={() => handleRestore(emp)}
+                              style={{
+                                backgroundColor: "#ecfdf5",
+                                borderColor: "#a7f3d0",
+                                color: "#059669",
+                                fontWeight: "600",
+                              }}
+                            >
+                              ♻️ Kích hoạt lại
+                            </button>
+                          </div>
                         )}
                       </div>
                     </td>

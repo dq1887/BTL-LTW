@@ -305,3 +305,20 @@
   color: #dc2626;
 }
 
+.btn-icon-action.restore:hover {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+  color: #047857;
+}
+
+html.dark .btn-icon-action.restore {
+  background-color: rgba(16, 185, 129, 0.2) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  color: #6ee7b7 !important;
+}
+
+html.dark .btn-icon-action.restore:hover {
+  background-color: rgba(16, 185, 129, 0.35) !important;
+  color: #ffffff !important;
+}
+

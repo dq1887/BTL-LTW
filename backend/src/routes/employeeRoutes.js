@@ -6,7 +6,8 @@ const {
     createEmployee,
     updateEmployee,
     transferDepartment,
-    deleteEmployee
+    deleteEmployee,
+    restoreEmployee
 } = require('../controllers/employeeController');
 
 router.route('/')
@@ -20,5 +21,8 @@ router.route('/:id')
 
 // Route điều chuyển phòng ban
 router.patch('/:id/transfer', transferDepartment);
+
+// Route khôi phục / kích hoạt lại nhân viên
+router.patch('/:id/restore', restoreEmployee);
 
 module.exports = router;
