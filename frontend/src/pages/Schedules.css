@@ -1,6 +1,73 @@
 .schedule-container {
+  --sc-page-bg: #f8f9fa;
+  --sc-text: #333;
+  --sc-card-bg: #fff;
+  --sc-card-border: transparent;
+  --sc-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --sc-head-bg: #f9fafb;
+  --sc-head-text: #374151;
+  --sc-cell-text: #4b5563;
+  --sc-line: #e5e7eb;
+  --sc-row-hover: #f3f4f6;
+  --sc-muted: #9ca3af;
+
+  --sc-admin-bg: #fee2e2;
+  --sc-admin-text: #991b1b;
+  --sc-manager-bg: #fef3c7;
+  --sc-manager-text: #92400e;
+  --sc-employee-bg: #e0f2fe;
+  --sc-employee-text: #0369a1;
+  --sc-accountant-bg: #ede9fe;
+  --sc-accountant-text: #5b21b6;
+  --sc-draft-bg: #f3f4f6;
+  --sc-draft-text: #4b5563;
+  --sc-pub-bg: #d1fae5;
+  --sc-pub-text: #065f46;
+
+  --sc-input-bg: #fff;
+  --sc-input-border: #cbd5e1;
+  --sc-error-bg: #fef2f2;
+  --sc-error-text: #b91c1c;
+}
+
+/* ===== Biến màu: chế độ tối (khớp trang Ca làm việc) ===== */
+:is(.dark, .dark-mode, [data-theme="dark"]) .schedule-container {
+  --sc-page-bg: transparent;
+  --sc-text: #f1f5f9;
+  --sc-card-bg: #1b2639;
+  --sc-card-border: #2b3a55;
+  --sc-card-shadow: none;
+  --sc-head-bg: #141d30;
+  --sc-head-text: #cbd5e1;
+  --sc-cell-text: #e2e8f0;
+  --sc-line: #243049;
+  --sc-row-hover: #202c43;
+  --sc-muted: #94a3b8;
+
+  --sc-admin-bg: #4a1519;
+  --sc-admin-text: #fca5a5;
+  --sc-manager-bg: #4a3a12;
+  --sc-manager-text: #fde68a;
+  --sc-employee-bg: #10294d;
+  --sc-employee-text: #60a5fa;
+  --sc-accountant-bg: #2e2457;
+  --sc-accountant-text: #c4b5fd;
+  --sc-draft-bg: #2b3447;
+  --sc-draft-text: #cbd5e1;
+  --sc-pub-bg: #0f3a2c;
+  --sc-pub-text: #6ee7b7;
+
+  --sc-input-bg: #141d30;
+  --sc-input-border: #2b3a55;
+  --sc-error-bg: #3b1218;
+  --sc-error-text: #fca5a5;
+}
+
+/* ===== Bố cục ===== */
+.schedule-container {
   padding: 24px;
-  background-color: #f8f9fa;
+  background-color: var(--sc-page-bg);
+  color: var(--sc-text);
   min-height: 100vh;
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -14,7 +81,7 @@
 }
 
 .schedule-header h2 {
-  color: #333;
+  color: var(--sc-text);
   font-size: 24px;
 }
 
@@ -32,10 +99,12 @@
   background-color: #1d4ed8;
 }
 
+/* ===== Bảng ===== */
 .table-responsive {
-  background: white;
+  background: var(--sc-card-bg);
+  border: 1px solid var(--sc-card-border);
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--sc-card-shadow);
   overflow-x: auto;
 }
 
@@ -48,55 +117,70 @@
 .schedule-table th,
 .schedule-table td {
   padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--sc-line);
 }
 
 .schedule-table th {
-  background-color: #f9fafb;
-  color: #374151;
+  background-color: var(--sc-head-bg);
+  color: var(--sc-head-text);
   font-weight: 600;
   font-size: 14px;
 }
 
 .schedule-table td {
-  color: #4b5563;
+  color: var(--sc-cell-text);
   font-size: 14px;
+}
+
+.schedule-table td strong {
+  color: inherit;
+}
+
+.schedule-table tbody tr:hover {
+  background-color: var(--sc-row-hover);
 }
 
 .no-data {
   text-align: center;
-  color: #9ca3af;
+  color: var(--sc-muted);
   padding: 24px !important;
 }
 
-/* Badge styles */
+/* ===== Badge ===== */
 .badge {
+  display: inline-block;
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
+  background-color: var(--sc-draft-bg);
+  color: var(--sc-draft-text);
 }
 
 .role-admin_hr {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: var(--sc-admin-bg);
+  color: var(--sc-admin-text);
 }
 .role-manager {
-  background-color: #fef3c7;
-  color: #92400e;
+  background-color: var(--sc-manager-bg);
+  color: var(--sc-manager-text);
 }
 .role-employee {
-  background-color: #e0f2fe;
-  color: #0369a1;
+  background-color: var(--sc-employee-bg);
+  color: var(--sc-employee-text);
+}
+.role-accountant {
+  background-color: var(--sc-accountant-bg);
+  color: var(--sc-accountant-text);
 }
 
 .status-draft {
-  background-color: #f3f4f6;
-  color: #4b5563;
+  background-color: var(--sc-draft-bg);
+  color: var(--sc-draft-text);
 }
 .status-published {
-  background-color: #d1fae5;
-  color: #065f46;
+  background-color: var(--sc-pub-bg);
+  color: var(--sc-pub-text);
 }
 
 .btn-publish {
@@ -119,4 +203,95 @@
   text-align: center;
   font-size: 16px;
   color: #6b7280;
+}
+
+/* ===== Hộp thoại phân ca thủ công ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+}
+
+.modal-box {
+  background: var(--sc-card-bg);
+  color: var(--sc-text);
+  border: 1px solid var(--sc-card-border);
+  width: 100%;
+  max-width: 440px;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.25);
+}
+
+.modal-box h3 {
+  margin: 0 0 16px;
+  font-size: 18px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 14px;
+}
+
+.form-field span {
+  font-weight: 600;
+}
+
+.form-field select,
+.form-field input {
+  padding: 9px 10px;
+  border: 1px solid var(--sc-input-border);
+  border-radius: 8px;
+  font: inherit;
+  background: var(--sc-input-bg);
+  color: var(--sc-text);
+}
+
+:is(.dark, .dark-mode, [data-theme="dark"]) .form-field select,
+:is(.dark, .dark-mode, [data-theme="dark"]) .form-field input {
+  color-scheme: dark;
+}
+
+.form-field select:focus,
+.form-field input:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+.form-error {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--sc-error-bg);
+  color: var(--sc-error-text);
+  font-size: 13px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-cancel {
+  padding: 9px 16px;
+  border: 1px solid var(--sc-input-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sc-cell-text);
+  cursor: pointer;
+}
+
+.modal-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
