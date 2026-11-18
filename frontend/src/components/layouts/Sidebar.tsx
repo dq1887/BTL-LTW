@@ -16,7 +16,6 @@ const menu = [
   { label: "Duyệt sửa công", icon: "check", path: "/attendance-adjustments" },
   { label: "Nghỉ phép", icon: "send", path: "/leave-requests" },
   { label: "Bảng lương", icon: "wallet", path: "/payroll" },
-  { label: "Báo cáo", icon: "chart", arrow: true, path: "/reports" },
   { label: "Cài đặt", icon: "settings", arrow: true, path: "/settings" },
 ] as const;
 

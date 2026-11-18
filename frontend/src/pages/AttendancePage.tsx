@@ -16,6 +16,7 @@ interface AttendanceRecord {
   checkOutAt?: string;
   minutesWorked: number;
   workCredit: number;
+  overtimeCredit: number;
   status: string;
 }
 
@@ -26,13 +27,9 @@ export default function AttendancePage() {
   const [selectedAttId, setSelectedAttId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
 
-  // Kiểm tra quyền từ tài khoản đang đăng nhập
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const isManagerOrAdmin =
-    currentUser?.role === "admin_hr" ||
-    (currentUser?.position || "").toLowerCase().includes("trưởng phòng") ||
-    (currentUser?.position || "").toLowerCase().includes("leader") ||
-    (currentUser?.position || "").toLowerCase().includes("giám đốc");
+    currentUser?.role === "admin_hr" || currentUser?.role === "manager";
 
   const getHeaders = () => {
     const token =
@@ -348,15 +345,14 @@ export default function AttendancePage() {
                 fontWeight: "600",
               }}
             >
-              {/* Cột Nhân viên hiển thị riêng cho Admin hoặc Trưởng phòng */}
               {isManagerOrAdmin && (
                 <th style={{ padding: "14px 20px" }}>Nhân viên</th>
               )}
-              <th style={{ padding: "14px 20px" }}>Ngày làm việc</th>
               <th style={{ padding: "14px 20px" }}>Giờ bắt đầu</th>
               <th style={{ padding: "14px 20px" }}>Giờ kết thúc</th>
               <th style={{ padding: "14px 20px" }}>Thời gian làm</th>
               <th style={{ padding: "14px 20px" }}>Công chuẩn</th>
+              <th style={{ padding: "14px 20px" }}>Công thêm</th>
               <th style={{ padding: "14px 20px" }}>Trạng thái</th>
               <th style={{ padding: "14px 20px" }}>Thao tác</th>
             </tr>
@@ -365,7 +361,6 @@ export default function AttendancePage() {
             {attendances.length > 0 ? (
               attendances.map((att) => (
                 <tr key={att._id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                  {/* Ô thông tin nhân viên cho Quản lý / Admin */}
                   {isManagerOrAdmin && (
                     <td style={{ padding: "14px 20px" }}>
                       <div style={{ fontWeight: "600", color: "#0f172a" }}>
@@ -382,43 +377,58 @@ export default function AttendancePage() {
                   <td
                     style={{
                       padding: "14px 20px",
-                      fontWeight: "600",
-                      color: "#0f172a",
-                    }}
-                  >
-                    {att.workDate}
-                  </td>
-                  <td
-                    style={{
-                      padding: "14px 20px",
                       color: "#2563eb",
-                      fontWeight: "500",
                     }}
                   >
-                    {att.checkInAt
-                      ? new Date(att.checkInAt).toLocaleTimeString("vi-VN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "--:--"}
+                    {att.checkInAt ? (
+                      <>
+                        <span style={{ fontWeight: "700", fontSize: "15px" }}>
+                          {new Date(att.checkInAt).toLocaleTimeString("vi-VN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <br />
+                        <span style={{ fontSize: "12px", color: "#64748b" }}>
+                          {att.workDate}
+                        </span>
+                      </>
+                    ) : (
+                      <span style={{ color: "#94a3b8" }}>--:--</span>
+                    )}
                   </td>
+
                   <td
                     style={{
                       padding: "14px 20px",
                       color: "#059669",
-                      fontWeight: "500",
                     }}
                   >
-                    {att.checkOutAt
-                      ? new Date(att.checkOutAt).toLocaleTimeString("vi-VN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "--:--"}
+                    {att.checkOutAt ? (
+                      <>
+                        <span style={{ fontWeight: "700", fontSize: "15px" }}>
+                          {new Date(att.checkOutAt).toLocaleTimeString(
+                            "vi-VN",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
+                        </span>
+                        <br />
+                        <span style={{ fontSize: "12px", color: "#64748b" }}>
+                          {att.workDate}
+                        </span>
+                      </>
+                    ) : (
+                      <span style={{ color: "#94a3b8" }}>--:--</span>
+                    )}
                   </td>
                   <td style={{ padding: "14px 20px" }}>
                     {att.minutesWorked || 0} phút
                   </td>
+
+                  {/* Công chuẩn */}
                   <td style={{ padding: "14px 20px", fontWeight: "700" }}>
                     <span style={{ color: "#0f172a" }}>
                       {att.workCredit !== undefined && att.workCredit !== null
@@ -426,6 +436,18 @@ export default function AttendancePage() {
                         : 0}
                     </span>
                   </td>
+
+                  {/* CỘT HIỂN THỊ CÔNG THÊM */}
+                  <td style={{ padding: "14px 20px" }}>
+                    {att.overtimeCredit && att.overtimeCredit > 0 ? (
+                      <span style={{ color: "#16a34a", fontWeight: "bold" }}>
+                        +{att.overtimeCredit}
+                      </span>
+                    ) : (
+                      <span style={{ color: "#94a3b8" }}>0</span>
+                    )}
+                  </td>
+
                   <td style={{ padding: "14px 20px" }}>
                     <span
                       style={{
