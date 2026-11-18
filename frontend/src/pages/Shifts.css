@@ -169,3 +169,103 @@
   font-size: 14px;
   cursor: pointer;
 }
+
+/* ==========================================================================
+   CHẾ ĐỘ TỐI (DARK MODE) CHO TRANG CA LÀM VIỆC (SHIFTS)
+   ========================================================================== */
+html.dark .shifts-container h2 {
+  color: #f8fafc !important;
+}
+
+html.dark .shifts-header-top small {
+  color: #94a3b8 !important;
+}
+
+html.dark .shifts-header-top small strong {
+  color: #60a5fa !important;
+}
+
+html.dark .table-card {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .shifts-table th {
+  background-color: #0f172a !important;
+  color: #cbd5e1 !important;
+  border-bottom: 1.5px solid #334155 !important;
+}
+
+html.dark .shifts-table td {
+  border-bottom: 1px solid #273549 !important;
+  color: #e2e8f0 !important;
+}
+
+html.dark .shifts-table tbody tr:hover {
+  background-color: #24344d !important;
+}
+
+html.dark .shifts-table td strong {
+  color: #f8fafc !important;
+}
+
+html.dark .badge-time {
+  background-color: #0f172a !important;
+  color: #60a5fa !important;
+  border: 1px solid #1e3a8a !important;
+}
+
+html.dark .btn-action {
+  filter: brightness(1.2);
+}
+
+html.dark .btn-action:hover {
+  opacity: 0.8;
+}
+
+/* Modal Dark Mode */
+html.dark .modal-content {
+  background: #1e293b !important;
+  border: 1px solid #334155 !important;
+  color: #f8fafc !important;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6) !important;
+}
+
+html.dark .modal-header h3 {
+  color: #f8fafc !important;
+}
+
+html.dark .close-btn {
+  color: #94a3b8 !important;
+}
+
+html.dark .close-btn:hover {
+  color: #f8fafc !important;
+}
+
+html.dark .form-group label {
+  color: #cbd5e1 !important;
+}
+
+html.dark .form-group input {
+  background-color: #0f172a !important;
+  border: 1.5px solid #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .form-group input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+}
+
+html.dark .btn-secondary {
+  background-color: #334155 !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #475569 !important;
+}
+
+html.dark .btn-secondary:hover {
+  background-color: #475569 !important;
+  color: #ffffff !important;
+}

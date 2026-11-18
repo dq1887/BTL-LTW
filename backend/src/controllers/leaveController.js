@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const Employee = require("../models/Employee");
-const Attendance = require("../models/Attendance");
-const WorkSchedule = require("../models/WorkSchedule");
+const Schedule = require("../models/Schedule");
 require("../models/Shift"); // Đăng ký model để populate các ca làm trong lịch.
 const LeaveType = require("../models/LeaveType");
 const LeaveRequest = require("../models/LeaveRequest");
@@ -77,38 +76,29 @@ const ensureDefaultTypes = async () => {
 };
 
 /**
- * Trong source nhóm hiện tại, Attendance.scheduleId tham chiếu đến Shift.
- * Bản ghi có scheduleId hợp lệ được xem là một ngày đã được phân ca.
- * Attendance chỉ có check-in/check-out nhưng không có scheduleId sẽ không
- * được tính là lịch làm việc, tránh lấy nhầm dữ liệu chấm công làm lịch.
+ * Chỉ lấy lịch làm việc từ collection `schedules` do TV2 quản lý.
+ * Một ngày được tính nghỉ khi lịch đã `published` và shiftId hợp lệ.
+ * Lịch `draft` không tính là ngày công chính thức.
+ * Không truy vấn `workschedules` hoặc lấy chấm công làm lịch thay thế.
  */
 const getScheduledDays = async (employeeId, startDate, endDate) => {
-  const dateFilter = { $gte: startDate, $lte: endDate };
-  const [publishedSchedules, legacyAttendanceSchedules] = await Promise.all([
-    WorkSchedule.find({
-      employeeId,
-      workDate: dateFilter,
-      status: "published",
-    })
-      .select("workDate shiftId")
-      .populate({ path: "shiftId", select: "name startTime endTime" })
-      .lean(),
-    Attendance.find({
-      employeeId,
-      workDate: dateFilter,
-      scheduleId: { $exists: true, $ne: null },
-    })
-      .select("workDate scheduleId")
-      .populate({ path: "scheduleId", select: "name startTime endTime" })
-      .lean(),
-  ]);
+  const schedules = await Schedule.find({
+    employeeId,
+    workDate: { $gte: startDate, $lte: endDate },
+    status: "published",
+  })
+    .select("workDate shiftId")
+    .populate({ path: "shiftId", select: "name startTime endTime" })
+    .lean();
 
   const uniqueDays = new Map();
-  const addScheduleDay = (workDate, shift) => {
-    // Không nhận ngày sai định dạng hoặc lịch mồ côi không còn ca trong shifts.
-    if (!shift || !isValidDateOnly(workDate)) return;
+  for (const item of schedules) {
+    const workDate = item.workDate;
+    const shift = item.shiftId;
+    if (!isValidDateOnly(workDate) || !shift?._id || uniqueDays.has(workDate)) continue;
     uniqueDays.set(workDate, {
       date: workDate,
+      source: "schedules",
       shift: {
         id: String(shift._id),
         name: shift.name,
@@ -116,40 +106,48 @@ const getScheduledDays = async (employeeId, startDate, endDate) => {
         endTime: shift.endTime,
       },
     });
-  };
-
-  // Nguồn chính: lịch đã được TV2 công bố trong collection workschedules.
-  publishedSchedules.forEach((record) => addScheduleDay(record.workDate, record.shiftId));
-  // Tương thích dữ liệu nhóm cũ: Attendance có scheduleId hợp lệ.
-  // Ghi publishedSchedules trước để lịch được công bố luôn được ưu tiên.
-  legacyAttendanceSchedules.forEach((record) => {
-    if (!uniqueDays.has(record.workDate)) {
-      addScheduleDay(record.workDate, record.scheduleId);
-    }
-  });
-
+  }
   return [...uniqueDays.values()].sort((a, b) => a.date.localeCompare(b.date));
 };
 
+// Lịch nháp chỉ dùng để giải thích vì sao chưa tính được số ngày công.
+const getDraftDates = async (employeeId, startDate, endDate) => {
+  const drafts = await Schedule.find({
+    employeeId,
+    workDate: { $gte: startDate, $lte: endDate },
+    status: "draft",
+  })
+    .select("workDate")
+    .lean();
+
+  return [...new Set(drafts.map((item) => item.workDate).filter(isValidDateOnly))].sort();
+};
+
+/**
+ * Chặn đơn trùng theo KHOẢNG NGÀY xin nghỉ, không chỉ theo scheduledDates.
+ * Nếu chưa có lịch thì scheduledDates rỗng; kiểm tra bằng $in: [] sẽ bỏ lọt
+ * các đơn đang chờ duyệt trùng nhau.
+ */
 const ensureNoConflictingLeave = async ({
   employeeId,
-  scheduledDates,
+  startDate,
+  endDate,
   excludeRequestId,
 }) => {
   const filter = {
     employeeId,
     status: { $in: ["pending", "approved"] },
-    scheduledDates: { $in: scheduledDates },
+    startDate: { $lte: endDate },
+    endDate: { $gte: startDate },
   };
   if (excludeRequestId) filter._id = { $ne: excludeRequestId };
 
   const conflict = await LeaveRequest.findOne(filter)
     .select("startDate endDate status")
     .lean();
-
   if (conflict) {
     throw new AppError(
-      `Khoảng nghỉ trùng với một đơn ${conflict.status === "approved" ? "đã được duyệt" : "đang chờ duyệt"} trước đó. Vui lòng kiểm tra lại lịch nghỉ.`,
+      `Thời gian xin nghỉ trùng với một đơn ${conflict.status === "approved" ? "đã được duyệt" : "đang chờ duyệt"}. Hãy xem lại đơn trước đó.`,
       409,
     );
   }
@@ -164,7 +162,6 @@ const validateRequestData = async ({
   excludeRequestId,
 }) => {
   validateDateRange(startDate, endDate);
-
   if (!mongoose.isValidObjectId(leaveTypeId)) {
     throw new AppError("Vui lòng chọn loại nghỉ phép hợp lệ.", 400);
   }
@@ -182,22 +179,45 @@ const validateRequestData = async ({
     throw new AppError("Loại nghỉ phép không tồn tại hoặc đã ngừng sử dụng.", 400);
   }
 
+  await ensureNoConflictingLeave({ employeeId, startDate, endDate, excludeRequestId });
   const scheduledDays = await getScheduledDays(employeeId, startDate, endDate);
-  if (scheduledDays.length === 0) {
-    throw new AppError(
-      "Không có lịch làm việc đã công bố trong khoảng ngày này. Cần có lịch workschedules trạng thái published (employeeId, workDate, shiftId) hoặc bản ghi attendances có scheduleId hợp lệ.",
-      400,
-    );
-  }
-
   const scheduledDates = scheduledDays.map((item) => item.date);
-  await ensureNoConflictingLeave({ employeeId, scheduledDates, excludeRequestId });
-
   return {
     scheduledDates,
-    totalDays: scheduledDates.length,
+    // null = chưa xác định được ngày công; không coi 0 ngày là đã tính xong.
+    totalDays: scheduledDates.length > 0 ? scheduledDates.length : null,
     reason: normalizedReason,
   };
+};
+
+/**
+ * Khi TV chia ca công bố lịch sau lúc đơn được gửi/duyệt,
+ * cập nhật các đơn chưa xác định số ngày khi danh sách được đọc lại.
+ * Không thay đổi trạng thái duyệt hoặc sửa đơn đã có số ngày được chốt.
+ */
+const refreshUndeterminedRequests = async (requests) => {
+  const unresolved = requests.filter((item) =>
+    item.totalDays == null && ["pending", "approved"].includes(item.status),
+  );
+  if (unresolved.length === 0) return;
+
+  // Theo từng nhân viên và khoảng ngày; mỗi yêu cầu chỉ cập nhật nếu vẫn chưa xác định.
+  await Promise.all(unresolved.map(async (request) => {
+    const employeeId = request.employeeId?._id || request.employeeId;
+    if (!employeeId || !isValidDateOnly(request.startDate) || !isValidDateOnly(request.endDate)) return;
+    const scheduledDays = await getScheduledDays(employeeId, request.startDate, request.endDate);
+    if (scheduledDays.length === 0) return;
+    const scheduledDates = scheduledDays.map((item) => item.date);
+    const updated = await LeaveRequest.findOneAndUpdate(
+      { _id: request._id, status: request.status, totalDays: null },
+      { $set: { scheduledDates, totalDays: scheduledDates.length } },
+      { new: true, runValidators: true },
+    );
+    if (updated) {
+      request.totalDays = scheduledDates.length;
+      request.scheduledDates = scheduledDates;
+    }
+  }));
 };
 
 const isReviewRole = (user) => ["admin_hr", "manager"].includes(user?.role);
@@ -279,11 +299,15 @@ exports.updateLeaveType = catchAsync(async (req, res, next) => {
 exports.getScheduleDays = catchAsync(async (req, res) => {
   const { startDate, endDate } = req.query;
   validateDateRange(startDate, endDate);
-  const days = await getScheduledDays(req.user._id, startDate, endDate);
+  const [days, draftDates] = await Promise.all([
+    getScheduledDays(req.user._id, startDate, endDate),
+    getDraftDates(req.user._id, startDate, endDate),
+  ]);
   res.status(200).json({
     success: true,
     count: days.length,
     dates: days.map((item) => item.date),
+    draftDates: draftDates.filter((date) => !days.some((item) => item.date === date)),
     data: days,
   });
 });
@@ -308,6 +332,7 @@ exports.getLeaveRequests = catchAsync(async (req, res) => {
   const requests = await populateRequest(
     LeaveRequest.find(filter).sort({ createdAt: -1 }),
   ).lean();
+  await refreshUndeterminedRequests(requests);
 
   res.status(200).json({ success: true, count: requests.length, data: requests });
 });
@@ -328,6 +353,7 @@ exports.getLeaveRequestById = catchAsync(async (req, res, next) => {
   if (!ownRequest && !canViewAll && !canViewDepartment) {
     return next(new AppError("Bạn không có quyền xem đơn nghỉ phép này.", 403));
   }
+  await refreshUndeterminedRequests([request]);
   res.status(200).json({ success: true, data: request });
 });
 
@@ -430,16 +456,16 @@ const reviewLeaveRequest = (status) => catchAsync(async (req, res, next) => {
       request.endDate,
     );
     const currentDates = scheduledDays.map((item) => item.date);
-    if (currentDates.length === 0) {
-      return next(new AppError("Không thể duyệt vì nhân viên không còn lịch làm việc đã công bố trong khoảng ngày này.", 409));
-    }
+    // Quản lý được quyền phê duyệt đơn, kể cả chưa phân ca chính thức.
+    // Số ngày công chưa xác định được giữ null để tránh ảnh hưởng tính lương.
     await ensureNoConflictingLeave({
       employeeId: request.employeeId,
-      scheduledDates: currentDates,
+      startDate: request.startDate,
+      endDate: request.endDate,
       excludeRequestId: request._id,
     });
     request.scheduledDates = currentDates;
-    request.totalDays = currentDates.length;
+    request.totalDays = currentDates.length > 0 ? currentDates.length : null;
   }
 
   // Compare-and-set: chỉ một người có thể xử lý một đơn đang pending.
@@ -463,7 +489,11 @@ const reviewLeaveRequest = (status) => catchAsync(async (req, res, next) => {
   const populated = await populateRequest(LeaveRequest.findById(updated._id)).lean();
   res.status(200).json({
     success: true,
-    message: status === "approved" ? "Đã duyệt đơn nghỉ phép." : "Đã từ chối đơn nghỉ phép.",
+    message: status === "approved"
+      ? (updated.totalDays == null
+        ? "Đã duyệt đơn. Số ngày công nghỉ sẽ được xác định khi lịch làm việc được công bố."
+        : "Đã duyệt đơn nghỉ phép.")
+      : "Đã từ chối đơn nghỉ phép.",
     data: populated,
   });
 });

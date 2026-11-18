@@ -140,5 +140,18 @@ export const employeeService = {
     }
     return data;
   },
+
+  // 7. Khôi phục / Kích hoạt lại nhân viên
+  async restore(id: string): Promise<any> {
+    const res = await fetch(`${API_BASE_URL}/${id}/restore`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || "Lỗi khi kích hoạt lại nhân viên");
+    }
+    return data;
+  },
 };
 

@@ -179,12 +179,6 @@ export default function Header({ onToggleSidebar, collapsed }: HeaderProps) {
           {isDark ? "☀️" : "🌙"}
         </span>
       </button>
-
-      <button className="notification-button" aria-label="Thông báo">
-        <Icon name="bell" size={23} />
-        <span className="notification-count">3</span>
-      </button>
-
       <UserDropdown />
     </header>
   );

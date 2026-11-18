@@ -32,6 +32,10 @@ const attendanceSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    overtimeCredit: {
+      type: Number,
+      default: 0,
+    },
     breakMinutes: {
       type: Number,
       default: 60,

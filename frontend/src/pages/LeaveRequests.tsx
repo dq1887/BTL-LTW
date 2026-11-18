@@ -63,6 +63,7 @@ export default function LeaveRequests() {
   const [editingRequest, setEditingRequest] = useState<LeaveRequest | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [scheduleDates, setScheduleDates] = useState<string[]>([]);
+  const [draftDates, setDraftDates] = useState<string[]>([]);
   const [scheduleError, setScheduleError] = useState("");
   const [scheduleLoading, setScheduleLoading] = useState(false);
 
@@ -91,12 +92,14 @@ export default function LeaveRequests() {
     let active = true;
     if (!form.startDate || !form.endDate) {
       setScheduleDates([]);
+      setDraftDates([]);
       setScheduleError("");
       setScheduleLoading(false);
       return;
     }
     if (form.startDate > form.endDate) {
       setScheduleDates([]);
+      setDraftDates([]);
       setScheduleError("Ngày bắt đầu không được sau ngày kết thúc.");
       setScheduleLoading(false);
       return;
@@ -108,11 +111,15 @@ export default function LeaveRequests() {
       leaveService
         .getScheduleDays(form.startDate, form.endDate)
         .then((result) => {
-          if (active) setScheduleDates(result.dates || []);
+          if (active) {
+            setScheduleDates(result.dates || []);
+            setDraftDates(result.draftDates || []);
+          }
         })
         .catch((scheduleLoadError: unknown) => {
           if (active) {
             setScheduleDates([]);
+            setDraftDates([]);
             setScheduleError(getErrorMessage(scheduleLoadError));
           }
         })
@@ -157,6 +164,7 @@ export default function LeaveRequests() {
     setEditingRequest(null);
     setForm({ ...emptyForm, leaveTypeId: types[0]?._id || "" });
     setScheduleDates([]);
+    setDraftDates([]);
     setScheduleError("");
     setNotice("");
     setIsFormOpen(true);
@@ -174,6 +182,7 @@ export default function LeaveRequests() {
       reason: request.reason,
     });
     setScheduleDates(request.scheduledDates || []);
+    setDraftDates([]);
     setScheduleError("");
     setNotice("");
     setIsFormOpen(true);
@@ -185,6 +194,7 @@ export default function LeaveRequests() {
     setEditingRequest(null);
     setForm(emptyForm);
     setScheduleDates([]);
+    setDraftDates([]);
     setScheduleError("");
   };
 
@@ -194,11 +204,8 @@ export default function LeaveRequests() {
       setScheduleError("Vui lòng điền đầy đủ thông tin đơn nghỉ phép.");
       return;
     }
-    if (scheduleLoading) return;
-    if (scheduleDates.length === 0) {
-      setScheduleError("Khoảng ngày đã chọn không có ngày được phân ca trong cơ sở dữ liệu.");
-      return;
-    }
+    // Không chặn tạo đơn chỉ vì lịch còn nháp/chưa công bố.
+    // Backend sẽ lưu totalDays=null nếu chưa xác định được số ngày công.
 
     try {
       setSubmitting(true);
@@ -251,8 +258,10 @@ export default function LeaveRequests() {
       setActionId(request._id);
       setError("");
       if (action === "approve") {
-        await leaveService.approve(request._id, reviewNote);
-        setNotice("Đã duyệt đơn nghỉ phép.");
+        const approved = await leaveService.approve(request._id, reviewNote);
+        setNotice(approved.totalDays == null
+          ? "Đã duyệt đơn. Ngày công nghỉ sẽ được xác định khi có lịch chính thức."
+          : "Đã duyệt đơn nghỉ phép.");
       } else {
         await leaveService.reject(request._id, reviewNote);
         setNotice("Đã từ chối đơn nghỉ phép.");
@@ -373,7 +382,7 @@ export default function LeaveRequests() {
                       )}
                       <td><span className="leave-type-name">{type?.name || "Loại nghỉ"}</span><small className="leave-subtle">{type?.isPaid ? "Có hưởng lương" : "Không hưởng lương"}</small></td>
                       <td><strong>{dateLabel(request.startDate)}</strong><small className="leave-subtle">đến {dateLabel(request.endDate)}</small></td>
-                      <td><span className="leave-days">{request.totalDays} ngày</span></td>
+                      <td><span className="leave-days">{request.totalDays == null ? "Chưa xác định" : `${request.totalDays} ngày`}</span></td>
                       <td><span className="leave-reason" title={request.reason}>{request.reason}</span></td>
                       <td><span className={`leave-status ${request.status}`}>{statusLabels[request.status]}</span></td>
                       <td>
@@ -398,7 +407,7 @@ export default function LeaveRequests() {
 
       <div className="leave-footnote">
         <span>ⓘ</span>
-        <p>Số ngày nghỉ được tính theo các ngày có ca làm được phân công trong cơ sở dữ liệu, không tính ngày không có lịch. Đơn đã duyệt/từ chối được giữ lại để bảo toàn lịch sử.</p>
+        <p>Đơn vẫn có thể gửi và được duyệt khi chưa có lịch chính thức. Chỉ tính ngày công khi lịch đã công bố; nếu chưa có lịch, số ngày công là “Chưa xác định”, không phải 0 ngày.</p>
       </div>
 
       {isFormOpen && (
@@ -431,13 +440,14 @@ export default function LeaveRequests() {
               <div className={`leave-schedule-preview ${scheduleError ? "has-error" : ""}`}>
                 <div><strong>Ngày làm việc được tính</strong><span>{scheduleLoading ? "Đang kiểm tra lịch trong MongoDB..." : `${scheduleDates.length} ngày có phân ca`}</span></div>
                 {scheduleDates.length > 0 && <p>{scheduleDates.map(dateLabel).join(" · ")}</p>}
-                {scheduleError && <p className="leave-schedule-error">{scheduleError}</p>}
-                {!scheduleError && !scheduleLoading && form.startDate && form.endDate && scheduleDates.length === 0 && <p>Không tìm thấy ca làm được phân công trong khoảng này.</p>}
+                {draftDates.length > 0 && <p>{draftDates.length} ngày đang ở trạng thái nháp: {draftDates.map(dateLabel).join(" · ")}</p>}
+                {scheduleError && <p className="leave-schedule-error">{scheduleError}. Vẫn có thể gửi đơn nếu thông tin hợp lệ.</p>}
+                {!scheduleError && !scheduleLoading && form.startDate && form.endDate && scheduleDates.length === 0 && <p>Chưa có ca làm chính thức trong khoảng này. Vẫn có thể gửi đơn và quản lý có thể duyệt; số ngày công sẽ được xác định khi công bố lịch.</p>}
               </div>
 
               <div className="leave-modal-footer">
                 <button type="button" className="leave-secondary-btn" onClick={closeForm} disabled={submitting}>Hủy</button>
-                <button type="submit" className="leave-primary-btn" disabled={submitting || scheduleLoading || scheduleDates.length === 0}>
+                <button type="submit" className="leave-primary-btn" disabled={submitting}>
                   {submitting ? "Đang lưu..." : editingRequest ? "Lưu thay đổi" : "Gửi đơn nghỉ phép"}
                 </button>
               </div>

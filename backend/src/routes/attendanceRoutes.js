@@ -1,10 +1,20 @@
 const express = require("express");
 const router = express.Router();
-const attendanceCtrl = require("../controllers/attendanceController");
 const { protect } = require("../middleware/authMiddleware");
 
-router.post("/check-in", protect, attendanceCtrl.checkIn);
-router.post("/:id/check-out", protect, attendanceCtrl.checkOut);
-router.get("/", protect, attendanceCtrl.getAttendances);
+const {
+  checkIn,
+  checkOut,
+  getAttendances,
+  getDashboardStats,
+  resetAllAttendancesAPI,
+} = require("../controllers/attendanceController");
+
+router.delete("/reset-all", protect, resetAllAttendancesAPI);
+
+router.post("/check-in", protect, checkIn);
+router.post("/:id/check-out", protect, checkOut);
+router.get("/", protect, getAttendances);
+router.get("/dashboard-stats", protect, getDashboardStats);
 
 module.exports = router;

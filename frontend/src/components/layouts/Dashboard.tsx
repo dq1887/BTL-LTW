@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Icon from "./Icons";
 import "./Dashboard.css";
 import { authService } from "../../services/authService";
+import { useNavigate } from "react-router-dom";
 
 const today = new Date();
 const dayNames = [
@@ -20,89 +21,198 @@ const year = today.getFullYear();
 
 const formattedDate = `${dayOfWeek}, ${day}/${month}/${year}`;
 
-const stats = [
-  {
-    title: "Tổng nhân viên",
-    value: "50",
-    change: "+2.5%",
-    icon: "users",
-    tone: "blue",
-    points: "0,27 18,25 34,14 49,20 65,7 81,13 98,2 116,8",
-  },
-  {
-    title: "Phòng ban",
-    value: "5",
-    change: "+0%",
-    icon: "building",
-    tone: "green",
-    points: "0,26 17,25 33,15 48,20 64,8 80,15 97,3 116,9",
-  },
-  {
-    title: "Tỷ lệ chấm công",
-    value: "98%",
-    change: "+1.2%",
-    icon: "clock",
-    tone: "orange",
-    points: "0,27 17,25 33,15 49,19 65,5 81,14 98,2 116,8",
-  },
-  {
-    title: "Đơn nghỉ phép chờ duyệt",
-    value: "12",
-    change: "+3.3%",
-    icon: "calendar",
-    tone: "purple",
-    points: "0,27 17,25 33,15 49,20 65,7 81,13 98,2 116,8",
-  },
-] as const;
-
-const departments = [
-  { name: "Hành chính NS", values: [5, 5] },
-  { name: "Kinh doanh", values: [6, 4] },
-  { name: "CNTT", values: [7, 3] },
-  { name: "Marketing", values: [5, 5] },
-  { name: "Kế toán", values: [5, 5] },
-];
-
-const schedule = [
-  {
-    day: "Th 4",
-    date: "05/11",
-    title: "Chấm công ca sáng",
-    time: "07:30 - 11:30",
-    icon: "clock",
-    tone: "blue",
-  },
-  {
-    day: "Th 5",
-    date: "06/11",
-    title: "Họp phòng ban CNTT",
-    time: "09:00 - 10:30",
-    icon: "users",
-    tone: "purple",
-  },
-  {
-    day: "Th 6",
-    date: "07/11",
-    title: "Duyệt đơn nghỉ phép",
-    time: "Trong ngày",
-    icon: "check",
-    tone: "green",
-  },
-] as const;
-
-const activities = [
-  ["2 phút trước", "Nguyễn Thị B đã nộp đơn xin nghỉ phép", "blue"],
-  ["10 phút trước", "Trần Văn C được duyệt nghỉ phép", "green"],
-  ["1 giờ trước", "Lê Thị D cập nhật thông tin cá nhân", "purple"],
-  ["2 giờ trước", "Phạm Văn E chấm công thành công", "gray"],
-];
-
 export default function Dashboard() {
   const currentUser = authService.getCurrentUser();
   const userName = currentUser?.fullName || currentUser?.name || "Bạn";
   const userRole = currentUser?.role || "admin_hr";
-  const [period, setPeriod] = useState<"week" | "month" | "year">("month");
   const [showSystemHealth, setShowSystemHealth] = useState(false);
+  const navigate = useNavigate();
+
+  // State lưu danh sách ca làm việc live từ Database
+  const [shiftsList, setShiftsList] = useState<any[]>([]);
+  // State lưu danh sách chấm công live từ Database
+  const [attendancesList, setAttendancesList] = useState<any[]>([]);
+  // State lưu dữ liệu thống kê phòng ban live từ Database
+  const [deptStats, setDeptStats] = useState<any[]>([]);
+
+  // 1. Gọi API lấy danh sách ca làm việc
+  useEffect(() => {
+    const fetchShifts = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/shifts", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token") || localStorage.getItem("accessToken")}`,
+          },
+        });
+        const result = await res.json();
+        if (res.ok && Array.isArray(result) && result.length > 0) {
+          setShiftsList(result.slice(0, 3));
+        } else {
+          setShiftsList([
+            {
+              _id: "1",
+              name: "Ca hành chính",
+              startTime: "08:00",
+              endTime: "16:00",
+            },
+            { _id: "2", name: "Ca sáng", startTime: "07:00", endTime: "11:30" },
+            {
+              _id: "3",
+              name: "Ca chiều",
+              startTime: "13:30",
+              endTime: "18:00",
+            },
+          ]);
+        }
+      } catch (error) {
+        console.error("Lỗi tải danh sách ca làm việc:", error);
+      }
+    };
+    fetchShifts();
+  }, []);
+
+  // 2. Gọi API lấy danh sách lịch sử chấm công
+  useEffect(() => {
+    const fetchAttendances = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/attendances", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token") || localStorage.getItem("accessToken")}`,
+          },
+        });
+        const result = await res.json();
+        const dataArray = Array.isArray(result) ? result : result.data || [];
+        if (res.ok && dataArray.length > 0) {
+          setAttendancesList(dataArray.slice(0, 3));
+        }
+      } catch (error) {
+        console.error("Lỗi tải lịch sử chấm công:", error);
+      }
+    };
+    fetchAttendances();
+  }, []);
+
+  useEffect(() => {
+    const fetchDepartmentStats = async () => {
+      try {
+        const [deptRes, empRes] = await Promise.all([
+          fetch("http://localhost:5000/api/departments", {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token") || localStorage.getItem("accessToken")}`,
+            },
+          }),
+          fetch("http://localhost:5000/api/employees", {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token") || localStorage.getItem("accessToken")}`,
+            },
+          }),
+        ]);
+
+        const deptResult = await deptRes.json();
+        const empResult = await empRes.json();
+        const departmentsList = Array.isArray(deptResult)
+          ? deptResult
+          : deptResult.data || [];
+        const employeesList = Array.isArray(empResult)
+          ? empResult
+          : empResult.employees || empResult.data || [];
+
+        if (departmentsList.length > 0) {
+          const computedStats = departmentsList.map((dept: any) => {
+            const count = employeesList.filter((emp: any) => {
+              if (emp.status === "inactive") return false;
+              const empDeptId = String(
+                emp.departmentId?._id || emp.departmentId || "",
+              );
+              const deptIdStr = String(dept._id || "");
+              const deptCodeStr = String(dept.code || "")
+                .trim()
+                .toUpperCase();
+              const empDeptCode = String(emp.departmentId?.code || "")
+                .trim()
+                .toUpperCase();
+
+              return empDeptId === deptIdStr || empDeptCode === deptCodeStr;
+            }).length;
+
+            return {
+              code: dept.code || dept.name || "PB",
+              name: dept.name,
+              total: count,
+            };
+          });
+
+          setDeptStats(computedStats);
+        } else {
+          setDeptStats([
+            { code: "HR", name: "Human Resources", total: 0 },
+            { code: "IT", name: "Information Technology", total: 0 },
+            { code: "MKT", name: "Marketing", total: 0 },
+            { code: "SALES", name: "Sales", total: 0 },
+            { code: "ACC", name: "Accounting", total: 0 },
+          ]);
+        }
+      } catch (error) {
+        console.error("Lỗi tải thống kê phòng ban:", error);
+      }
+    };
+
+    fetchDepartmentStats();
+  }, []);
+
+  const [dashboardStats, setDashboardStats] = useState({
+    totalEmployees: 0,
+    totalDepartments: 0,
+    attendanceRate: 0,
+    attendanceStats: {
+      totalWorkingToday: 0,
+      presentCount: 0,
+      lateCount: 0,
+      absentCount: 0,
+    },
+  });
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const res = await fetch(
+          "http://localhost:5000/api/attendances/dashboard-stats",
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token") || localStorage.getItem("accessToken")}`,
+            },
+          },
+        );
+        const result = await res.json();
+        if (res.ok && result.success) {
+          setDashboardStats(result.data);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải dữ liệu thống kê:", error);
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
+
+  const stats = [
+    {
+      title: "Tổng nhân viên",
+      value: dashboardStats.totalEmployees.toString(),
+      icon: "users",
+      tone: "blue",
+    },
+    {
+      title: "Phòng ban",
+      value: dashboardStats.totalDepartments.toString(),
+      icon: "building",
+      tone: "green",
+    },
+  ] as const;
+
+  // Cố định các mốc trục Y bên trái từ 0 đến 30
+  const yAxisMarks = [30, 25, 20, 15, 10, 5, 0];
+  const maxDeptTotal = 30;
 
   return (
     <div className="dashboard">
@@ -119,7 +229,7 @@ export default function Dashboard() {
       </div>
 
       <section className="stats-grid">
-        {stats.map(({ title, value, change, icon, tone, points }) => (
+        {stats.map(({ title, value, icon, tone }) => (
           <article className={`stat-card ${tone}`} key={title}>
             <div className="stat-icon">
               <Icon name={icon} size={29} strokeWidth={2.5} />
@@ -128,102 +238,71 @@ export default function Dashboard() {
               <strong>{value}</strong>
               <span>{title}</span>
             </div>
-            <div className="stat-change">
-              <Icon name="arrow-up" size={17} /> {change}
-            </div>
-            <svg
-              className="sparkline"
-              viewBox="0 0 118 34"
-              preserveAspectRatio="none"
-            >
-              <polyline
-                points={points}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
           </article>
         ))}
       </section>
 
-      <section className="middle-grid">
-        <article className="panel department-panel">
-          <div className="panel-heading">
-            <h2>
+      {/* Hàng giữa: Biểu đồ thống kê nhân sự chiếm trọn 100% chiều rộng */}
+      <section style={{ marginBottom: "24px" }}>
+        <article
+          className="panel department-panel"
+          style={{
+            padding: "24px",
+            background: "#ffffff",
+            borderRadius: "16px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+            width: "100%",
+          }}
+        >
+          <div className="panel-heading" style={{ marginBottom: "20px" }}>
+            <h2
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "16px",
+                fontWeight: "700",
+                color: "#0f172a",
+                margin: 0,
+              }}
+            >
               <Icon name="chart" /> Thống kê nhân sự theo phòng ban
             </h2>
-            <div style={{ position: "relative", display: "inline-block" }}>
-              <select
-                value={period}
-                onChange={(e) =>
-                  setPeriod(e.target.value as "week" | "month" | "year")
-                }
-                style={{
-                  padding: "6px 30px 6px 14px",
-                  fontSize: "13.5px",
-                  fontWeight: "700",
-                  color: "#0f172a",
-                  backgroundColor: "#f8fafc",
-                  border: "1.5px solid #cbd5e1",
-                  borderRadius: "8px",
-                  outline: "none",
-                  cursor: "pointer",
-                  appearance: "none",
-                  WebkitAppearance: "none",
-                }}
-              >
-                <option value="week">Tuần này</option>
-                <option value="month">Tháng này</option>
-                <option value="year">Năm nay</option>
-              </select>
-              <Icon
-                name="chevron-down"
-                size={14}
-                strokeWidth={2.5}
-                style={{
-                  position: "absolute",
-                  right: "10px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  pointerEvents: "none",
-                  color: "#0f172a",
-                }}
-              />
-            </div>
           </div>
 
           <div
             style={{
               display: "flex",
-              gap: "12px",
+              gap: "16px",
               position: "relative",
-              marginTop: "16px",
+              marginTop: "10px",
+              paddingBottom: "10px",
             }}
           >
+            {/* Trục Y cố định các mốc: 30, 25, 20, 15, 10, 5, 0 */}
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
-                height: "150px",
+                height: "200px",
                 fontSize: "12px",
                 color: "#64748b",
                 fontWeight: "600",
-                width: "24px",
+                width: "30px",
                 textAlign: "right",
                 lineHeight: "1",
               }}
             >
-              <span style={{ transform: "translateY(-50%)" }}>15</span>
-              <span style={{ transform: "translateY(-50%)" }}>10</span>
-              <span style={{ transform: "translateY(-50%)" }}>5</span>
-              <span style={{ transform: "translateY(-50%)" }}>0</span>
+              {yAxisMarks.map((val, idx) => (
+                <span key={idx} style={{ transform: "translateY(50%)" }}>
+                  {val}
+                </span>
+              ))}
             </div>
 
-            <div style={{ flex: 1, position: "relative", height: "150px" }}>
+            <div style={{ flex: 1, position: "relative", height: "200px" }}>
+              {/* Các đường kẻ ngang background */}
               <div
                 style={{
                   position: "absolute",
@@ -234,20 +313,21 @@ export default function Dashboard() {
                   pointerEvents: "none",
                 }}
               >
-                <div
-                  style={{ borderBottom: "1px solid #e2e8f0", width: "100%" }}
-                />
-                <div
-                  style={{ borderBottom: "1px solid #e2e8f0", width: "100%" }}
-                />
-                <div
-                  style={{ borderBottom: "1px solid #e2e8f0", width: "100%" }}
-                />
-                <div
-                  style={{ borderBottom: "1.5px solid #cbd5e1", width: "100%" }}
-                />
+                {yAxisMarks.map((_, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      borderBottom:
+                        idx === yAxisMarks.length - 1
+                          ? "1.5px solid #cbd5e1"
+                          : "1px solid #f1f5f9",
+                      width: "100%",
+                    }}
+                  />
+                ))}
               </div>
 
+              {/* Các cột biểu đồ hiển thị tỷ lệ chính xác theo số lượng thực tế */}
               <div
                 style={{
                   position: "absolute",
@@ -255,177 +335,288 @@ export default function Dashboard() {
                   display: "flex",
                   justifyContent: "space-around",
                   alignItems: "flex-end",
+                  paddingBottom: "2px",
                 }}
               >
-                {departments.map((dept) => (
-                  <div
-                    key={dept.name}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      position: "relative",
-                    }}
-                  >
+                {deptStats.map((dept, index) => {
+                  const heightPx =
+                    dept.total === 0
+                      ? 4
+                      : Math.max((dept.total / maxDeptTotal) * 200, 6);
+                  const colors = [
+                    "#2563eb",
+                    "#16a34a",
+                    "#9333ea",
+                    "#ea580c",
+                    "#0284c7",
+                  ];
+                  const barColor = colors[index % colors.length];
+
+                  return (
                     <div
+                      key={dept.code || index}
                       style={{
                         display: "flex",
-                        alignItems: "flex-end",
-                        gap: "6px",
-                        height: "150px",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        position: "relative",
+                        flex: 1,
                       }}
                     >
-                      {dept.values.map((v, index) => (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "flex-end",
+                          height: "200px",
+                          width: "100%",
+                          justifyContent: "center",
+                        }}
+                      >
                         <span
-                          key={index}
                           style={{
-                            height: `${(v / 15) * 100}%`,
-                            width: "15px",
-                            backgroundColor:
-                              index === 0 ? "#2563eb" : "#93c5fd",
-                            borderRadius: "4px 4px 0 0",
-                            transition: "height 0.3s ease",
+                            height: `${heightPx}px`,
+                            width: "36px",
+                            backgroundColor: barColor,
+                            borderRadius: "6px 6px 0 0",
+                            transition:
+                              "height 0.4s ease, background-color 0.2s ease",
+                            boxShadow:
+                              dept.total > 0
+                                ? "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
+                                : "none",
+                            opacity: dept.total === 0 ? 0.3 : 1,
                           }}
-                          title={`${index === 0 ? "Nam" : "Nữ"}: ${v} người`}
+                          title={`Phòng ${dept.name} (${dept.code}): ${dept.total} nhân viên`}
                         />
-                      ))}
+                      </div>
+                      {/* Mã phòng ban phía dưới */}
+                      <small
+                        style={{
+                          position: "absolute",
+                          top: "208px",
+                          fontSize: "13px",
+                          fontWeight: "700",
+                          color: "#334155",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {dept.code}
+                      </small>
                     </div>
-                    <small
-                      style={{
-                        position: "absolute",
-                        top: "158px",
-                        fontSize: "12px",
-                        fontWeight: "600",
-                        color: "#334155",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {dept.name}
-                    </small>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: "24px",
-              marginTop: "38px",
-              fontSize: "13px",
-              fontWeight: "600",
-              color: "#88a7e6ff",
-            }}
-          >
-            <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <i
-                style={{
-                  width: "12px",
-                  height: "12px",
-                  backgroundColor: "#2563eb",
-                  borderRadius: "3px",
-                  display: "inline-block",
-                }}
-              />{" "}
-              Nam
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <i
-                style={{
-                  width: "12px",
-                  height: "12px",
-                  backgroundColor: "#93c5fd",
-                  borderRadius: "3px",
-                  display: "inline-block",
-                }}
-              />{" "}
-              Nữ
-            </span>
-          </div>
-        </article>
-
-        <article className="panel attendance-panel">
-          <div className="panel-heading">
-            <h2>
-              <Icon name="clock" /> Chấm công hôm nay
-            </h2>
-            <span className="on-time">
-              <i /> Đúng giờ
-            </span>
-          </div>
-          <div className="attendance-content">
-            <div className="donut-wrap">
-              <div className="donut">
-                <strong>98%</strong>
-              </div>
-              <span>Nhân viên đi làm</span>
-              <b>49 / 50</b>
-            </div>
-            <div className="attendance-legend">
-              <p>
-                <i className="dot teal" /> Đi làm đúng giờ <b>47</b>
-              </p>
-              <p>
-                <i className="dot orange-dot" /> Đi muộn <b>2</b>
-              </p>
-              <p>
-                <i className="dot gray-dot" /> Vắng mặt <b>1</b>
-              </p>
             </div>
           </div>
         </article>
       </section>
 
       <section className="bottom-grid">
+        {/* Khung Ca làm việc */}
         <article className="panel schedule-panel">
           <div className="panel-heading">
             <h2>
-              <Icon name="calendar" /> Lịch làm việc sắp tới
+              <Icon name="clock" /> Ca làm việc
             </h2>
-            <a href="#schedule">
+            <span
+              onClick={() => navigate("/shifts")}
+              style={{
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                color: "#0864ee",
+                fontSize: "13px",
+                fontWeight: "600",
+              }}
+            >
               Xem tất cả <Icon name="arrow-right" size={16} />
-            </a>
+            </span>
           </div>
           <div className="schedule-list">
-            {schedule.map(({ day, date, title, time, icon, tone }) => (
-              <div className="schedule-item" key={title}>
-                <div className="schedule-date">
-                  <b>{day}</b>
-                  <span>{date}</span>
-                </div>
-                <div className={`schedule-detail ${tone}`}>
-                  <Icon name={icon} size={22} />
-                  <div>
-                    <b>{title}</b>
-                    <small>
-                      <Icon name="clock" size={13} /> {time}
+            {shiftsList.length > 0 ? (
+              shiftsList.map((shift) => (
+                <div
+                  className="schedule-item"
+                  key={shift._id}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "12px 16px",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                      }}
+                    >
+                      <Icon
+                        name="clock"
+                        size={20}
+                        style={{ color: "#2563eb" }}
+                      />
+                      <b style={{ fontSize: "14px", color: "#0f172a" }}>
+                        {shift.name}
+                      </b>
+                    </div>
+                    <small
+                      style={{
+                        fontSize: "13px",
+                        color: "#64748b",
+                        fontWeight: "600",
+                      }}
+                    >
+                      {shift.startTime} - {shift.endTime}
                     </small>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: "#64748b",
+                  textAlign: "center",
+                  padding: "20px 0",
+                }}
+              >
+                Chưa có ca làm việc nào
+              </p>
+            )}
           </div>
         </article>
 
-        <article className="panel activity-panel">
+        {/* Khung Chấm công */}
+        <article className="panel schedule-panel">
           <div className="panel-heading">
             <h2>
-              <Icon name="zap" /> Hoạt động gần đây
+              <Icon name="check" /> Chấm công
             </h2>
-            <a href="#activities">
+            <span
+              onClick={() => navigate("/attendance")}
+              style={{
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "5px",
+                color: "#0864ee",
+                fontSize: "13px",
+                fontWeight: "600",
+              }}
+            >
               Xem tất cả <Icon name="arrow-right" size={16} />
-            </a>
+            </span>
           </div>
-          <div className="activity-list">
-            {activities.map(([time, text, tone]) => (
-              <div className="activity-item" key={time}>
-                <i className={`activity-dot ${tone}`} />
-                <span>{time}</span>
-                <p>{text}</p>
-              </div>
-            ))}
+          <div className="schedule-list">
+            {attendancesList.length > 0 ? (
+              attendancesList.map((item) => (
+                <div
+                  className="schedule-item"
+                  key={item._id}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "12px 16px",
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                      }}
+                    >
+                      <Icon
+                        name="user"
+                        size={20}
+                        style={{ color: "#16a34a" }}
+                      />
+                      <b style={{ fontSize: "14px", color: "#0f172a" }}>
+                        {item.employeeId?.fullName ||
+                          item.employeeName ||
+                          "Nhân viên"}
+                      </b>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      <span style={{ fontSize: "13px", color: "#64748b" }}>
+                        {item.workDate || item.date || "Hôm nay"}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          padding: "3px 10px",
+                          borderRadius: "12px",
+                          backgroundColor:
+                            item.status === "present"
+                              ? "#dcfce7"
+                              : item.status === "late"
+                                ? "#fef3c7"
+                                : "#fee2e2",
+                          color:
+                            item.status === "present"
+                              ? "#16a34a"
+                              : item.status === "late"
+                                ? "#d97706"
+                                : "#dc2626",
+                        }}
+                      >
+                        {item.status === "present"
+                          ? "Có mặt"
+                          : item.status === "late"
+                            ? "Đi muộn"
+                            : item.status === "absent"
+                              ? "Vắng mặt"
+                              : item.status || "Chưa rõ"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: "#64748b",
+                  textAlign: "center",
+                  padding: "20px 0",
+                }}
+              >
+                Chưa có dữ liệu chấm công
+              </p>
+            )}
           </div>
         </article>
 
@@ -563,8 +754,9 @@ export default function Dashboard() {
                     Cơ sở dữ liệu MongoDB Atlas
                   </div>
                   <div style={{ fontSize: "12px", color: "#64748b" }}>
-                    50 Nhân sự • 5 Phòng ban • Hệ thống 10 Collections
-                    (attendances, shifts, users,...)
+                    {dashboardStats.totalEmployees} Nhân sự •{" "}
+                    {dashboardStats.totalDepartments} Phòng ban • Hệ thống 10
+                    Collections (attendances, shifts, users,...)
                   </div>
                 </div>
                 <span

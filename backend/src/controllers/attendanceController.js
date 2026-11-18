@@ -1,11 +1,56 @@
 const Employee = require("../models/Employee");
 const Attendance = require("../models/Attendance");
+const Schedule = require("../models/Schedule");
 const AttendanceAdjustment = require("../models/AttendanceAdjustment");
+const Department = require("../models/Department");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
-const { recalcPayroll } = require("../utils/payrollHelper"); // [LƯƠNG]
+const { recalcPayroll } = require("../utils/payrollHelper");
 
-// [LƯƠNG] Tự cập nhật lương tháng của nhân viên, lỗi không làm hỏng chấm công
+const parseTime = (timeStr) => {
+  if (!timeStr) return 0;
+  const [hours, minutes] = timeStr.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
+const calculateCredits = (inTime, outTime, shiftStartStr, shiftEndStr) => {
+  const round2 = (n) => Math.round(n * 100) / 100;
+
+  const totalMinutes = Math.max(
+    0,
+    (new Date(outTime) - new Date(inTime)) / 60000,
+  );
+
+  if (!shiftStartStr || !shiftEndStr) {
+    return {
+      workCredit: round2(totalMinutes / 480),
+      overtimeCredit: 0,
+      totalMinutes: Math.round(totalMinutes),
+    };
+  }
+
+  const shiftStartMins = parseTime(shiftStartStr);
+  const shiftEndMins = parseTime(shiftEndStr);
+  const shiftTotalMins = shiftEndMins - shiftStartMins;
+
+  const actualStartMins =
+    new Date(inTime).getHours() * 60 + new Date(inTime).getMinutes();
+  const actualEndMins =
+    new Date(outTime).getHours() * 60 + new Date(outTime).getMinutes();
+
+  const overlapStart = Math.max(actualStartMins, shiftStartMins);
+  const overlapEnd = Math.min(actualEndMins, shiftEndMins);
+  const inShiftMinutes = Math.max(0, overlapEnd - overlapStart);
+
+  let overtimeMinutes = Math.max(0, totalMinutes - inShiftMinutes);
+
+  const effectiveWorkMins = inShiftMinutes > 0 ? inShiftMinutes : totalMinutes;
+  const workCredit = round2(effectiveWorkMins / 480);
+  const overtimeCredit = round2(overtimeMinutes / 60);
+
+  return { workCredit, overtimeCredit, totalMinutes: Math.round(totalMinutes) };
+};
+
 const refreshPayroll = (employeeId, workDate) => {
   const month = String(workDate || "").slice(0, 7);
   if (!employeeId || !/^\d{4}-\d{2}$/.test(month)) return;
@@ -30,14 +75,25 @@ exports.checkIn = catchAsync(async (req, res, next) => {
   if (activeShift) {
     const shiftTimeStr = new Date(activeShift.checkInAt).toLocaleTimeString(
       "vi-VN",
-      {
-        hour: "2-digit",
-        minute: "2-digit",
-      },
+      { hour: "2-digit", minute: "2-digit" },
     );
     return next(
       new AppError(
         `Bạn vẫn còn ca làm việc (bắt đầu lúc ${shiftTimeStr} ngày ${activeShift.workDate}) chưa bấm Tan ca! Vui lòng bấm Tan ca trước khi vào ca mới.`,
+        400,
+      ),
+    );
+  }
+
+  const todayRecord = await Attendance.findOne({
+    employeeId,
+    workDate: targetDate,
+  });
+
+  if (todayRecord) {
+    return next(
+      new AppError(
+        `Bạn đã chốt công cho ngày hôm nay (${targetDate}) rồi. Mỗi nhân viên chỉ được tạo 1 bản ghi chấm công mỗi ngày!`,
         400,
       ),
     );
@@ -51,7 +107,7 @@ exports.checkIn = catchAsync(async (req, res, next) => {
     status: "present",
   });
 
-  refreshPayroll(employeeId, targetDate); // [LƯƠNG] vào ca -> tạo/cập nhật bảng lương
+  refreshPayroll(employeeId, targetDate);
 
   res.status(201).json({
     success: true,
@@ -75,18 +131,35 @@ exports.checkOut = catchAsync(async (req, res, next) => {
 
   const checkOutTime = new Date();
   attendance.checkOutAt = checkOutTime;
-  const totalMs =
-    checkOutTime.getTime() - new Date(attendance.checkInAt).getTime();
-  const minutesWorked = Math.max(0, Math.floor(totalMs / (1000 * 60)));
-  const workCredit = Math.round((minutesWorked / 480) * 10) / 10;
 
-  attendance.minutesWorked = minutesWorked;
+  const schedule = await Schedule.findOne({
+    employeeId: attendance.employeeId,
+    workDate: attendance.workDate,
+    status: "published",
+  }).populate("shiftId");
+
+  let shiftStart = null;
+  let shiftEnd = null;
+  if (schedule && schedule.shiftId) {
+    shiftStart = schedule.shiftId.startTime;
+    shiftEnd = schedule.shiftId.endTime;
+  }
+
+  const { workCredit, overtimeCredit, totalMinutes } = calculateCredits(
+    attendance.checkInAt,
+    checkOutTime,
+    shiftStart,
+    shiftEnd,
+  );
+
+  attendance.minutesWorked = totalMinutes;
   attendance.workCredit = workCredit;
-  attendance.status = minutesWorked > 0 ? "present" : "absent";
+  attendance.overtimeCredit = overtimeCredit;
+  attendance.status = totalMinutes > 0 ? "present" : "absent";
 
   await attendance.save();
 
-  refreshPayroll(attendance.employeeId, attendance.workDate); // [LƯƠNG] tan ca -> cộng giờ vào lương
+  refreshPayroll(attendance.employeeId, attendance.workDate);
 
   res.status(200).json({
     success: true,
@@ -97,29 +170,14 @@ exports.checkOut = catchAsync(async (req, res, next) => {
 
 exports.getAttendances = catchAsync(async (req, res, next) => {
   const { month, employeeId } = req.query;
+
   const currentUserId = req.user ? req.user._id : null;
   const userRole = req.user ? req.user.role : "employee";
-  const userPosition = (req.user?.position || "").toLowerCase();
-
-  const isBossAdmin =
-    userRole === "admin_hr" ||
-    userPosition.includes("giám đốc") ||
-    (req.user?.email || "").includes("nam.duong");
-  const isDepartmentLead =
-    userPosition.includes("trưởng phòng") || userPosition.includes("leader");
 
   const filter = {};
 
-  if (isBossAdmin) {
-    if (employeeId) filter.employeeId = employeeId;
-  } else if (isDepartmentLead) {
-    const adminEmployees = await Employee.find({
-      $or: [{ role: "admin_hr" }, { email: "nam.duong1@gmail.com" }],
-    }).select("_id");
-    const adminIds = adminEmployees.map((a) => a._id);
-
-    filter.employeeId = { $nin: adminIds };
-    if (employeeId && !adminIds.some((id) => id.equals(employeeId))) {
+  if (userRole === "admin_hr" || userRole === "manager") {
+    if (employeeId) {
       filter.employeeId = employeeId;
     }
   } else {
@@ -133,7 +191,7 @@ exports.getAttendances = catchAsync(async (req, res, next) => {
   }
 
   const records = await Attendance.find(filter)
-    .populate("employeeId", "fullName employeeCode position email")
+    .populate("employeeId", "fullName employeeCode position email role")
     .sort({ workDate: -1, createdAt: -1 });
 
   res.status(200).json({
@@ -209,22 +267,88 @@ exports.approveAdjustment = catchAsync(async (req, res, next) => {
   if (attendance) {
     attendance.checkInAt = adjustment.proposedIn;
     attendance.checkOutAt = adjustment.proposedOut;
-    const workedMs =
-      new Date(adjustment.proposedOut).getTime() -
-      new Date(adjustment.proposedIn).getTime();
-    const minutesWorked = Math.max(0, Math.floor(workedMs / (1000 * 60)));
-    const workCredit = Math.round((minutesWorked / 480) * 10) / 10;
 
-    attendance.minutesWorked = minutesWorked;
+    const schedule = await Schedule.findOne({
+      employeeId: attendance.employeeId,
+      workDate: attendance.workDate,
+      status: "published",
+    }).populate("shiftId");
+
+    let shiftStart = null;
+    let shiftEnd = null;
+    if (schedule && schedule.shiftId) {
+      shiftStart = schedule.shiftId.startTime;
+      shiftEnd = schedule.shiftId.endTime;
+    }
+
+    const { workCredit, overtimeCredit, totalMinutes } = calculateCredits(
+      adjustment.proposedIn,
+      adjustment.proposedOut,
+      shiftStart,
+      shiftEnd,
+    );
+
+    attendance.minutesWorked = totalMinutes;
     attendance.workCredit = workCredit;
+    attendance.overtimeCredit = overtimeCredit;
+    attendance.status = totalMinutes > 0 ? "present" : "absent";
     await attendance.save();
 
-    refreshPayroll(attendance.employeeId, attendance.workDate); // [LƯƠNG] sửa công -> cập nhật lại lương
+    refreshPayroll(attendance.employeeId, attendance.workDate);
   }
 
   res.status(200).json({
     success: true,
     message: "Đã duyệt đơn và tự động cập nhật lại công chính thức!",
     data: adjustment,
+  });
+});
+
+exports.getDashboardStats = catchAsync(async (req, res, next) => {
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  const totalEmployees = await Employee.countDocuments({ status: "active" });
+  const totalInactive = await Employee.countDocuments({ status: "inactive" });
+  const totalDepartments = await Department.countDocuments();
+
+  const todayAttendances = await Attendance.find({ workDate: todayStr });
+  const presentCount = todayAttendances.filter(
+    (a) => a.status === "present",
+  ).length;
+  const lateCount = todayAttendances.filter((a) => a.status === "late").length;
+  const absentCount = todayAttendances.filter(
+    (a) => a.status === "absent",
+  ).length;
+
+  const totalWorkingToday = presentCount + lateCount;
+
+  const attendanceRate =
+    totalEmployees > 0
+      ? Math.round((totalWorkingToday / totalEmployees) * 100)
+      : 0;
+
+  res.status(200).json({
+    success: true,
+    data: {
+      totalEmployees,
+      totalInactive,
+      totalDepartments,
+      attendanceRate,
+      attendanceStats: {
+        totalWorkingToday,
+        presentCount,
+        lateCount,
+        absentCount,
+      },
+    },
+  });
+});
+
+exports.resetAllAttendancesAPI = catchAsync(async (req, res, next) => {
+  await Attendance.deleteMany({});
+  await AttendanceAdjustment.deleteMany({});
+  res.status(200).json({
+    success: true,
+    message: "Đã reset và xóa sạch toàn bộ dữ liệu chấm công thành công!",
   });
 });

@@ -106,6 +106,10 @@ const transferDepartment = async (req, res) => {
 
         if (!employee) return res.status(404).json({ message: 'Không tìm thấy nhân viên' });
 
+        if (employee.status !== 'active') {
+            return res.status(400).json({ message: 'Không thể điều chuyển nhân viên đã bị vô hiệu hóa hoặc nghỉ việc!' });
+        }
+
         const oldDepartmentId = employee.departmentId;
 
         // Báo lỗi nếu chuyển vào đúng phòng ban hiện tại
@@ -145,11 +149,28 @@ const deleteEmployee = async (req, res) => {
     }
 };
 
+// [PATCH] /api/employees/:id/restore - Khôi phục / Kích hoạt lại nhân viên
+const restoreEmployee = async (req, res) => {
+    try {
+        const employee = await Employee.findByIdAndUpdate(
+            req.params.id,
+            { status: 'active' },
+            { new: true }
+        );
+
+        if (!employee) return res.status(404).json({ message: 'Không tìm thấy nhân viên' });
+        res.json({ message: 'Đã kích hoạt lại tài khoản nhân viên thành công!', employee });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getEmployees,
     getEmployeeById,
     createEmployee,
     updateEmployee,
     transferDepartment,
-    deleteEmployee
+    deleteEmployee,
+    restoreEmployee
 };
