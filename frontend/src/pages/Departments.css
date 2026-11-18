@@ -1,5 +1,3 @@
-/* frontend/src/pages/Departments.css */
-
 .departments-container {
   display: flex;
   flex-direction: column;
@@ -41,7 +39,6 @@
   }
 }
 
-/* Danh sách phòng ban bên trái */
 .dept-list-panel {
   display: flex;
   flex-direction: column;
@@ -209,7 +206,6 @@
   background: #fee2e2;
 }
 
-/* Danh sách nhân viên trong phòng ban */
 .dept-employees-section h4 {
   margin: 0 0 14px 0;
   font-size: 15px;
@@ -250,4 +246,3 @@
 .dept-emp-table tr:hover {
   background: #f8fafc;
 }
-

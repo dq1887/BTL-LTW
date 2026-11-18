@@ -1114,3 +1114,16 @@ html.dark .profile-page-wrap p[style*="color: rgb(100, 116, 139)"],
 html.dark .profile-page-wrap p[style*='color: "#64748b"'] {
   color: #94a3b8 !important;
 }
+
+html.dark code,
+html.dark pre,
+html.dark span[style*="background: rgb(255, 255, 255)"],
+html.dark span[style*="background-color: rgb(255, 255, 255)"],
+html.dark span[style*="background: rgb(241, 245, 249)"],
+html.dark span[style*="background-color: rgb(241, 245, 249)"],
+html.dark span[style*="background: rgb(248, 250, 252)"],
+html.dark span[style*="background-color: rgb(248, 250, 252)"] {
+  background-color: #0f172a !important;
+  color: #93c5fd !important;
+  border: 1px solid #334155 !important;
+}
