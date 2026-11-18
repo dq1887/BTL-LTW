@@ -1,3 +1,4 @@
+/* ===== Biến màu: chế độ sáng (giữ đúng màu cũ) ===== */
 .schedule-container {
   --sc-page-bg: #f8f9fa;
   --sc-text: #333;
@@ -205,7 +206,6 @@
   color: #6b7280;
 }
 
-<<<<<<< HEAD
 /* ===== Hộp thoại phân ca thủ công ===== */
 .modal-overlay {
   position: fixed;
@@ -295,77 +295,25 @@
 .modal-actions button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-=======
-/* ==========================================================================
-   CHẾ ĐỘ TỐI (DARK MODE) CHO TRANG LỊCH PHÂN CA (SCHEDULES)
-   ========================================================================== */
-html.dark .schedule-container {
-  background-color: transparent !important;
-  color: #f1f5f9 !important;
 }
 
-html.dark .schedule-header h2 {
-  color: #f8fafc !important;
+.action-cell {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
-html.dark .table-responsive {
-  background: #1e293b !important;
-  border: 1px solid #334155 !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+.btn-delete {
+  background-color: var(--sc-error-bg);
+  color: var(--sc-error-text);
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
 }
 
-html.dark .schedule-table th {
-  background-color: #0f172a !important;
-  color: #cbd5e1 !important;
-  border-bottom: 1.5px solid #334155 !important;
-}
-
-html.dark .schedule-table td {
-  border-bottom: 1px solid #273549 !important;
-  color: #e2e8f0 !important;
-}
-
-html.dark .schedule-table tbody tr:hover {
-  background-color: #24344d !important;
-}
-
-html.dark .no-data {
-  color: #94a3b8 !important;
-}
-
-/* Dark Mode Badges */
-html.dark .role-admin_hr {
-  background-color: rgba(239, 68, 68, 0.2) !important;
-  color: #fca5a5 !important;
-  border: 1px solid rgba(239, 68, 68, 0.35) !important;
-}
-
-html.dark .role-manager {
-  background-color: rgba(245, 158, 11, 0.2) !important;
-  color: #fcd34d !important;
-  border: 1px solid rgba(245, 158, 11, 0.35) !important;
-}
-
-html.dark .role-employee {
-  background-color: rgba(59, 130, 246, 0.2) !important;
-  color: #93c5fd !important;
-  border: 1px solid rgba(59, 130, 246, 0.35) !important;
-}
-
-html.dark .status-draft {
-  background-color: #0f172a !important;
-  color: #94a3b8 !important;
-  border: 1px solid #334155 !important;
-}
-
-html.dark .status-published {
-  background-color: rgba(16, 185, 129, 0.2) !important;
-  color: #6ee7b7 !important;
-  border: 1px solid rgba(16, 185, 129, 0.35) !important;
-}
-
-html.dark .schedule-loading,
-html.dark .schedule-error {
-  color: #94a3b8 !important;
->>>>>>> f037f7aabd9f703c064ddb40ee759b05a1302d90
+.btn-delete:hover {
+  background-color: #dc2626;
+  color: #fff;
 }

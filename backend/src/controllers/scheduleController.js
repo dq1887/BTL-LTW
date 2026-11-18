@@ -1,11 +1,13 @@
 const Schedule = require("../models/Schedule");
 const Employee = require("../models/Employee");
+const Shift = require("../models/Shift");
+const mongoose = require("mongoose");
 
 // 1. Lấy danh sách lịch phân ca
 const getSchedules = async (req, res) => {
   try {
     const schedules = await Schedule.find()
-      .populate("employeeId", "employeeCode fullName role")
+      .populate("employeeId", "employeeCode fullName role position")
       .populate("shiftId", "name startTime endTime breakMinutes");
     res.status(200).json(schedules);
   } catch (error) {
@@ -21,8 +23,29 @@ const createSchedule = async (req, res) => {
   try {
     const { employeeId, shiftId, workDate } = req.body;
 
-    // Kiểm tra xem lịch đã bị publish chưa (nếu cần quản lý khóa theo kỳ)
-    // Tạo mới bản ghi phân ca
+    // Kiểm tra dữ liệu đầu vào
+    if (
+      !mongoose.isValidObjectId(employeeId) ||
+      !mongoose.isValidObjectId(shiftId) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(workDate || "")
+    ) {
+      return res.status(400).json({
+        message: "Thiếu nhân viên, ca làm việc hoặc ngày làm không hợp lệ!",
+      });
+    }
+
+    // Nhân viên và ca phải tồn tại trong database
+    const [employee, shift] = await Promise.all([
+      Employee.exists({ _id: employeeId }),
+      Shift.exists({ _id: shiftId }),
+    ]);
+    if (!employee || !shift) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy nhân viên hoặc ca làm việc!" });
+    }
+
+    // Tạo mới bản ghi phân ca (luôn ở trạng thái draft)
     const newSchedule = new Schedule({
       employeeId,
       shiftId,
