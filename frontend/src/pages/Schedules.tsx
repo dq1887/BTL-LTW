@@ -85,11 +85,10 @@ const addDays = (s: string, n: number) => {
   d.setDate(d.getDate() + n);
   return fmtDate(d);
 };
-const shortDateLabel = (s: string) => {
+// Hiển thị ngày theo kiểu Việt Nam: dd/mm/yyyy
+const viDate = (s: string) => {
   const d = parseDate(s);
-  return `${WEEKDAY_SHORT[d.getDay()]}, ${pad(d.getDate())}/${pad(
-    d.getMonth() + 1,
-  )}/${d.getFullYear()}`;
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 };
 // Mở lịch chọn ngày ngay khi bấm vào ô (không cần bấm đúng biểu tượng lịch)
 const openDatePicker = (e: { currentTarget: HTMLInputElement }) => {
@@ -123,8 +122,7 @@ export default function Schedules() {
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Chế độ xem: toàn bộ danh sách hoặc theo từng ngày
-  const [view, setView] = useState<"all" | "day">("all");
+  // Ngày đang xem
   const [selectedDate, setSelectedDate] = useState(fmtDate(new Date()));
 
   // Modal tự động phân ca
@@ -136,8 +134,10 @@ export default function Schedules() {
 
   // Giả lập user đang đăng nhập (sau này lấy từ localStorage/Redux)
   const currentUserRole: string = "admin_hr";
-  // Chỉ admin_hr được phân ca, xóa và công bố; vai trò khác chỉ xem
-  const canManage = currentUserRole === "admin_hr";
+  // admin_hr và manager: phân ca, xóa lịch nháp. Chỉ admin_hr: công bố (publish)
+  const canManage =
+    currentUserRole === "admin_hr" || currentUserRole === "manager";
+  const canPublish = currentUserRole === "admin_hr";
 
   const fetchSchedules = async (silent = false) => {
     try {
@@ -287,15 +287,17 @@ export default function Schedules() {
   if (error) return <div className="schedule-error">Lỗi: {error}</div>;
 
   const renderActions = (item: Schedule) =>
-    item.status === "draft" && canManage ? (
+    item.status === "draft" && (canPublish || canManage) ? (
       <div className="action-cell">
-        <button
-          className="btn-publish"
-          onClick={() => handlePublish(item._id)}
-          title="Công bố lịch để nhân viên xem"
-        >
-          Publish
-        </button>
+        {canPublish && (
+          <button
+            className="btn-publish"
+            onClick={() => handlePublish(item._id)}
+            title="Công bố lịch để nhân viên xem"
+          >
+            Publish
+          </button>
+        )}
         {canManage && (
           <button
             className="btn-delete"
@@ -307,58 +309,6 @@ export default function Schedules() {
         )}
       </div>
     ) : null;
-
-  const renderAllView = () => (
-    <div className="table-responsive">
-      <table className="schedule-table">
-        <thead>
-          <tr>
-            <th>Mã NV</th>
-            <th>Họ và Tên</th>
-            <th>Vai trò</th>
-            <th>Ngày làm</th>
-            <th>Ca làm việc</th>
-            <th>Trạng thái</th>
-            <th>Thao tác</th>
-          </tr>
-        </thead>
-        <tbody>
-          {schedules.length === 0 ? (
-            <tr>
-              <td colSpan={7} className="no-data">
-                Chưa có lịch phân ca nào được tạo.
-              </td>
-            </tr>
-          ) : (
-            schedules.map((item) => (
-              <tr key={item._id}>
-                <td>{item.employeeId?.employeeCode || "N/A"}</td>
-                <td>
-                  <strong>{item.employeeId?.fullName || "N/A"}</strong>
-                </td>
-                <td>
-                  <span className={`badge role-${item.employeeId?.role}`}>
-                    {item.employeeId?.position || item.employeeId?.role}
-                  </span>
-                </td>
-                <td>{item.workDate}</td>
-                <td>
-                  {item.shiftId?.name} ({item.shiftId?.startTime} -{" "}
-                  {item.shiftId?.endTime})
-                </td>
-                <td>
-                  <span className={`badge status-${item.status}`}>
-                    {item.status === "draft" ? "Nháp (Draft)" : "Đã công bố"}
-                  </span>
-                </td>
-                <td>{renderActions(item)}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
 
   const renderDayView = () => {
     const dayItems = schedules.filter((s) => s.workDate === selectedDate);
@@ -416,10 +366,41 @@ export default function Schedules() {
           >
             ‹
           </button>
-          <label className="date-pick" title="Chọn ngày">
-            <span>📅 {shortDateLabel(selectedDate)}</span>
+          <label
+            className="date-pick"
+            style={{ position: "relative" }}
+            title="Chọn ngày"
+          >
+            <span>{viDate(selectedDate)}</span>
+            <svg
+              className="date-pick-icon"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            {/* Ô ngày gốc nằm đè lên và ẩn đi, chỉ dùng để mở lịch chọn */}
             <input
               type="date"
+              className="date-pick-input"
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                opacity: 0,
+                cursor: "pointer",
+              }}
               value={selectedDate}
               onClick={openDatePicker}
               onChange={(e) =>
@@ -546,22 +527,7 @@ export default function Schedules() {
         )}
       </div>
 
-      <div className="view-toggle">
-        <button
-          className={view === "all" ? "active" : ""}
-          onClick={() => setView("all")}
-        >
-          Tất cả
-        </button>
-        <button
-          className={view === "day" ? "active" : ""}
-          onClick={() => setView("day")}
-        >
-          Theo ngày
-        </button>
-      </div>
-
-      {view === "all" ? renderAllView() : renderDayView()}
+      {renderDayView()}
 
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>

@@ -261,6 +261,27 @@
   color-scheme: dark;
 }
 
+.form-field input[type="date"] {
+  color-scheme: light;
+}
+
+/* Biểu tượng lịch gốc của trình duyệt: đen ở chế độ sáng */
+.form-field input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
+  filter: none;
+}
+
+:is(.dark, .dark-mode, [data-theme="dark"])
+  .form-field
+  input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+:is(.dark, .dark-mode, [data-theme="dark"]) .form-field input[type="date"] {
+  color-scheme: dark;
+}
+
 .form-field select:focus,
 .form-field input:focus {
   outline: 2px solid #2563eb;
@@ -395,16 +416,42 @@
   flex-wrap: wrap;
 }
 
-.day-nav input[type="date"] {
-  padding: 8px 10px;
+.date-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
   border: 1px solid var(--sc-input-border);
   border-radius: 8px;
   background: var(--sc-input-bg);
   color: var(--sc-text);
-  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
-:is(.dark, .dark-mode, [data-theme="dark"]) .day-nav input[type="date"] {
+.date-pick:hover {
+  background: var(--sc-row-hover);
+}
+
+/* Biểu tượng lịch và ngày dùng chung một màu chữ (đen ở chế độ sáng, sáng ở chế độ tối) */
+.date-pick span {
+  color: var(--sc-text);
+}
+
+.date-pick-icon {
+  flex-shrink: 0;
+  color: var(--sc-text);
+  fill: none;
+  stroke: currentColor;
+}
+
+/* lịch bật lên theo đúng chế độ sáng/tối */
+.date-pick-input {
+  color-scheme: light;
+}
+
+:is(.dark, .dark-mode, [data-theme="dark"]) .date-pick-input {
   color-scheme: dark;
 }
 
