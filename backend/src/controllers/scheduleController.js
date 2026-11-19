@@ -151,10 +151,149 @@ const publishSchedule = async (req, res) => {
   }
 };
 
+// 6. Tự động phân ca cho cả tuần (thứ 2 -> thứ 6), tạo ở trạng thái draft
+const SHIFT_NAMES = {
+  office: "Ca hành chính",
+  morning: "Ca sáng",
+  afternoon: "Ca chiều",
+};
+const OFFICE_ROLES = ["manager", "admin_hr"]; // làm ca hành chính
+
+const pad2 = (n) => String(n).padStart(2, "0");
+const toDateStr = (d) =>
+  `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
+
+const autoGenerateSchedules = async (req, res) => {
+  try {
+    const { weekStart } = req.body;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart || "")) {
+      return res
+        .status(400)
+        .json({ message: "Ngày bắt đầu tuần không hợp lệ (YYYY-MM-DD)!" });
+    }
+    const base = new Date(`${weekStart}T00:00:00Z`);
+    if (Number.isNaN(base.getTime())) {
+      return res
+        .status(400)
+        .json({ message: "Ngày bắt đầu tuần không hợp lệ!" });
+    }
+    // Lùi về thứ 2 của tuần chứa ngày được gửi lên
+    base.setUTCDate(base.getUTCDate() - ((base.getUTCDay() + 6) % 7));
+    const days = Array.from({ length: 5 }, (_, i) => {
+      const d = new Date(base);
+      d.setUTCDate(base.getUTCDate() + i);
+      return toDateStr(d);
+    });
+
+    // Lấy 3 ca theo tên
+    const shifts = await Shift.find({
+      name: { $in: Object.values(SHIFT_NAMES) },
+    })
+      .select("_id name")
+      .lean();
+    const shiftId = {};
+    for (const [key, name] of Object.entries(SHIFT_NAMES)) {
+      const found = shifts.find((s) => s.name === name);
+      if (!found) {
+        return res
+          .status(400)
+          .json({
+            message: `Chưa có ca "${name}" trong danh mục ca làm việc!`,
+          });
+      }
+      shiftId[key] = found._id;
+    }
+
+    // Nhân sự đang làm việc (chưa có trường status thì vẫn tính)
+    const employees = await Employee.find({
+      $or: [{ status: "active" }, { status: { $exists: false } }],
+    })
+      .select("_id employeeCode role departmentId")
+      .lean();
+
+    // Manager/admin_hr -> hành chính; còn lại chia đều sáng/chiều theo phòng ban
+    const assign = new Map(); // employeeId -> shiftId
+    const byDept = {};
+    for (const e of employees) {
+      if (OFFICE_ROLES.includes(e.role)) {
+        assign.set(String(e._id), shiftId.office);
+      } else {
+        const key = String(e.departmentId || "none");
+        (byDept[key] = byDept[key] || []).push(e);
+      }
+    }
+    for (const list of Object.values(byDept)) {
+      list.sort((a, b) =>
+        String(a.employeeCode).localeCompare(String(b.employeeCode), "en", {
+          numeric: true,
+        }),
+      );
+      const morningCount = Math.ceil(list.length / 2);
+      list.forEach((e, i) =>
+        assign.set(
+          String(e._id),
+          i < morningCount ? shiftId.morning : shiftId.afternoon,
+        ),
+      );
+    }
+
+    // Bỏ qua người đã có lịch trong ngày đó (tránh trùng khóa employeeId + workDate)
+    const existing = await Schedule.find({ workDate: { $in: days } })
+      .select("employeeId workDate")
+      .lean();
+    const taken = new Set(existing.map((x) => `${x.employeeId}_${x.workDate}`));
+
+    const docs = [];
+    for (const day of days) {
+      for (const [empId, sId] of assign) {
+        if (taken.has(`${empId}_${day}`)) continue;
+        docs.push({
+          employeeId: empId,
+          shiftId: sId,
+          workDate: day,
+          status: "draft",
+        });
+      }
+    }
+    const total = assign.size * days.length;
+
+    let created = 0;
+    if (docs.length > 0) {
+      try {
+        const inserted = await Schedule.insertMany(docs, { ordered: false });
+        created = inserted.length;
+      } catch (err) {
+        // Nếu có bản ghi trùng do thao tác song song, vẫn tính số đã tạo được
+        if (err.code === 11000 || err.writeErrors) {
+          created = err.insertedDocs ? err.insertedDocs.length : 0;
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    res.status(201).json({
+      message: `Đã tạo ${created} ca (bản nháp) cho tuần ${days[0]} → ${days[4]}${
+        total - created > 0 ? `, bỏ qua ${total - created} ca đã có lịch` : ""
+      }.`,
+      created,
+      skipped: total - created,
+      weekStart: days[0],
+      weekEnd: days[4],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Lỗi server khi tự động phân ca",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   getSchedules,
   createSchedule,
   updateSchedule,
   deleteSchedule,
   publishSchedule,
+  autoGenerateSchedules,
 };
