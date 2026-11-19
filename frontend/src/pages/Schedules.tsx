@@ -36,6 +36,8 @@ interface ShiftOption {
   endTime: string;
 }
 
+// API có thể trả mảng trơn, { data: [...] }, { employees: [...] },
+// hoặc lồng thêm một tầng như { data: { items: [...] } } -> tìm mảng đầu tiên
 const toArray = <T,>(json: unknown, depth = 0): T[] => {
   if (Array.isArray(json)) return json as T[];
   if (json && typeof json === "object" && depth < 3) {
@@ -83,6 +85,20 @@ const addDays = (s: string, n: number) => {
   d.setDate(d.getDate() + n);
   return fmtDate(d);
 };
+const shortDateLabel = (s: string) => {
+  const d = parseDate(s);
+  return `${WEEKDAY_SHORT[d.getDay()]}, ${pad(d.getDate())}/${pad(
+    d.getMonth() + 1,
+  )}/${d.getFullYear()}`;
+};
+// Mở lịch chọn ngày ngay khi bấm vào ô (không cần bấm đúng biểu tượng lịch)
+const openDatePicker = (e: { currentTarget: HTMLInputElement }) => {
+  try {
+    e.currentTarget.showPicker?.();
+  } catch {
+    /* trình duyệt không hỗ trợ thì dùng cách mặc định */
+  }
+};
 const longDateLabel = (s: string) => {
   const d = parseDate(s);
   return `${WEEKDAY_LONG[d.getDay()]}, ${pad(d.getDate())}/${pad(
@@ -92,7 +108,6 @@ const longDateLabel = (s: string) => {
 
 export default function Schedules() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [searchTerm, setSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -120,9 +135,9 @@ export default function Schedules() {
   const [autoLoading, setAutoLoading] = useState(false);
 
   // Giả lập user đang đăng nhập (sau này lấy từ localStorage/Redux)
-  const currentUserRole = "admin_hr";
-  const canManage =
-    currentUserRole === "admin_hr" || currentUserRole === "manager";
+  const currentUserRole: string = "admin_hr";
+  // Chỉ admin_hr được phân ca, xóa và công bố; vai trò khác chỉ xem
+  const canManage = currentUserRole === "admin_hr";
 
   const fetchSchedules = async (silent = false) => {
     try {
@@ -141,15 +156,6 @@ export default function Schedules() {
   useEffect(() => {
     fetchSchedules();
   }, []);
-
-  // Lọc danh sách theo tên nhân viên hoặc mã NV
-  const filteredSchedules = schedules.filter((item) => {
-    if (!searchTerm.trim()) return true;
-    const keyword = normalizeText(searchTerm);
-    const fullName = normalizeText(item.employeeId?.fullName || "");
-    const empCode = normalizeText(item.employeeId?.employeeCode || "");
-    return fullName.includes(keyword) || empCode.includes(keyword);
-  });
 
   // Mở modal: tải danh sách nhân viên và ca (chỉ tải lần đầu)
   const openModal = async () => {
@@ -184,9 +190,10 @@ export default function Schedules() {
     try {
       setSaving(true);
       setFormError(null);
+      // Lỗi 409 (trùng ca) được api.ts ném ra kèm message từ backend
       await api.post("/schedules", form);
       setShowModal(false);
-      await fetchSchedules(true);
+      await fetchSchedules(true); // tải lại để có dữ liệu populate đầy đủ
     } catch (err: unknown) {
       setFormError(
         err instanceof Error ? err.message : "Đã xảy ra lỗi không xác định.",
@@ -261,7 +268,7 @@ export default function Schedules() {
       return;
     }
     try {
-      await api.post(`/schedules/${id}/publish`);
+      await api.post(`/schedules/${id}/publish`); // khớp router.post("/:id/publish")
       setSchedules((prev) =>
         prev.map((item) =>
           item._id === id ? { ...item, status: "published" } : item,
@@ -280,7 +287,7 @@ export default function Schedules() {
   if (error) return <div className="schedule-error">Lỗi: {error}</div>;
 
   const renderActions = (item: Schedule) =>
-    item.status === "draft" ? (
+    item.status === "draft" && canManage ? (
       <div className="action-cell">
         <button
           className="btn-publish"
@@ -409,11 +416,17 @@ export default function Schedules() {
           >
             ‹
           </button>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
-          />
+          <label className="date-pick" title="Chọn ngày">
+            <span>📅 {shortDateLabel(selectedDate)}</span>
+            <input
+              type="date"
+              value={selectedDate}
+              onClick={openDatePicker}
+              onChange={(e) =>
+                e.target.value && setSelectedDate(e.target.value)
+              }
+            />
+          </label>
           <button
             className="btn-nav"
             onClick={() => setSelectedDate(addDays(selectedDate, 1))}
@@ -599,6 +612,7 @@ export default function Schedules() {
               <input
                 type="date"
                 value={form.workDate}
+                onClick={openDatePicker}
                 onChange={(e) => setForm({ ...form, workDate: e.target.value })}
                 required
               />
@@ -663,6 +677,7 @@ export default function Schedules() {
                 <input
                   type="date"
                   value={autoDate}
+                  onClick={openDatePicker}
                   onChange={(e) => setAutoDate(e.target.value)}
                 />
                 {getAutoMonday() && (
