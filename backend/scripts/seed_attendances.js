@@ -3,9 +3,9 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 require("dotenv").config();
 const mongoose = require("mongoose");
 
-const Employee = require("./src/models/Employee");
-const Attendance = require("./src/models/Attendance");
-const AttendanceAdjustment = require("./src/models/AttendanceAdjustment");
+const Employee = require("../src/models/Employee");
+const Attendance = require("../src/models/Attendance");
+const AttendanceAdjustment = require("../src/models/AttendanceAdjustment");
 
 const seedAttendanceData = async () => {
   try {

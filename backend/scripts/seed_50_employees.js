@@ -4,8 +4,8 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const Department = require('./src/models/Department');
-const Employee = require('./src/models/Employee');
+const Department = require('../src/models/Department');
+const Employee = require('../src/models/Employee');
 
 const seedData = async () => {
     try {

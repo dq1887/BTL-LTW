@@ -1,9 +1,9 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
-const Attendance = require("./src/models/Attendance");
-const Schedule = require("./src/models/Schedule");
+const Attendance = require("../src/models/Attendance");
+const Schedule = require("../src/models/Schedule");
 
-require("./src/models/Shift");
+require("../src/models/Shift");
 
 const parseTime = (timeStr) => {
   if (!timeStr) return 0;
