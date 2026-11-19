@@ -36,8 +36,6 @@ interface ShiftOption {
   endTime: string;
 }
 
-// API có thể trả mảng trơn, { data: [...] }, { employees: [...] },
-// hoặc lồng thêm một tầng như { data: { items: [...] } } -> tìm mảng đầu tiên
 const toArray = <T,>(json: unknown, depth = 0): T[] => {
   if (Array.isArray(json)) return json as T[];
   if (json && typeof json === "object" && depth < 3) {
@@ -49,8 +47,17 @@ const toArray = <T,>(json: unknown, depth = 0): T[] => {
   return [];
 };
 
+const normalizeText = (str: string) =>
+  (str || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .trim();
+
 export default function Schedules() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,6 +96,15 @@ export default function Schedules() {
     fetchSchedules();
   }, []);
 
+  // Lọc danh sách theo tên nhân viên hoặc mã NV
+  const filteredSchedules = schedules.filter((item) => {
+    if (!searchTerm.trim()) return true;
+    const keyword = normalizeText(searchTerm);
+    const fullName = normalizeText(item.employeeId?.fullName || "");
+    const empCode = normalizeText(item.employeeId?.employeeCode || "");
+    return fullName.includes(keyword) || empCode.includes(keyword);
+  });
+
   // Mở modal: tải danh sách nhân viên và ca (chỉ tải lần đầu)
   const openModal = async () => {
     setForm({ employeeId: "", shiftId: "", workDate: "" });
@@ -122,10 +138,9 @@ export default function Schedules() {
     try {
       setSaving(true);
       setFormError(null);
-      // Lỗi 409 (trùng ca) được api.ts ném ra kèm message từ backend
       await api.post("/schedules", form);
       setShowModal(false);
-      await fetchSchedules(true); // tải lại để có dữ liệu populate đầy đủ
+      await fetchSchedules(true);
     } catch (err: unknown) {
       setFormError(
         err instanceof Error ? err.message : "Đã xảy ra lỗi không xác định.",
@@ -160,7 +175,7 @@ export default function Schedules() {
       return;
     }
     try {
-      await api.post(`/schedules/${id}/publish`); // khớp router.post("/:id/publish")
+      await api.post(`/schedules/${id}/publish`);
       setSchedules((prev) =>
         prev.map((item) =>
           item._id === id ? { ...item, status: "published" } : item,
@@ -189,6 +204,47 @@ export default function Schedules() {
         )}
       </div>
 
+      {/* Thanh tìm kiếm nhân viên */}
+      <div
+        className="filter-bar"
+        style={{
+          marginBottom: "16px",
+          padding: "12px 16px",
+          borderRadius: "12px",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+        }}
+      >
+        <div className="search-box" style={{ flex: 1, maxWidth: "420px" }}>
+          <input
+            type="search"
+            name="schedule-search-filter"
+            autoComplete="off"
+            placeholder="🔍 Tìm theo tên nhân viên hoặc mã NV..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "9px 14px",
+              borderRadius: "8px",
+              border: "1px solid #cbd5e1",
+              fontSize: "14px",
+            }}
+          />
+        </div>
+        {searchTerm && (
+          <button
+            type="button"
+            className="btn-secondary-sm"
+            onClick={() => setSearchTerm("")}
+            style={{ padding: "8px 12px", borderRadius: "8px" }}
+          >
+            Xóa lọc
+          </button>
+        )}
+      </div>
+
       <div className="table-responsive">
         <table className="schedule-table">
           <thead>
@@ -203,14 +259,16 @@ export default function Schedules() {
             </tr>
           </thead>
           <tbody>
-            {schedules.length === 0 ? (
+            {filteredSchedules.length === 0 ? (
               <tr>
                 <td colSpan={7} className="no-data">
-                  Chưa có lịch phân ca nào được tạo.
+                  {searchTerm
+                    ? "Không tìm thấy lịch phân ca nào khớp với từ khóa."
+                    : "Chưa có lịch phân ca nào được tạo."}
                 </td>
               </tr>
             ) : (
-              schedules.map((item) => (
+              filteredSchedules.map((item) => (
                 <tr key={item._id}>
                   <td>{item.employeeId?.employeeCode || "N/A"}</td>
                   <td>

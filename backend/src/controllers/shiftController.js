@@ -42,27 +42,22 @@ const createShift = async (req, res) => {
         .json({ message: "Tên ca làm việc này đã tồn tại!" });
     }
 
-    // --- BỔ SUNG: Kiểm tra quy tắc nghiệp vụ thời gian ---
     const startMins = timeToMinutes(startTime);
     const endMins = timeToMinutes(endTime);
     const totalDuration = endMins - startMins;
 
     if (startMins >= endMins) {
-      return res
-        .status(400)
-        .json({
-          message: "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc!",
-        });
+      return res.status(400).json({
+        message: "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc!",
+      });
     }
 
     const breakMins = Number(breakMinutes) || 0;
     if (breakMins < 0 || breakMins >= totalDuration) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Thời gian nghỉ không được âm và phải nhỏ hơn tổng thời lượng ca!",
-        });
+      return res.status(400).json({
+        message:
+          "Thời gian nghỉ không được âm và phải nhỏ hơn tổng thời lượng ca!",
+      });
     }
     // -----------------------------------------------------
 
@@ -92,22 +87,18 @@ const updateShift = async (req, res) => {
       const totalDuration = endMins - startMins;
 
       if (startMins >= endMins) {
-        return res
-          .status(400)
-          .json({
-            message: "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc!",
-          });
+        return res.status(400).json({
+          message: "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc!",
+        });
       }
 
       if (breakMinutes !== undefined) {
         const breakMins = Number(breakMinutes) || 0;
         if (breakMins < 0 || breakMins >= totalDuration) {
-          return res
-            .status(400)
-            .json({
-              message:
-                "Thời gian nghỉ không được âm và phải nhỏ hơn tổng thời lượng ca!",
-            });
+          return res.status(400).json({
+            message:
+              "Thời gian nghỉ không được âm và phải nhỏ hơn tổng thời lượng ca!",
+          });
         }
       }
     }
