@@ -55,6 +55,7 @@ Hệ thống được phát triển dựa trên hệ sinh thái JavaScript toàn
 ```
 BTL-LTW
 ├── backend/
+|   ├── scripts/                  # Dữ liệu mẫu và cập nhật dữ liệu
 |   ├── src/
 |   |   ├── controllers/          # Xử lý logic nghiệp vụ
 |   |   ├── middleware/           # Middleware xử lý yêu cầu

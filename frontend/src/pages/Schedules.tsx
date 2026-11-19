@@ -36,8 +36,6 @@ interface ShiftOption {
   endTime: string;
 }
 
-// API có thể trả mảng trơn, { data: [...] }, { employees: [...] },
-// hoặc lồng thêm một tầng như { data: { items: [...] } } -> tìm mảng đầu tiên
 const toArray = <T,>(json: unknown, depth = 0): T[] => {
   if (Array.isArray(json)) return json as T[];
   if (json && typeof json === "object" && depth < 3) {
@@ -94,6 +92,7 @@ const longDateLabel = (s: string) => {
 
 export default function Schedules() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -143,6 +142,15 @@ export default function Schedules() {
     fetchSchedules();
   }, []);
 
+  // Lọc danh sách theo tên nhân viên hoặc mã NV
+  const filteredSchedules = schedules.filter((item) => {
+    if (!searchTerm.trim()) return true;
+    const keyword = normalizeText(searchTerm);
+    const fullName = normalizeText(item.employeeId?.fullName || "");
+    const empCode = normalizeText(item.employeeId?.employeeCode || "");
+    return fullName.includes(keyword) || empCode.includes(keyword);
+  });
+
   // Mở modal: tải danh sách nhân viên và ca (chỉ tải lần đầu)
   const openModal = async () => {
     setForm({ employeeId: "", shiftId: "", workDate: "" });
@@ -176,10 +184,9 @@ export default function Schedules() {
     try {
       setSaving(true);
       setFormError(null);
-      // Lỗi 409 (trùng ca) được api.ts ném ra kèm message từ backend
       await api.post("/schedules", form);
       setShowModal(false);
-      await fetchSchedules(true); // tải lại để có dữ liệu populate đầy đủ
+      await fetchSchedules(true);
     } catch (err: unknown) {
       setFormError(
         err instanceof Error ? err.message : "Đã xảy ra lỗi không xác định.",
@@ -254,7 +261,7 @@ export default function Schedules() {
       return;
     }
     try {
-      await api.post(`/schedules/${id}/publish`); // khớp router.post("/:id/publish")
+      await api.post(`/schedules/${id}/publish`);
       setSchedules((prev) =>
         prev.map((item) =>
           item._id === id ? { ...item, status: "published" } : item,
