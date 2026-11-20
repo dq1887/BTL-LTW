@@ -2,10 +2,8 @@ const dns = require("dns");
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 require("dotenv").config();
 const mongoose = require("mongoose");
-
 const Employee = require("../src/models/Employee");
 const Attendance = require("../src/models/Attendance");
-const AttendanceAdjustment = require("../src/models/AttendanceAdjustment");
 
 const seedAttendanceData = async () => {
   try {
@@ -23,10 +21,7 @@ const seedAttendanceData = async () => {
     }
 
     await Attendance.deleteMany({});
-    await AttendanceAdjustment.deleteMany({});
-    console.log(
-      ">>> Đã làm sạch collection attendances & attendanceadjustments cũ!",
-    );
+    console.log(">>> Đã làm sạch collection attendances cũ!");
 
     const sampleDates = [
       "2026-11-02",
@@ -70,7 +65,7 @@ const seedAttendanceData = async () => {
           minutesWorked = 480;
           workCredit = 1;
         } else if (pattern === 3) {
-          status = "early_leave";
+          status = "present";
           checkInAt = new Date(`${dateStr}T08:00:00.000Z`);
           checkOutAt = new Date(`${dateStr}T15:30:00.000Z`);
           breakMinutes = 60;
@@ -98,50 +93,12 @@ const seedAttendanceData = async () => {
       });
     });
 
-    // 6. Nạp toàn bộ dữ liệu chấm công vào collection `attendances`
     const insertedAttendances = await Attendance.insertMany(attendanceRecords);
     console.log(
-      `>>> Đã nạp thành công ${insertedAttendances.length} bản ghi chấm công cho 50 nhân viên!`,
+      `>>> Đã nạp thành công ${insertedAttendances.length} bản ghi chấm công cho ${employees.length} nhân viên!`,
     );
 
-    // 7. Tạo sẵn 3 đơn khiếu nại (AttendanceAdjustment) mẫu để phục vụ Demo
-    // Lấy 3 bản ghi bị chấm 0.5 công hoặc vắng mặt để khiếu nại:
-    const imperfectRecords = insertedAttendances.filter(
-      (att) => att.workCredit < 1 && att.checkInAt !== null,
-    );
-
-    if (imperfectRecords.length >= 2) {
-      const adjustmentSamples = [
-        {
-          attendanceId: imperfectRecords[0]._id,
-          employeeId: imperfectRecords[0].employeeId,
-          requestReason:
-            "Quên bấm máy chấm công lúc ra về do bận gặp khách hàng đột xuất",
-          proposedIn: new Date(`${imperfectRecords[0].workDate}T08:00:00.000Z`),
-          proposedOut: new Date(
-            `${imperfectRecords[0].workDate}T17:00:00.000Z`,
-          ),
-          status: "pending", // Chờ Quản lý/HR duyệt
-          reviewNote: "",
-        },
-        {
-          attendanceId: imperfectRecords[1]._id,
-          employeeId: imperfectRecords[1].employeeId,
-          requestReason: "Hệ thống nhận diện máy chấm công bị lỗi mạng",
-          proposedIn: new Date(`${imperfectRecords[1].workDate}T08:00:00.000Z`),
-          proposedOut: new Date(
-            `${imperfectRecords[1].workDate}T17:30:00.000Z`,
-          ),
-          status: "pending", // Chờ Quản lý/HR duyệt
-          reviewNote: "",
-        },
-      ];
-
-      await AttendanceAdjustment.insertMany(adjustmentSamples);
-      console.log(">>> Đã tạo sẵn 2 đơn khiếu nại mẫu ở trạng thái pending!");
-    }
-
-    console.log(">>> HOÀN TẤT NẠP DỮ LIỆU CHẤM CÔNG & KHIẾU NẠI!");
+    console.log(">>> HOÀN TẤT NẠP DỮ LIỆU CHẤM CÔNG!");
     process.exit(0);
   } catch (error) {
     console.error("Lỗi khi seed dữ liệu chấm công:", error);

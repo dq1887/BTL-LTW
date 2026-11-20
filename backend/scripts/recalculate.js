@@ -17,7 +17,7 @@ const recalculateAll = async () => {
     await mongoose.connect(mongoUri);
     console.log(">>> Đã kết nối thành công!");
 
-    const collectionsToFix = ["attendances", "attendanceadjustments"];
+    const collectionsToFix = ["attendances"];
 
     for (const colName of collectionsToFix) {
       const col = mongoose.connection.db.collection(colName);

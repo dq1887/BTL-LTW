@@ -13,6 +13,7 @@ const {
 router.delete("/reset-all", protect, resetAllAttendancesAPI);
 
 router.post("/check-in", protect, checkIn);
+router.post("/check-out", protect, checkOut);
 router.post("/:id/check-out", protect, checkOut);
 router.get("/", protect, getAttendances);
 router.get("/dashboard-stats", protect, getDashboardStats);

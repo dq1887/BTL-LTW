@@ -9,7 +9,6 @@ import { Departments } from "./pages/Departments";
 import Profile from "./pages/Profile";
 import AccountSettings from "./pages/AccountSettings";
 import AttendancePage from "./pages/AttendancePage";
-import AdjustmentsPage from "./pages/AdjustmentsPage";
 import Schedules from "./pages/Schedules";
 import PayrollPage from "./pages/PayrollPage";
 import LeaveRequests from "./pages/LeaveRequests";
@@ -36,13 +35,9 @@ function App() {
                     <Route path="/employees" element={<Employees />} />
                     <Route path="/departments" element={<Departments />} />
                     <Route path="/shifts" element={<Shifts />} />
-                    <Route path="/schedules" element={<Schedules />}></Route>
+                    <Route path="/schedules" element={<Schedules />} />
                     <Route path="/attendance" element={<AttendancePage />} />
                     <Route path="/leave-requests" element={<LeaveRequests />} />
-                    <Route
-                      path="/attendance-adjustments"
-                      element={<AdjustmentsPage />}
-                    />
                     <Route path="/payroll" element={<PayrollPage />} />
                     <Route path="/settings" element={<AccountSettings />} />
                     <Route

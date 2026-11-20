@@ -12,7 +12,6 @@ const menu = [
   { label: "Ca làm việc", icon: "calendar", path: "/shifts" },
   { label: "Lịch phân ca", icon: "calendar", path: "/schedules" },
   { label: "Chấm công", icon: "clock", path: "/attendance" },
-  { label: "Duyệt sửa công", icon: "check", path: "/attendance-adjustments" },
   { label: "Nghỉ phép", icon: "send", path: "/leave-requests" },
   { label: "Bảng lương", icon: "wallet", path: "/payroll" },
   { label: "Cài đặt", icon: "settings", arrow: true, path: "/settings" },
