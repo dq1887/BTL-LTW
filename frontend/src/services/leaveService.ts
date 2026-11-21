@@ -8,6 +8,15 @@ export interface LeaveType {
   isPaid: boolean;
 }
 
+export interface PaidLeaveBalance {
+  year: number;
+  limit: number;
+  usedDays: number;
+  reservedDays: number;
+  remainingDays: number;
+  unresolvedApproved: string[];
+}
+
 export interface LeaveEmployee {
   _id: string;
   employeeCode: string;
@@ -53,6 +62,11 @@ interface SchedulePreview {
 }
 
 export const leaveService = {
+  async getPaidBalance(year: number): Promise<PaidLeaveBalance> {
+    const response = await api.get("/leave/paid-balance", { params: { year } });
+    return (response.data as ApiItem<PaidLeaveBalance>).data;
+  },
+
   async getTypes(): Promise<LeaveType[]> {
     const response = await api.get("/leave/types");
     return (response.data as ApiList<LeaveType>).data;

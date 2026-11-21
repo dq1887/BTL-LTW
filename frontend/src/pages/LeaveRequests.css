@@ -435,3 +435,8 @@ html.dark .leave-modal-footer { border-color: #334155; }
   .leave-modal { padding: 18px; }
   .leave-schedule-preview > div { align-items: flex-start; flex-direction: column; }
 }
+
+/* TV4: thong tin han muc phep co luong */
+.leave-balance { margin: 14px 0; padding: 14px 18px; border-radius: 10px; border: 1px solid var(--border, #d1d5db); background: var(--surface, transparent); }
+.leave-balance p { margin: 6px 0 0; line-height: 1.5; }
+.leave-balance b { font-weight: 700; }

@@ -4,6 +4,7 @@ import {
   leaveService,
   type LeaveRequest,
   type LeaveType,
+  type PaidLeaveBalance,
 } from "../services/leaveService";
 import "./LeaveRequests.css";
 
@@ -66,6 +67,10 @@ export default function LeaveRequests() {
   const [draftDates, setDraftDates] = useState<string[]>([]);
   const [scheduleError, setScheduleError] = useState("");
   const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [paidBalance, setPaidBalance] = useState<PaidLeaveBalance | null>(null);
+  const [balanceError, setBalanceError] = useState("");
+  const balanceYear = form.startDate ? Number(form.startDate.slice(0, 4)) : new Date().getFullYear();
+  const selectedType = types.find((type) => type._id === form.leaveTypeId);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -133,6 +138,16 @@ export default function LeaveRequests() {
       window.clearTimeout(timeout);
     };
   }, [form.startDate, form.endDate]);
+
+  useEffect(() => {
+    let active = true;
+    leaveService.getPaidBalance(balanceYear)
+      .then((value) => { if (active) { setPaidBalance(value); setBalanceError(""); } })
+      .catch((err: unknown) => {
+        if (active) { setPaidBalance(null); setBalanceError(getErrorMessage(err)); }
+      });
+    return () => { active = false; };
+  }, [balanceYear, requests]);
 
   const visibleRequests = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("vi");
@@ -204,8 +219,11 @@ export default function LeaveRequests() {
       setScheduleError("Vui lòng điền đầy đủ thông tin đơn nghỉ phép.");
       return;
     }
-    // Không chặn tạo đơn chỉ vì lịch còn nháp/chưa công bố.
-    // Backend sẽ lưu totalDays=null nếu chưa xác định được số ngày công.
+    // Phép có lương phải có lịch đã công bố, không cho dùng null để vượt quota.
+    if (selectedType?.isPaid && !scheduleLoading && scheduleDates.length === 0) {
+      setScheduleError("Nghỉ có lương cần ít nhất một ngày có lịch published của TV2.");
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -299,6 +317,17 @@ export default function LeaveRequests() {
           <button type="button" onClick={() => setError("")} aria-label="Đóng lỗi">×</button>
         </div>
       )}
+
+      <section className="leave-balance" aria-label="Hạn mức nghỉ có lương">
+        <strong>Phép có lương năm {balanceYear}: tối đa 12 ngày</strong>
+        {paidBalance ? (
+          <p>Đã duyệt: <b>{paidBalance.usedDays}</b> ngày · Đang chờ duyệt: <b>{paidBalance.reservedDays}</b> ngày · Còn có thể xin: <b>{paidBalance.remainingDays}</b> ngày.</p>
+        ) : <p>Đang tải số ngày phép...</p>}
+        {paidBalance?.unresolvedApproved.length ? (
+          <p className="leave-schedule-error">Có {paidBalance.unresolvedApproved.length} đơn đã duyệt chưa xác định số ngày; cần kiểm tra lịch trước khi xin thêm phép có lương.</p>
+        ) : null}
+        {balanceError ? <p className="leave-schedule-error">Không tải được số dư phép: {balanceError}</p> : null}
+      </section>
 
       <section className="leave-stats" aria-label="Thống kê đơn nghỉ phép">
         <div className="leave-stat-card">
@@ -407,7 +436,7 @@ export default function LeaveRequests() {
 
       <div className="leave-footnote">
         <span>ⓘ</span>
-        <p>Đơn vẫn có thể gửi và được duyệt khi chưa có lịch chính thức. Chỉ tính ngày công khi lịch đã công bố; nếu chưa có lịch, số ngày công là “Chưa xác định”, không phải 0 ngày.</p>
+        <p>Phép có lương tối đa 12 ngày/năm; đơn đang chờ duyệt giữ trước hạn mức. Ngày nghỉ hưởng lương cần lịch published của TV2. Nghỉ không lương không trừ hạn mức 12 ngày.</p>
       </div>
 
       {isFormOpen && (
@@ -441,13 +470,13 @@ export default function LeaveRequests() {
                 <div><strong>Ngày làm việc được tính</strong><span>{scheduleLoading ? "Đang kiểm tra lịch trong MongoDB..." : `${scheduleDates.length} ngày có phân ca`}</span></div>
                 {scheduleDates.length > 0 && <p>{scheduleDates.map(dateLabel).join(" · ")}</p>}
                 {draftDates.length > 0 && <p>{draftDates.length} ngày đang ở trạng thái nháp: {draftDates.map(dateLabel).join(" · ")}</p>}
-                {scheduleError && <p className="leave-schedule-error">{scheduleError}. Vẫn có thể gửi đơn nếu thông tin hợp lệ.</p>}
-                {!scheduleError && !scheduleLoading && form.startDate && form.endDate && scheduleDates.length === 0 && <p>Chưa có ca làm chính thức trong khoảng này. Vẫn có thể gửi đơn và quản lý có thể duyệt; số ngày công sẽ được xác định khi công bố lịch.</p>}
+                {scheduleError && <p className="leave-schedule-error">{scheduleError}</p>}
+                {!scheduleError && !scheduleLoading && form.startDate && form.endDate && scheduleDates.length === 0 && <p>Chưa có ca chính thức. Nghỉ có lương sẽ bị chặn; nghỉ không lương vẫn có thể gửi đơn nhưng chưa xác định số ngày.</p>}
               </div>
 
               <div className="leave-modal-footer">
                 <button type="button" className="leave-secondary-btn" onClick={closeForm} disabled={submitting}>Hủy</button>
-                <button type="submit" className="leave-primary-btn" disabled={submitting}>
+                <button type="submit" className="leave-primary-btn" disabled={submitting || (selectedType?.isPaid === true && scheduleLoading)}>
                   {submitting ? "Đang lưu..." : editingRequest ? "Lưu thay đổi" : "Gửi đơn nghỉ phép"}
                 </button>
               </div>

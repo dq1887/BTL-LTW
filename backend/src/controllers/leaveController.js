@@ -7,31 +7,19 @@ const LeaveRequest = require("../models/LeaveRequest");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 
+const {
+  PAID_QUOTA_DAYS,
+  SUPPORTED_LEAVE_CODES,
+  getYearsInRange,
+  countDaysForYear,
+  summarizeQuota,
+  exceedsPaidQuota,
+} = require("../utils/leaveQuota");
+
+// Mô hình demo: chỉ hai loại nghỉ; nghỉ có lương tối đa 12 ngày/năm.
 const DEFAULT_LEAVE_TYPES = [
-  {
-    code: "annual",
-    name: "Nghỉ phép năm",
-    description: "Nghỉ phép theo chế độ năm",
-    isPaid: true,
-  },
-  {
-    code: "sick",
-    name: "Nghỉ ốm",
-    description: "Nghỉ do tình trạng sức khỏe",
-    isPaid: true,
-  },
-  {
-    code: "unpaid",
-    name: "Nghỉ không lương",
-    description: "Nghỉ việc riêng không hưởng lương",
-    isPaid: false,
-  },
-  {
-    code: "personal",
-    name: "Nghỉ việc riêng",
-    description: "Nghỉ để giải quyết công việc cá nhân",
-    isPaid: false,
-  },
+  { code: "paid", name: "Nghỉ có lương", description: "Tối đa 12 ngày có lương trong mỗi năm", isPaid: true },
+  { code: "unpaid", name: "Nghỉ không lương", description: "Không trừ hạn mức nghỉ có lương", isPaid: false },
 ];
 
 const isValidDateOnly = (value) => {
@@ -153,6 +141,49 @@ const ensureNoConflictingLeave = async ({
   }
 };
 
+/**
+ * Tính số dư phép có lương theo lịch published đã chốt trong đơn.
+ * Kể cả loại nghỉ lịch sử annual/sick nếu isPaid=true, để tránh reset
+ * hạn mức khi chuyển chính sách về paid/unpaid.
+ * Pending giữ chỗ hạn mức; approved sử dụng hạn mức.
+ */
+const loadPaidQuota = async (employeeId, year, excludeRequestId) => {
+  const paidTypes = await LeaveType.find({ isPaid: true }).select("_id").lean();
+  const yearStart = `${year}-01-01`;
+  const yearEnd = `${year}-12-31`;
+  const filter = {
+    employeeId,
+    leaveTypeId: { $in: paidTypes.map((item) => item._id) },
+    status: { $in: ["pending", "approved"] },
+    startDate: { $lte: yearEnd },
+    endDate: { $gte: yearStart },
+  };
+  if (excludeRequestId) filter._id = { $ne: excludeRequestId };
+  const requests = await LeaveRequest.find(filter)
+    .select("_id startDate endDate scheduledDates status totalDays")
+    .lean();
+  const summary = summarizeQuota(requests, year);
+  return { year, limit: PAID_QUOTA_DAYS, ...summary };
+};
+
+const ensurePaidQuota = async ({ employeeId, leaveType, scheduledDates, startDate, endDate, excludeRequestId }) => {
+  if (!leaveType.isPaid) return;
+  if (scheduledDates.length === 0) {
+    throw new AppError("Nghỉ có lương chỉ được xin khi đã có lịch làm việc published của TV2.", 409);
+  }
+  for (const year of getYearsInRange(startDate, endDate)) {
+    const requestedDays = countDaysForYear(scheduledDates, year);
+    if (!requestedDays) continue;
+    const quota = await loadPaidQuota(employeeId, year, excludeRequestId);
+    if (quota.unresolvedApproved.length) {
+      throw new AppError(`Năm ${year} có đơn nghỉ có lương đã duyệt nhưng chưa xác định số ngày (ID: ${quota.unresolvedApproved.join(", ")}). Cần đối chiếu lịch cũ trước khi cấp thêm phép.`, 409);
+    }
+    if (exceedsPaidQuota(quota, requestedDays)) {
+      throw new AppError(`Năm ${year}: phép có lương còn ${quota.remainingDays}/${PAID_QUOTA_DAYS} ngày; đơn này xin ${requestedDays} ngày.`, 409);
+    }
+  }
+};
+
 const validateRequestData = async ({
   employeeId,
   leaveTypeId,
@@ -174,17 +205,19 @@ const validateRequestData = async ({
     throw new AppError("Lý do nghỉ phép không được vượt quá 1.000 ký tự.", 400);
   }
 
+  await ensureDefaultTypes();
   const leaveType = await LeaveType.findOne({ _id: leaveTypeId, isActive: true });
-  if (!leaveType) {
-    throw new AppError("Loại nghỉ phép không tồn tại hoặc đã ngừng sử dụng.", 400);
+  if (!leaveType || !SUPPORTED_LEAVE_CODES.includes(leaveType.code)) {
+    throw new AppError("Chỉ được chọn Nghỉ có lương hoặc Nghỉ không lương.", 400);
   }
 
   await ensureNoConflictingLeave({ employeeId, startDate, endDate, excludeRequestId });
   const scheduledDays = await getScheduledDays(employeeId, startDate, endDate);
   const scheduledDates = scheduledDays.map((item) => item.date);
+  await ensurePaidQuota({ employeeId, leaveType, scheduledDates, startDate, endDate, excludeRequestId });
   return {
     scheduledDates,
-    // null = chưa xác định được ngày công; không coi 0 ngày là đã tính xong.
+    // Với nghỉ không lương chưa có published, giữ trạng thái chưa xác định như trước.
     totalDays: scheduledDates.length > 0 ? scheduledDates.length : null,
     reason: normalizedReason,
   };
@@ -249,51 +282,47 @@ const populateRequest = (query) =>
 
 exports.getLeaveTypes = catchAsync(async (req, res) => {
   await ensureDefaultTypes();
-  const types = await LeaveType.find({ isActive: true }).sort({ name: 1 }).lean();
+  const types = await LeaveType.find({ isActive: true, code: { $in: SUPPORTED_LEAVE_CODES } })
+    .sort({ isPaid: -1 }).lean();
   res.status(200).json({ success: true, count: types.length, data: types });
 });
 
 exports.createLeaveType = catchAsync(async (req, res, next) => {
-  const { code, name, description = "", isPaid = false } = req.body || {};
-  const normalizedCode = String(code || "").trim().toLowerCase();
-  const normalizedName = String(name || "").trim();
-  if (!/^[a-z0-9_-]{2,30}$/.test(normalizedCode) || !normalizedName) {
-    return next(new AppError("Mã loại nghỉ chỉ gồm chữ thường, số, dấu gạch ngang; tên không được để trống.", 400));
-  }
-  try {
-    const type = await LeaveType.create({
-      code: normalizedCode,
-      name: normalizedName,
-      description,
-      isPaid: Boolean(isPaid),
-    });
-    res.status(201).json({ success: true, message: "Đã tạo loại nghỉ phép.", data: type });
-  } catch (error) {
-    if (error.code === 11000) {
-      return next(new AppError("Mã loại nghỉ phép này đã tồn tại.", 409));
-    }
-    throw error;
-  }
+  return next(new AppError("Chính sách TV4 chỉ có 2 loại nghỉ cố định: paid và unpaid.", 409));
 });
 
 exports.updateLeaveType = catchAsync(async (req, res, next) => {
   if (!mongoose.isValidObjectId(req.params.id)) {
     return next(new AppError("Mã loại nghỉ phép không hợp lệ.", 400));
   }
+  const type = await LeaveType.findById(req.params.id);
+  if (!type) return next(new AppError("Không tìm thấy loại nghỉ phép.", 404));
+  if (!SUPPORTED_LEAVE_CODES.includes(type.code)) {
+    return next(new AppError("Không cho sửa loại nghỉ lịch sử.", 409));
+  }
   const { name, description, isPaid, isActive } = req.body || {};
+  if ((isPaid !== undefined && isPaid !== type.isPaid) || isActive === false) {
+    return next(new AppError("Không được thay đổi tính hưởng lương hoặc vô hiệu hóa 2 loại nghỉ chuẩn.", 409));
+  }
   const updates = {};
   if (name !== undefined) updates.name = String(name).trim();
   if (description !== undefined) updates.description = String(description).trim();
-  if (isPaid !== undefined) updates.isPaid = Boolean(isPaid);
-  if (isActive !== undefined) updates.isActive = Boolean(isActive);
   if (updates.name === "") return next(new AppError("Tên loại nghỉ không được để trống.", 400));
 
-  const type = await LeaveType.findByIdAndUpdate(req.params.id, updates, {
+  const updatedType = await LeaveType.findByIdAndUpdate(req.params.id, updates, {
     new: true,
     runValidators: true,
   });
-  if (!type) return next(new AppError("Không tìm thấy loại nghỉ phép.", 404));
-  res.status(200).json({ success: true, message: "Đã cập nhật loại nghỉ phép.", data: type });
+  res.status(200).json({ success: true, message: "Đã cập nhật loại nghỉ phép.", data: updatedType });
+});
+
+exports.getPaidLeaveBalance = catchAsync(async (req, res, next) => {
+  const yearText = String(req.query.year || new Date().getUTCFullYear());
+  if (!/^20\d{2}$/.test(yearText)) {
+    return next(new AppError("Năm phải có định dạng YYYY, từ 2000 đến 2099.", 400));
+  }
+  const data = await loadPaidQuota(req.user._id, Number(yearText));
+  res.status(200).json({ success: true, data });
 });
 
 exports.getScheduleDays = catchAsync(async (req, res) => {
@@ -460,6 +489,16 @@ const reviewLeaveRequest = (status) => catchAsync(async (req, res, next) => {
     // Số ngày công chưa xác định được giữ null để tránh ảnh hưởng tính lương.
     await ensureNoConflictingLeave({
       employeeId: request.employeeId,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      excludeRequestId: request._id,
+    });
+    const requestType = await LeaveType.findById(request.leaveTypeId);
+    if (!requestType) throw new AppError("Loại nghỉ của đơn không còn trong dữ liệu.", 409);
+    await ensurePaidQuota({
+      employeeId: request.employeeId,
+      leaveType: requestType,
+      scheduledDates: currentDates,
       startDate: request.startDate,
       endDate: request.endDate,
       excludeRequestId: request._id,
