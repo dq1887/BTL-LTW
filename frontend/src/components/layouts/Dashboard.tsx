@@ -28,14 +28,9 @@ export default function Dashboard() {
   const [showSystemHealth, setShowSystemHealth] = useState(false);
   const navigate = useNavigate();
 
-  // State lưu danh sách ca làm việc live từ Database
   const [shiftsList, setShiftsList] = useState<any[]>([]);
-  // State lưu danh sách chấm công live từ Database
   const [attendancesList, setAttendancesList] = useState<any[]>([]);
-  // State lưu dữ liệu thống kê phòng ban live từ Database
   const [deptStats, setDeptStats] = useState<any[]>([]);
-
-  // 1. Gọi API lấy danh sách ca làm việc
   useEffect(() => {
     const fetchShifts = async () => {
       try {
@@ -71,7 +66,6 @@ export default function Dashboard() {
     fetchShifts();
   }, []);
 
-  // 2. Gọi API lấy danh sách lịch sử chấm công
   useEffect(() => {
     const fetchAttendances = async () => {
       try {
@@ -210,7 +204,6 @@ export default function Dashboard() {
     },
   ] as const;
 
-  // Cố định các mốc trục Y bên trái từ 0 đến 30
   const yAxisMarks = [30, 25, 20, 15, 10, 5, 0];
   const maxDeptTotal = 30;
 
@@ -242,7 +235,6 @@ export default function Dashboard() {
         ))}
       </section>
 
-      {/* Hàng giữa: Biểu đồ thống kê nhân sự chiếm trọn 100% chiều rộng */}
       <section style={{ marginBottom: "24px" }}>
         <article
           className="panel department-panel"
@@ -279,7 +271,6 @@ export default function Dashboard() {
               paddingBottom: "10px",
             }}
           >
-            {/* Trục Y cố định các mốc: 30, 25, 20, 15, 10, 5, 0 */}
             <div
               style={{
                 display: "flex",
@@ -302,7 +293,6 @@ export default function Dashboard() {
             </div>
 
             <div style={{ flex: 1, position: "relative", height: "200px" }}>
-              {/* Các đường kẻ ngang background */}
               <div
                 style={{
                   position: "absolute",
@@ -326,8 +316,6 @@ export default function Dashboard() {
                   />
                 ))}
               </div>
-
-              {/* Các cột biểu đồ hiển thị tỷ lệ chính xác theo số lượng thực tế */}
               <div
                 style={{
                   position: "absolute",
@@ -389,7 +377,6 @@ export default function Dashboard() {
                           title={`Phòng ${dept.name} (${dept.code}): ${dept.total} nhân viên`}
                         />
                       </div>
-                      {/* Mã phòng ban phía dưới */}
                       <small
                         style={{
                           position: "absolute",
@@ -412,7 +399,6 @@ export default function Dashboard() {
       </section>
 
       <section className="bottom-grid">
-        {/* Khung Ca làm việc */}
         <article className="panel schedule-panel">
           <div className="panel-heading">
             <h2>
@@ -500,7 +486,6 @@ export default function Dashboard() {
           </div>
         </article>
 
-        {/* Khung Chấm công */}
         <article className="panel schedule-panel">
           <div className="panel-heading">
             <h2>

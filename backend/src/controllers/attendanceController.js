@@ -5,17 +5,14 @@ const Department = require("../models/Department");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 const { recalcPayroll } = require("../utils/payrollHelper");
-
 const getTodayVN = () =>
   new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
-
 const buildShiftDateTime = (workDate, timeStr) => {
   const [hours, minutes] = String(timeStr || "08:00")
     .split(":")
     .map((n) => String(Number(n)).padStart(2, "0"));
   return new Date(`${workDate}T${hours}:${minutes}:00.000+07:00`);
 };
-
 const calculateCredits = (
   inTime,
   outTime,
@@ -25,7 +22,6 @@ const calculateCredits = (
   existingWorkCreditToday = 0,
 ) => {
   const round2 = (n) => Math.round(n * 100) / 100;
-
   const inDate = new Date(inTime);
   const outDate = new Date(outTime);
   const totalMinutes = Math.max(0, Math.round((outDate - inDate) / 60000));

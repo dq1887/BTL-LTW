@@ -72,7 +72,6 @@ export default function AttendancePage() {
     fetchAttendances();
   }, []);
 
-  // 1. Check-in (Vào ca - chính chủ, tối đa 2 lượt/ngày)
   const handleCheckIn = async () => {
     setLoading(true);
     try {
@@ -95,7 +94,6 @@ export default function AttendancePage() {
     }
   };
 
-  // 2. Check-out (Tan ca - chỉ chốt ca đang mở của chính tài khoản đăng nhập)
   const handleCheckOut = async () => {
     setLoading(true);
     try {
@@ -319,7 +317,6 @@ export default function AttendancePage() {
                     {att.minutesWorked || 0} phút
                   </td>
 
-                  {/* Công chuẩn */}
                   <td style={{ padding: "14px 20px", fontWeight: "700" }}>
                     <span style={{ color: "#0f172a" }}>
                       {att.workCredit !== undefined && att.workCredit !== null
@@ -328,7 +325,6 @@ export default function AttendancePage() {
                     </span>
                   </td>
 
-                  {/* Công thêm */}
                   <td style={{ padding: "14px 20px" }}>
                     {att.overtimeCredit && att.overtimeCredit > 0 ? (
                       <span style={{ color: "#16a34a", fontWeight: "bold" }}>
