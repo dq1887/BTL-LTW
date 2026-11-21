@@ -16,6 +16,8 @@ export interface PayrollRow {
   allowance: number;
   adjustment: number;
   hourBonus: number;
+  leaveDays: number; // số ngày nghỉ phép đã duyệt trong tháng
+  leaveDeduction: number; // tiền trừ do nghỉ quá 2 ngày
   total: number;
   note: string;
   status: "draft" | "finalized";
@@ -70,11 +72,12 @@ async function request<T>(
 }
 
 export const getPayrolls = (month: string) =>
-  request<{ canManage: boolean; currentUserId: string; data: PayrollRow[] }>(
-    "GET",
-    "/payroll",
-    { params: { month } },
-  );
+  request<{
+    canManage: boolean;
+    monthEnded: boolean; // false = tháng chưa hết, chưa được chốt lương
+    currentUserId: string;
+    data: PayrollRow[];
+  }>("GET", "/payroll", { params: { month } });
 
 export const updatePayroll = (body: PayrollEdit) =>
   request<{ message: string }>("PUT", "/payroll/edit", { body });

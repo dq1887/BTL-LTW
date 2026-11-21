@@ -5,12 +5,15 @@ const catchAsync = require("../utils/catchAsync");
 const {
   isPayrollManager,
   currentMonth,
+  isMonthEnded,
+  lastDayOfMonth,
   hasAttendance,
   round1,
   round2,
   loadStats,
   loadPayrollRows,
   finalizeMonth,
+  computeLeave,
 } = require("../utils/payrollHelper");
 
 // GET /api/payroll?month=2026-11
@@ -26,6 +29,7 @@ exports.getPayrolls = catchAsync(async (req, res) => {
   res.status(200).json({
     success: true,
     canManage,
+    monthEnded: isMonthEnded(month), // false = tháng chưa hết, chưa được chốt lương
     currentUserId: String(req.user._id),
     hasData: data.length > 0,
     count: data.length,
@@ -73,6 +77,8 @@ exports.updatePayroll = catchAsync(async (req, res, next) => {
   const totalHours = round2((stat?.minutes || 0) / 60);
   const totalCredit = round1(stat?.credit || 0);
   const hourBonus = Math.round(totalHours * newRate);
+  // Nghỉ phép luôn tính lại mới nhất (quá 2 ngày thì từ ngày thứ 3 trừ 200.000 đ/ngày)
+  const { leaveDays, leaveDeduction } = await computeLeave(month, employeeId);
 
   await Payroll.findOneAndUpdate(
     { employeeId, month },
@@ -85,7 +91,10 @@ exports.updatePayroll = catchAsync(async (req, res, next) => {
         allowance: newAllowance,
         adjustment: newAdjustment,
         hourBonus,
-        total: newBase + hourBonus + newAllowance + newAdjustment,
+        leaveDays,
+        leaveDeduction,
+        total:
+          newBase + hourBonus + newAllowance + newAdjustment - leaveDeduction,
         note: note !== undefined ? note : row.note,
         status: "draft", // đưa về Nháp để chốt lại
         updatedBy: req.user._id,
@@ -105,9 +114,20 @@ exports.updatePayroll = catchAsync(async (req, res, next) => {
 });
 
 // POST /api/payroll/finalize  { month }
+// Chưa hết tháng thì không được chốt.
 // Tháng không có dữ liệu chấm công thì không được chốt.
 exports.finalizePayroll = catchAsync(async (req, res, next) => {
   const month = req.body.month || currentMonth();
+
+  // Chưa hết tháng thì không được chốt lương
+  if (!isMonthEnded(month)) {
+    return next(
+      new AppError(
+        `Tháng ${month} chưa kết thúc (hết ngày ${lastDayOfMonth(month)}), chưa thể chốt lương!`,
+        400,
+      ),
+    );
+  }
 
   if (!(await hasAttendance(month))) {
     return next(

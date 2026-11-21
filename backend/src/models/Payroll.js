@@ -15,6 +15,8 @@ const payrollSchema = new mongoose.Schema(
     allowance: { type: Number, default: 1000000 },
     adjustment: { type: Number, default: 0 }, // cộng/trừ tay
     hourBonus: { type: Number, default: 0 },
+    leaveDays: { type: Number, default: 0 }, // số ngày nghỉ phép đã duyệt trong tháng
+    leaveDeduction: { type: Number, default: 0 }, // tiền bị trừ do nghỉ quá 2 ngày
     total: { type: Number, default: 0 },
     note: { type: String, default: "" },
     status: { type: String, enum: ["draft", "finalized"], default: "draft" },
@@ -27,12 +29,16 @@ const payrollSchema = new mongoose.Schema(
 
 payrollSchema.index({ employeeId: 1, month: 1 }, { unique: true });
 
-// Tự tính lại mỗi lần lưu (không có phạt, không có bảo hiểm)
+// Tự tính lại mỗi lần lưu (trừ tiền nghỉ phép quá 2 ngày, không có bảo hiểm)
 // Không dùng tham số next: Mongoose 9 không còn truyền next vào hook này
 payrollSchema.pre("validate", function () {
   this.hourBonus = Math.round(this.totalHours * this.hourRate);
   this.total =
-    this.baseSalary + this.hourBonus + this.allowance + this.adjustment;
+    this.baseSalary +
+    this.hourBonus +
+    this.allowance +
+    this.adjustment -
+    (this.leaveDeduction || 0);
 });
 
 // Tham số thứ 3 ép lưu vào đúng collection "payrolls"

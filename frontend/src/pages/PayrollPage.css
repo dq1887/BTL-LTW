@@ -308,8 +308,17 @@
 /* ===== Lưới phiếu lương ===== */
 .pay-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr)); /* 4 cột, 12 phiếu = 3 hàng */
   gap: 16px;
+}
+@media (max-width: 1400px) {
+  .pay-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 1000px) {
+  .pay-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .pay-grid { grid-template-columns: 1fr; }
 }
 .pay-empty {
   grid-column: 1 / -1;
@@ -682,3 +691,51 @@
   line-height: 1.6;
   color: var(--p-muted);
 }
+
+/* ===== Số thứ tự trên phiếu lương ===== */
+.pc-stt {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--p-accent-bg);
+  color: var(--p-accent-text);
+  border: 1px solid var(--p-accent-border);
+}
+.pc-top { margin-top: 12px; }
+.pc-lines li.leave-row b.minus { color: #dc2626; }
+.pc-lines li.leave-row small {
+  display: block;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+/* ===== Phân trang (12 phiếu / trang = 3 hàng x 4 cột) ===== */
+.pay-pager {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.pay-pager button {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--p-card-border);
+  background: var(--p-card);
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pay-pager button.active {
+  background: var(--p-accent-bg);
+  border-color: var(--p-accent-border);
+  color: var(--p-accent-text);
+}
+.pay-pager button:disabled { opacity: 0.4; cursor: not-allowed; }

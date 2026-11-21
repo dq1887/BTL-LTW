@@ -13,7 +13,13 @@ import "./PayrollPage.css";
 
 const money = (n: number) => (n ?? 0).toLocaleString("vi-VN") + " đ";
 const signed = (n: number) => (n > 0 ? "+" : "") + money(n);
-const thisMonth = () => new Date().toISOString().slice(0, 7);
+const PAGE_SIZE = 12; // 3 hàng x 4 cột
+const REFRESH_MS = 30_000; // tự làm mới dữ liệu chấm công mỗi 30 giây
+// Tháng hiện tại theo giờ máy (không dùng toISOString vì bị lệch múi giờ)
+const thisMonth = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
 const initial = (name?: string) =>
   (name || "?").trim().split(/\s+/).pop()!.charAt(0).toUpperCase();
 
@@ -51,6 +57,7 @@ export default function PayrollPage() {
   const [rows, setRows] = useState<PayrollRow[]>([]);
   const [requests, setRequests] = useState<SalaryRequestRow[]>([]);
   const [canManage, setCanManage] = useState(false);
+  const [monthEnded, setMonthEnded] = useState(false);
   const [currentUserId, setCurrentUserId] = useState("");
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
@@ -60,6 +67,7 @@ export default function PayrollPage() {
   const [notice, setNotice] = useState("");
   const [finalizing, setFinalizing] = useState(false);
   const [isDark, setIsDark] = useState(detectDark);
+  const [page, setPage] = useState(1);
 
   // Tự đổi màu khi bấm nút đổi giao diện sáng/tối
   useEffect(() => {
@@ -99,6 +107,7 @@ export default function PayrollPage() {
         if (cancelled) return;
         setRows(p.data);
         setCanManage(p.canManage);
+        setMonthEnded(p.monthEnded);
         setCurrentUserId(p.currentUserId);
         setRequests(r.data);
       } catch (e) {
@@ -113,7 +122,28 @@ export default function PayrollPage() {
     };
   }, [month, reloadKey]);
 
-  // Lọc theo ô tìm kiếm, phiếu của mình luôn nằm trên cùng
+  // Tự cập nhật lương khi có dữ liệu chấm công / nghỉ phép mới (không bật hiệu ứng tải)
+  useEffect(() => {
+    const timer = window.setInterval(async () => {
+      if (document.hidden || editing) return;
+      try {
+        const p = await getPayrolls(month);
+        setRows(p.data);
+        setMonthEnded(p.monthEnded);
+      } catch {
+        /* bỏ qua lỗi mạng tạm thời */
+      }
+    }, REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [month, editing]);
+
+  // STT cố định theo thứ tự của backend (nhân viên mới luôn ở cuối)
+  const sttMap = useMemo(
+    () => new Map(rows.map((r, i) => [r.employeeId._id, i + 1])),
+    [rows],
+  );
+
+  // Lọc theo ô tìm kiếm, giữ nguyên thứ tự số thứ tự
   const visibleRows = useMemo(() => {
     const term = search.trim().toLowerCase();
     const filtered = rows.filter((r) => {
@@ -124,23 +154,27 @@ export default function PayrollPage() {
         (r.employeeId?.position || "").toLowerCase().includes(term)
       );
     });
-    return [...filtered].sort((a, b) => {
-      const aMe = a.employeeId?._id === currentUserId ? 0 : 1;
-      const bMe = b.employeeId?._id === currentUserId ? 0 : 1;
-      if (aMe !== bMe) return aMe - bMe;
-      return (a.employeeId?.employeeCode || "").localeCompare(
-        b.employeeId?.employeeCode || "",
-      );
-    });
-  }, [rows, search, currentUserId]);
+    return filtered;
+  }, [rows, search]);
+
+  // Phân trang: mỗi trang 12 phiếu (3 hàng x 4 cột)
+  const totalPages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageRows = visibleRows.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   // Tháng có dữ liệu chấm công thì mới có bảng lương
   const hasData = rows.length > 0;
   const monthLabel = month.split("-").reverse().join("/");
 
-  const finalizedCount = rows.filter((r) => r.status === "finalized").length;
+  // Tháng chưa hết thì chưa có phiếu nào được coi là "đã chốt"
+  const finalizedCount = monthEnded
+    ? rows.filter((r) => r.status === "finalized").length
+    : 0;
   const draftCount = rows.length - finalizedCount;
-  const allFinalized = hasData && draftCount === 0;
+  const allFinalized = hasData && monthEnded && draftCount === 0;
   const totalPay = rows.reduce((s, r) => s + (r.total || 0), 0);
   const totalHours = rows.reduce((s, r) => s + (r.totalHours || 0), 0);
   const totalCredit = rows.reduce((s, r) => s + (r.totalCredit || 0), 0);
@@ -151,7 +185,7 @@ export default function PayrollPage() {
   const totalHourBonus = rows.reduce((s, r) => s + (r.hourBonus || 0), 0);
   const fixedPlusHours = totalBase + totalHourBonus;
 
-  // CHỐT LƯƠNG: ghi các bảng lương chưa chốt vào database
+  // CHỐT LƯƠNG: ghi các bảng lương chưa chốt vào database (chỉ khi đã hết tháng)
   const onFinalize = async () => {
     if (
       !confirm(
@@ -221,7 +255,8 @@ export default function PayrollPage() {
     ? Number(editing.baseSalary) +
       Math.round(editing.totalHours * Number(editing.hourRate)) +
       Number(editing.allowance) +
-      Number(editing.adjustment)
+      Number(editing.adjustment) -
+      (editing.leaveDeduction || 0)
     : 0;
 
   return (
@@ -243,6 +278,7 @@ export default function PayrollPage() {
             onChange={(e) => {
               setLoading(true);
               setNotice("");
+              setPage(1);
               setMonth(e.target.value);
             }}
             className="pay-input"
@@ -252,23 +288,33 @@ export default function PayrollPage() {
               type="text"
               placeholder="🔍 Tìm nhân viên..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               className="pay-input pay-search"
             />
           )}
           {canManage && (
             <button
               onClick={onFinalize}
-              disabled={!hasData || allFinalized || loading || finalizing}
+              disabled={
+                !hasData || !monthEnded || allFinalized || loading || finalizing
+              }
+              title={
+                !monthEnded ? "Chỉ chốt được lương sau khi hết tháng" : undefined
+              }
               className="pay-btn green"
             >
               {finalizing
                 ? "Đang lưu..."
                 : !hasData
                   ? "Chưa có dữ liệu để chốt"
-                  : allFinalized
-                    ? "✔ Đã chốt lương"
-                    : `Chốt lương tháng (${draftCount})`}
+                  : !monthEnded
+                    ? "Chưa hết tháng, chưa thể chốt"
+                    : allFinalized
+                      ? "✔ Đã chốt lương"
+                      : `Chốt lương tháng (${draftCount})`}
             </button>
           )}
         </div>
@@ -350,11 +396,11 @@ export default function PayrollPage() {
         </div>
       )}
 
-      {/* Danh sách phiếu lương */}
+      {/* Danh sách phiếu lương: 4 cột, mỗi trang 3 hàng (12 phiếu) */}
       {(loading || hasData) && (
         <div className="pay-grid">
           {loading &&
-            Array.from({ length: 6 }).map((_, i) => (
+            Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="pc skeleton">
                 <div className="sk-line w60" />
                 <div className="sk-line w40 big" />
@@ -369,7 +415,7 @@ export default function PayrollPage() {
           )}
 
           {!loading &&
-            visibleRows.map((r) => {
+            pageRows.map((r) => {
               const isMe = r.employeeId?._id === currentUserId;
               const isFinal = r.status === "finalized";
               return (
@@ -377,6 +423,7 @@ export default function PayrollPage() {
                   key={r.employeeId._id}
                   className={`pc ${isMe ? "me" : ""} ${isFinal ? "final" : ""}`}
                 >
+                  <span className="pc-stt">#{sttMap.get(r.employeeId._id)}</span>
                   <div className="pc-top">
                     <span className="pay-avatar">
                       {initial(r.employeeId?.fullName)}
@@ -422,6 +469,23 @@ export default function PayrollPage() {
                       <span>Phụ cấp</span>
                       <b className="plus">{signed(r.allowance)}</b>
                     </li>
+                    <li className="leave-row">
+                      <span>
+                        Nghỉ phép ({r.leaveDays ?? 0} ngày)
+                        <small>
+                          {(r.leaveDays ?? 0) > 2
+                            ? `Quá 2 ngày: trừ ${(r.leaveDays - 2) * 200}k`
+                            : "Dưới 2 ngày: không trừ"}
+                        </small>
+                      </span>
+                      <b
+                        className={(r.leaveDeduction ?? 0) > 0 ? "minus" : ""}
+                      >
+                        {(r.leaveDeduction ?? 0) > 0
+                          ? "-" + money(r.leaveDeduction)
+                          : "0 đ"}
+                      </b>
+                    </li>
                     <li>
                       <span>Điều chỉnh</span>
                       <b
@@ -451,6 +515,33 @@ export default function PayrollPage() {
                 </div>
               );
             })}
+        </div>
+      )}
+
+      {/* Phân trang */}
+      {!loading && totalPages > 1 && (
+        <div className="pay-pager">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setPage(currentPage - 1)}
+          >
+            ‹
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+            <button
+              key={n}
+              className={n === currentPage ? "active" : ""}
+              onClick={() => setPage(n)}
+            >
+              {n}
+            </button>
+          ))}
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => setPage(currentPage + 1)}
+          >
+            ›
+          </button>
         </div>
       )}
 
