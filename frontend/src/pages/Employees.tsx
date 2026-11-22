@@ -7,6 +7,7 @@ import {
 } from "../services/departmentService";
 import { authService } from "../services/authService";
 import { useSearchParams } from "react-router-dom";
+import CustomSelect from "../components/layouts/CustomSelect";
 
 export const Employees: React.FC = () => {
   const currentUser = authService.getCurrentUser();
@@ -302,28 +303,31 @@ export const Employees: React.FC = () => {
         </div>
 
         <div className="filter-selects">
-          <select
-            className="filter-select"
+          <CustomSelect
             value={selectedDept}
-            onChange={(e) => setSelectedDept(e.target.value)}
-          >
-            <option value="">Tất cả phòng ban ({departments.length})</option>
-            {departments.map((d) => (
-              <option key={d._id} value={d._id}>
-                {d.name} ({d.code})
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setSelectedDept(val)}
+            options={[
+              {
+                value: "",
+                label: `Tất cả phòng ban (${departments.length})`,
+              },
+              ...departments.map((d) => ({
+                value: d._id,
+                label: `${d.name} (${d.code})`,
+              })),
+            ]}
+            placeholder="Tất cả phòng ban"
+          />
 
-          <select
-            className="filter-select"
+          <CustomSelect
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Đang hoạt động</option>
-            <option value="inactive">Đã nghỉ việc / Inactive</option>
-          </select>
+            onChange={(val) => setSelectedStatus(val)}
+            options={[
+              { value: "all", label: "Tất cả trạng thái" },
+              { value: "active", label: "Đang hoạt động" },
+              { value: "inactive", label: "Đã nghỉ việc / Inactive" },
+            ]}
+          />
         </div>
       </div>
 
@@ -564,26 +568,20 @@ export const Employees: React.FC = () => {
               >
                 <div className="form-group">
                   <label>Phòng ban trực thuộc *</label>
-                  <select
-                    style={{
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "8px",
-                      border: "1px solid #cbd5e1",
-                    }}
+                  <CustomSelect
                     value={newEmp.departmentId}
-                    onChange={(e) =>
-                      setNewEmp({ ...newEmp, departmentId: e.target.value })
+                    onChange={(val) =>
+                      setNewEmp({ ...newEmp, departmentId: val })
                     }
-                    required
-                  >
-                    <option value="">-- Chọn phòng ban --</option>
-                    {departments.map((d) => (
-                      <option key={d._id} value={d._id}>
-                        {d.name} ({d.code})
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="-- Chọn phòng ban --"
+                    options={[
+                      { value: "", label: "-- Chọn phòng ban --" },
+                      ...departments.map((d) => ({
+                        value: d._id,
+                        label: `${d.name} (${d.code})`,
+                      })),
+                    ]}
+                  />
                 </div>
                 <div className="form-group">
                   <label>Chức vụ (Position) *</label>
@@ -601,28 +599,24 @@ export const Employees: React.FC = () => {
 
               <div className="form-group">
                 <label>Vai trò hệ thống</label>
-                <select
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #cbd5e1",
-                  }}
+                <CustomSelect
                   value={newEmp.role}
-                  onChange={(e) =>
-                    setNewEmp({ ...newEmp, role: e.target.value })
-                  }
-                >
-                  <option value="employee">
-                    Nhân viên thông thường (Employee)
-                  </option>
-                  <option value="manager">
-                    Trưởng phòng / Quản lý (Manager)
-                  </option>
-                  <option value="admin_hr">
-                    Quản trị viên Nhân sự (Admin HR)
-                  </option>
-                </select>
+                  onChange={(val) => setNewEmp({ ...newEmp, role: val })}
+                  options={[
+                    {
+                      value: "employee",
+                      label: "Nhân viên thông thường (Employee)",
+                    },
+                    {
+                      value: "manager",
+                      label: "Trưởng phòng / Quản lý (Manager)",
+                    },
+                    {
+                      value: "admin_hr",
+                      label: "Quản trị viên Nhân sự (Admin HR)",
+                    },
+                  ]}
+                />
               </div>
 
               <div className="modal-footer">
@@ -679,24 +673,18 @@ export const Employees: React.FC = () => {
 
               <div className="form-group">
                 <label>Chọn phòng ban mới cần chuyển đến *</label>
-                <select
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1.5px solid #cbd5e1",
-                  }}
+                <CustomSelect
                   value={targetDeptId}
-                  onChange={(e) => setTargetDeptId(e.target.value)}
-                  required
-                >
-                  <option value="">-- Chọn phòng ban mới --</option>
-                  {departments.map((d) => (
-                    <option key={d._id} value={d._id}>
-                      {d.name} ({d.code})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setTargetDeptId(val)}
+                  placeholder="-- Chọn phòng ban mới --"
+                  options={[
+                    { value: "", label: "-- Chọn phòng ban mới --" },
+                    ...departments.map((d) => ({
+                      value: d._id,
+                      label: `${d.name} (${d.code})`,
+                    })),
+                  ]}
+                />
               </div>
 
               <div className="modal-footer">

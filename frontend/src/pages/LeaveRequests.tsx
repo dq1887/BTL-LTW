@@ -7,6 +7,7 @@ import {
   type PaidLeaveBalance,
 } from "../services/leaveService";
 import "./LeaveRequests.css";
+import CustomSelect from "../components/layouts/CustomSelect";
 
 type StatusFilter = "all" | LeaveRequest["status"];
 type FormState = {
@@ -359,13 +360,17 @@ export default function LeaveRequests() {
               <span aria-hidden="true">⌕</span>
               <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm nhân viên, loại nghỉ..." />
             </label>
-            <select value={filter} onChange={(event) => setFilter(event.target.value as StatusFilter)} aria-label="Lọc trạng thái">
-              <option value="all">Tất cả trạng thái</option>
-              <option value="pending">Chờ duyệt</option>
-              <option value="approved">Đã duyệt</option>
-              <option value="rejected">Từ chối</option>
-              <option value="cancelled">Đã hủy</option>
-            </select>
+            <CustomSelect
+              value={filter}
+              onChange={(val) => setFilter(val as StatusFilter)}
+              options={[
+                { value: "all", label: "Tất cả trạng thái" },
+                { value: "pending", label: "Chờ duyệt" },
+                { value: "approved", label: "Đã duyệt" },
+                { value: "rejected", label: "Từ chối" },
+                { value: "cancelled", label: "Đã hủy" },
+              ]}
+            />
           </div>
         </div>
 
@@ -449,10 +454,18 @@ export default function LeaveRequests() {
             <form onSubmit={handleSubmit}>
               <div className="leave-form-grid">
                 <label className="leave-field full"><span>Loại nghỉ phép</span>
-                  <select value={form.leaveTypeId} onChange={(event) => setForm((value) => ({ ...value, leaveTypeId: event.target.value }))} required>
-                    <option value="">Chọn loại nghỉ phép</option>
-                    {types.map((type) => <option key={type._id} value={type._id}>{type.name}{type.isPaid ? " · Có lương" : " · Không lương"}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={form.leaveTypeId}
+                    onChange={(val) => setForm((value) => ({ ...value, leaveTypeId: val }))}
+                    placeholder="Chọn loại nghỉ phép"
+                    options={[
+                      { value: "", label: "Chọn loại nghỉ phép" },
+                      ...types.map((type) => ({
+                        value: type._id,
+                        label: `${type.name}${type.isPaid ? " · Có lương" : " · Không lương"}`,
+                      })),
+                    ]}
+                  />
                 </label>
                 <label className="leave-field"><span>Từ ngày</span>
                   <input type="date" value={form.startDate} onChange={(event) => setForm((value) => ({ ...value, startDate: event.target.value }))} required />

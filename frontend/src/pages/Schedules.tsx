@@ -1,6 +1,7 @@
 import { useState, useEffect, type SyntheticEvent } from "react";
 import api from "../services/api"; // chỉnh đường dẫn cho đúng vị trí api.ts của bạn
 import "./Schedules.css";
+import CustomSelect from "../components/layouts/CustomSelect";
 
 interface Schedule {
   _id: string;
@@ -583,37 +584,34 @@ export default function Schedules() {
 
             <label className="form-field">
               <span>Nhân viên</span>
-              <select
+              <CustomSelect
                 value={form.employeeId}
-                onChange={(e) =>
-                  setForm({ ...form, employeeId: e.target.value })
-                }
-                required
-              >
-                <option value="">-- Chọn nhân viên --</option>
-                {employees.map((emp) => (
-                  <option key={emp._id} value={emp._id}>
-                    {emp.employeeCode} - {emp.fullName} (
-                    {emp.position || emp.role})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setForm({ ...form, employeeId: val })}
+                placeholder="-- Chọn nhân viên --"
+                options={[
+                  { value: "", label: "-- Chọn nhân viên --" },
+                  ...employees.map((emp) => ({
+                    value: emp._id,
+                    label: `${emp.employeeCode} - ${emp.fullName} (${emp.position || emp.role})`,
+                  })),
+                ]}
+              />
             </label>
 
             <label className="form-field">
               <span>Ca làm việc</span>
-              <select
+              <CustomSelect
                 value={form.shiftId}
-                onChange={(e) => setForm({ ...form, shiftId: e.target.value })}
-                required
-              >
-                <option value="">-- Chọn ca --</option>
-                {shifts.map((s) => (
-                  <option key={s._id} value={s._id}>
-                    {s.name} ({s.startTime} - {s.endTime})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setForm({ ...form, shiftId: val })}
+                placeholder="-- Chọn ca --"
+                options={[
+                  { value: "", label: "-- Chọn ca --" },
+                  ...shifts.map((s) => ({
+                    value: s._id,
+                    label: `${s.name} (${s.startTime} - ${s.endTime})`,
+                  })),
+                ]}
+              />
             </label>
 
             <label className="form-field">
