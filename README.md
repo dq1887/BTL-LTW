@@ -1,153 +1,247 @@
 # BÀI TẬP LỚN MÔN LẬP TRÌNH WEB
 # DỰ ÁN HRM INTERNAL - HỆ THỐNG QUẢN LÝ NHÂN SỰ & CHẤM CÔNG NỘI BỘ
 
-**Quy mô:** nhóm 5 thành viên (Mô hình Fullstack khép kín 5 Module)
+> **Học phần:** Lập trình Web  
+> **Quy mô:** Nhóm 5 thành viên (Mô hình Fullstack khép kín 5 Module nghiệp vụ)
 
 ---
-## 1. TỔNG QUAN DỰ ÁN 
 
-Dự án HRM Internal được thiết kế theo mô hình kiến trúc Web Fullstack hiện đại, mô phỏng quy trình vận hành nhân sự nội bộ khép kín cho doanh nghiệp vừa và nhỏ
+## 1. TỔNG QUAN DỰ ÁN
+
+**HRM Internal** là hệ thống phần mềm quản trị nguồn nhân lực (Human Resource Management) được xây dựng theo kiến trúc Web Fullstack hiện đại. Dự án giải quyết bài toán số hóa quy trình quản trị nhân sự nội bộ cho doanh nghiệp vừa và nhỏ (SME): từ quản lý hồ sơ, luân chuyển phòng ban, phân công ca làm việc, chấm công - nghỉ phép trực tuyến cho đến tổng hợp công nợ và tự động tính bảng lương.
+
+Hệ thống được thiết kế hướng tới trải nghiệm người dùng mượt mà, phân quyền vai trò (Role-Based Access Control) chặt chẽ, tối ưu hóa giao diện đa chế độ (Sáng / Tối - Dark Mode) cùng hệ thống UI Component tùy biến cao cấp.
 
 ---
 
 ## 2. CÁC CHỨC NĂNG CHÍNH
 
-HRM Internal tập trung vào các nghiệp vụ quản lý nhân sự cốt lõi và liên thông chặt chẽ về dữ liệu. bao gồm:
+Hệ thống tích hợp chặt chẽ 6 phân hệ cốt lõi với luồng dữ liệu liên thông hoàn chỉnh:
 
-- **Quản lý nhân viên:** Quản lý hồ sơ, thông tin cá nhân và thông tin công việc của nhân viên.
-- **Quản lý phòng ban:** Tổ chức, phân chia và quản lý cơ cấu phòng ban trong doanh nghiệp.
-- **Quản lý ca làm việc:** Thiết lập, cấu hình và quản lý các ca làm việc của nhân viên.
-- **Quản lý chấm công:** Theo dõi, ghi nhận và quản lý dữ liệu chấm công thực tế.
-- **Quản lý nghỉ phép:** Cho phép nhân viên gửi yêu cầu nghỉ phép và hỗ trợ quản lý xét duyệt yêu cầu.
-- **Quản lý tiền lương:** Tổng hợp dữ liệu chấm công, tính toán và lập bảng lương dựa trên các quy định của doanh nghiệp.
+1. **Xác thực & Phân quyền (Authentication & RBAC):**
+   - Đăng nhập bảo mật qua JWT (JSON Web Token), hỗ trợ đối chiếu mật khẩu băm `bcrypt` và tài khoản thử nghiệm nhanh 1-click.
+   - Phân quyền 3 cấp độ: **Quản trị viên Nhân sự (Admin HR)**, **Trưởng phòng / Quản lý (Manager)** và **Nhân viên (Employee)**.
+   - Bảo vệ route nghiêm ngặt (`ProtectedRoute`), menu điều hướng theo quyền hạn, modal xác nhận đăng xuất chuyên nghiệp dùng React Portal.
+
+2. **Quản lý Nhân sự & Hồ sơ (Employees Management):**
+   - Danh sách nhân sự trực quan: Mã NV, Họ tên, Chức vụ, Email/SĐT, Phòng ban, Trạng thái hoạt động.
+   - Tìm kiếm thời gian thực (Live Search) theo tên/mã/chức vụ; lọc nâng cao theo Phòng ban và Trạng thái.
+   - Thêm mới nhân sự, chỉnh sửa thông tin, điều chuyển phòng ban linh hoạt với xác thực dữ liệu chặt chẽ.
+   - Cơ chế **Xóa mềm (Soft Delete)**: Chuyển nhân viên sang `inactive` để giữ toàn vẹn lịch sử lương/chấm công; hỗ trợ khôi phục kích hoạt lại tài khoản.
+
+3. **Quản lý Phòng ban & Cơ cấu tổ chức (Departments):**
+   - Bố cục Master-Detail trực quan: Danh sách phòng ban bên trái và chi tiết thành viên bên phải.
+   - Thống kê tự động quân số thực tế của từng phòng ban (chỉ tính nhân viên `active`).
+   - Tạo mới, chỉnh sửa thông tin phòng ban, chặn xóa phòng ban nếu còn nhân sự trực thuộc.
+
+4. **Quản lý Ca & Lịch phân ca (Shifts & Schedules):**
+   - Thiết lập danh mục ca làm việc: Ca sáng, ca chiều, ca hành chính (tên ca, giờ bắt đầu, giờ kết thúc).
+   - Bảng phân ca làm việc chi tiết theo từng ngày/tuần cho từng nhân viên (`WorkSchedule`).
+   - Điều hướng lịch trực quan theo tuần (Thứ Hai đến Chủ Nhật) và công cụ phân ca nhanh.
+
+5. **Quản lý Chấm công & Điểm danh (Attendance):**
+   - Nhân viên điểm danh Check-in / Check-out theo thời gian thực.
+   - Tự động đối chiếu ca làm việc, tính toán giờ làm thực tế, phát hiện đi muộn / về sớm.
+   - Thống kê tổng quan tỷ lệ đi làm theo ngày/tháng ngay trên trang Dashboard.
+
+6. **Quản lý Nghỉ phép (Leave Requests):**
+   - Đa dạng loại nghỉ phép: Nghỉ phép năm (có lương), nghỉ ốm, việc riêng, thai sản.
+   - Tra cứu tự động ngày có ca làm việc thực tế trong khoảng xin nghỉ trước khi nộp đơn.
+   - Luồng xét duyệt thông minh: Trưởng phòng duyệt đơn cho nhân viên thuộc phòng mình; Admin HR quản lý toàn công ty; chặn tự duyệt đơn của chính mình.
+   - Bảo toàn lịch sử: Chỉ cho phép hủy/xóa các đơn đang chờ duyệt (`pending`).
+
+7. **Bảng lương & Chế độ đãi ngộ (Payroll):**
+   - Tự động tổng hợp dữ liệu công chuẩn, số giờ làm thực tế, ngày nghỉ phép hưởng lương.
+   - Tính toán lương cơ bản, phụ cấp, các khoản khấu trừ và lương thực nhận (Net Salary).
+   - Xuất phiếu lương minh bạch cho từng nhân viên.
 
 ---
 
 ## 3. CÔNG NGHỆ SỬ DỤNG
 
-Hệ thống được phát triển dựa trên hệ sinh thái JavaScript toàn diện (MERN Stack nâng cao), kết hợp với các công cụ hiện đại để tối ưu cả hiệu suất máy chủ lẫn trải nghiệm người dùng:
+### **Frontend (Client-side)**
+- **Core:** React 19, TypeScript, Vite 
+- **Routing:** React Router DOM v7
+- **Giao diện & Trải nghiệm (UI/UX):**
+  - Hệ thống CSS3 tùy biến hiện đại, đáp ứng chuẩn Responsive.
+  - Hỗ trợ toàn diện **Dark Mode / Light Mode** lưu trữ qua `localStorage` và đồng bộ tức thì.
+  - Bộ component tùy biến độc quyền: `CustomSelect` (Dropdown tùy biến cao cấp thay thế thẻ select gốc của OS), `LogoutModal` (React Portal), SVG Icons bộ riêng.
+- **Quản lý phiên:** LocalStorage & Auth Service đính kèm Authorization Header Bearer Token.
 
-**Frontend (Client-side)**
-- **Core Framework:** React 19, Vite (Tối ưu hóa tốc độ build)
-- **Routing:** React Router DOM v6 (Quản lý điều hướng trang)
-- **State Management:** Zustand (Quản lý state toàn cục linh hoạt) & React Context API (Quản lý phiên đăng nhập)
-- **HTTP Client:** Axios (Xử lý giao tiếp với API và cấu hình Interceptors đính kèm token)
-- **UI & Styling:** CSS3 / Tailwind CSS 
+### **Backend (Server-side)**
+- **Môi trường & Framework:** Node.js, Express.js (RESTful API chuẩn hóa theo mô hình MVC)
+- **Bảo mật:** JSON Web Token (JWT), `bcryptjs` (băm mật khẩu), CORS middleware
+- **Biến môi trường:** `dotenv`
 
-**Backend (Server-side)**
-- **Runtime & Framework:** Node.js, Express.js
-- **Bảo mật & Xác thực:** JSON Web Token (JWT) phân quyền người dùng, bcrypt (Băm và đối chiếu mật khẩu), CORS
-- **Kiến trúc:** RESTful API chuẩn hóa kết hợp mô hình MVC (Model - View - Controller)
-
-**Cơ sở dữ liệu (Database)**
-- **Hệ quản trị CSDL:** MongoDB (NoSQL) lưu trữ đám mây qua MongoDB Atlas
-- **ODM (Object Data Modeling):** Mongoose (Định nghĩa Schema, ràng buộc dữ liệu và xử lý quan hệ giữa các Collection)
-
-**DevOps & Công cụ quản lý (Tools & Deployment)**
-- **Quản lý mã nguồn:** Git & GitHub (Quy trình phân nhánh chia task)
-- **Triển khai (Hosting):** Vercel (Hosting cho Frontend) & Render (Hosting cho Backend API)
-- **Công cụ kiểm thử & Quản trị:** Thunder Client Extension (Test các endpoint API), MongoDB Compass (Quản trị dữ liệu trực tiếp)
+### **Cơ sở dữ liệu (Database)**
+- **Database:** MongoDB Atlas (Cloud NoSQL Database)
+- **ODM:** Mongoose 9.x (Schema validation, indexing, pre/post hooks, auto timestamps)
 
 ---
 
-## 4. Cấu trúc thư mục
+## 4. CẤU TRÚC THƯ MỤC DỰ ÁN
 
-```
-BTL-LTW
+```text
+BTL-LTW/
 ├── backend/
-|   ├── scripts/                  # Dữ liệu mẫu và cập nhật dữ liệu
-|   ├── src/
-|   |   ├── controllers/          # Xử lý logic nghiệp vụ
-|   |   ├── middleware/           # Middleware xử lý yêu cầu
-|   |   ├── models/               # Các mô hình dữ liệu MongoDB
-|   |   ├── routes/               # Định nghĩa các API 
-|   |   ├── utils/                # Các hàm tiện ích
-|   |
-|   ├── .env                      # Cấu hình biến môi trường
-|   ├── .gitignore                # Cấu hình Git
-|   ├── package-lock.json         # Khóa phiên bản thư viện
-|   ├── package.json              # Thông tin và thư viện Backend
-|   ├── recalculate.js            # Script tính toán lại dữ liệu
-|   ├── seed_50_employees.js      # Script tạo dữ liệu nhân viên mẫu
-|   ├── seed_attendances.js       # Script tạo dữ liệu chấm công mẫu
-|   ├── server.js                 # Khởi chạy máy chủ Backend
-|
-├── frontend/
-|   ├── dist/                     # Thư mục chứa bản build
-|   ├── src/                      # Mã nguồn giao diện React
-|   ├── public/                   # Tài nguyên tĩnh
-│   ├── index.html                # Trang HTML gốc
-│   ├── eslint.config.js          # Cấu hình ESLint
-│   ├── .gitignore                # Cấu hình Git
-│   ├── package.json              # Thông tin và thư viện Frontend
-│   └── package-lock.json 
+│   ├── src/
+│   │   ├── controllers/         # Bộ điều khiển xử lý nghiệp vụ (Auth, Employee, Dept, Schedule, Shift, Leave, Attendance, Payroll)
+│   │   ├── middleware/          # Middleware xác thực JWT & phân quyền vai trò (authMiddleware)
+│   │   ├── models/              # Schema Mongoose (User, Employee, Department, Shift, Schedule, LeaveRequest, Attendance, Payroll)
+│   │   ├── routes/              # Khai báo Endpoint RESTful API
+│   │   └── utils/               # Các hàm tiện ích hỗ trợ tính toán, format
+│   ├── scripts/                 # Scripts tiện ích kiểm tra & cập nhật dữ liệu
+│   ├── tests/                   # Kịch bản kiểm thử tự động
+│   ├── .env                     # Biến môi trường Backend (Port, Mongo URI, JWT Secret)
+│   ├── package.json             # Khai báo dependencies Backend
+│   └── server.js                # Điểm khởi chạy máy chủ Express
 │
-├── .gitignore                    # Cấu hình Git toàn dự án
-└── README.md                     # Tài liệu giới thiệu dự án
+├── frontend/
+│   ├── public/                  # Tài nguyên tĩnh
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── layouts/         # Layout chung, Header, Sidebar, UserDropdown, LogoutModal, CustomSelect, Icons
+│   │   ├── context/             # ThemeContext (Quản lý Dark / Light mode toàn ứng dụng)
+│   │   ├── pages/               # Các trang giao diện (Dashboard, Employees, Departments, Shifts, Schedules, Attendance, LeaveRequests, Payroll, Login, Profile)
+│   │   ├── services/            # Tầng gọi API qua Fetch/Axios (authService, employeeService, departmentService, shiftService, leaveService...)
+│   │   ├── App.tsx              # Cấu hình Routing & ProtectedRoute
+│   │   └── main.tsx             # Entry point React
+│   ├── index.html               # Trang HTML gốc
+│   ├── package.json             # Khai báo dependencies Frontend
+│   ├── tsconfig.json            # Cấu hình TypeScript
+│   └── vite.config.ts           # Cấu hình Vite
+│
+├── .gitignore                   # Cấu hình bỏ qua tệp Git
+└── README.md                    # Tài liệu hướng dẫn dự án
 ```
-## 5. Hướng dẫn cài đặt
-
 
 ---
 
-## 6. Module TV4 – Quản lý nghỉ phép
+## 5. HƯỚNG DẪN CÀI ĐẶT & CHẠY DỰ ÁN
 
-### Chức năng
+### **Yêu cầu môi trường:**
+- **Node.js:** phiên bản `18.x` hoặc cao hơn
+- **npm:** phiên bản `9.x` hoặc cao hơn
+- Kết nối Internet (để kết nối MongoDB Atlas)
 
-- Nhân viên gửi, xem, chỉnh sửa và xóa đơn đang chờ duyệt của chính mình.
-- Nhân viên có thể tra trước các ngày được phân ca trong khoảng xin nghỉ.
-- Trưởng phòng xem và duyệt/từ chối đơn của nhân viên thuộc phòng ban mình; không được tự duyệt đơn của chính mình.
-- Admin HR xem và xử lý đơn trên toàn công ty.
-- Chặn ngày không có lịch phân công, dữ liệu lịch/ca bị thiếu, đơn trùng ngày làm việc và thao tác xử lý một đơn đã được người khác duyệt.
-- Các đơn đã duyệt/từ chối được giữ lại; chỉ đơn đang chờ duyệt mới được xóa để tránh mất lịch sử xử lý.
+---
 
-### Dữ liệu lịch làm việc được dùng
+### **Bước 1: Cài đặt Backend**
 
-Trong source nhóm gửi ngày 15/11/2026, `Shift` mới là danh mục mẫu ca (`name`, `startTime`, `endTime`); trang Chấm công hiện tại không gửi `scheduleId` khi check-in và source chưa có màn hình/API phân công ca theo từng nhân viên/ngày. Vì vậy danh mục `shifts` một mình chưa đủ để tính ngày nghỉ.
+1. Mở cửa sổ dòng lệnh tại thư mục gốc và di chuyển vào `backend`:
+   ```bash
+   cd backend
+   ```
 
-TV4 đọc lịch theo thứ tự ưu tiên sau:
+2. Cài đặt các gói phụ thuộc:
+   ```bash
+   npm install
+   ```
 
-1. **Nguồn chính – collection `workschedules`:** lịch đã công bố, trạng thái `published`, có `employeeId`, `workDate` (`YYYY-MM-DD`) và `shiftId` tham chiếu tới `shifts`.
-2. **Tương thích dữ liệu cũ – collection `attendances`:** bản ghi có `employeeId`, `workDate` và `scheduleId` tham chiếu tới `shifts` tồn tại. Bản ghi chấm công không có `scheduleId` không được xem là lịch phân công.
+3. Cấu hình file biến môi trường `.env` tại thư mục `backend/`:
+   ```env
+   PORT=5000
+   MONGO_URI=mongodb+srv://employee_management:emp123@hrm-database.87l2z1y.mongodb.net/EmployeeManagement?retryWrites=true&w=majority
+   JWT_SECRET=your_super_secret_jwt_key_here
+   NODE_ENV=development
+   ```
 
-Model `WorkSchedule` của TV4 định nghĩa hợp đồng nguồn chính để TV2 tích hợp:
+4. Khởi chạy máy chủ Backend:
+   ```bash
+   npm run dev
+   ```
+   > Máy chủ chạy tại: `http://localhost:5000`
 
-```json
-{
-  "employeeId": "<ObjectId nhân viên>",
-  "shiftId": "<ObjectId ca làm trong shifts>",
-  "workDate": "2026-11-20",
-  "status": "published",
-  "publishedBy": "<ObjectId người công bố>",
-  "publishedAt": "2026-11-15T09:00:00.000Z"
-}
-```
+---
 
-`employeeId`, `shiftId` và `publishedBy` phải là ObjectId thật trong MongoDB, không dùng các chuỗi placeholder trong ví dụ. Bản ghi `draft` hoặc `cancelled` không được tính. TV4 chỉ đọc lịch, không tự tạo lịch giả hoặc tự coi toàn bộ ngày trong khoảng là ngày làm việc.
+### **Bước 2: Cài đặt Frontend**
 
-**Việc cần TV2 xác nhận khi ghép nhóm:** module phân ca cần ghi lịch đã công bố vào `workschedules` theo đúng các trường trên (hoặc tiếp tục ghi `attendances.scheduleId` nếu nhóm đang dùng cấu trúc cũ). Trong source ZIP hiện tại chưa có chức năng tạo/công bố các bản ghi này, nên nếu DB chưa có dữ liệu phân ca thì form nghỉ phép sẽ chặn gửi đơn và báo rõ nguyên nhân; không thể kiểm thử end-to-end việc tạo/duyệt đơn cho đến khi DB có lịch thật.
+1. Mở một cửa sổ dòng lệnh mới và di chuyển vào thư mục `frontend`:
+   ```bash
+   cd frontend
+   ```
 
-### API TV4
+2. Cài đặt các gói phụ thuộc:
+   ```bash
+   npm install
+   ```
 
-Tất cả endpoint dưới đây yêu cầu JWT Bearer Token:
+3. Khởi chạy môi trường phát triển:
+   ```bash
+   npm run dev
+   ```
+   > Ứng dụng chạy tại: `http://localhost:5173` (hoặc cổng hiển thị trên terminal)
 
-| Method | Endpoint | Mục đích |
-|---|---|---|
-| GET | `/api/leave/types` | Lấy danh mục loại nghỉ; tự khởi tạo 4 loại mặc định ở lần gọi đầu |
-| POST | `/api/leave/types` | Admin HR tạo loại nghỉ |
-| PATCH | `/api/leave/types/:id` | Admin HR cập nhật/khóa loại nghỉ |
-| GET | `/api/leave/schedule-days?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD` | Xem trước các ngày có ca được phân công của tài khoản đăng nhập |
-| GET | `/api/leave/requests` | Lấy danh sách đơn theo phạm vi quyền |
-| POST | `/api/leave/requests` | Tạo đơn nghỉ phép |
-| GET | `/api/leave/requests/:id` | Xem chi tiết đơn trong phạm vi quyền |
-| PATCH | `/api/leave/requests/:id` | Chủ đơn chỉnh sửa khi còn chờ duyệt |
-| DELETE | `/api/leave/requests/:id` | Chủ đơn hoặc Admin HR xóa đơn đang chờ duyệt |
-| POST | `/api/leave/requests/:id/approve` | Trưởng phòng/Admin HR duyệt đơn |
-| POST | `/api/leave/requests/:id/reject` | Trưởng phòng/Admin HR từ chối đơn |
+---
 
-### Chạy dự án
+### **Bước 3: Tài khoản thử nghiệm (1-Click Demo Accounts)**
 
-1. Tạo `backend/.env` với `MONGO_URI` và `JWT_SECRET` theo cấu hình MongoDB/JWT của nhóm. Không commit file `.env` lên Git.
-2. Mở terminal tại `backend`, chạy `npm install`, sau đó `npm run dev`.
-3. Mở terminal khác tại `frontend`, chạy `npm install`, sau đó `npm run dev`.
-4. Đăng nhập bằng tài khoản đang có trong MongoDB, mở mục **Nghỉ phép** ở sidebar.
+Trang Đăng nhập (`/login`) tích hợp sẵn các nút chọn tài khoản mẫu theo từng quyền hạn để dễ dàng kiểm thử:
+
+| Vai trò (Role) | Email đăng nhập | Mật khẩu mặc định | Quyền hạn tiêu biểu |
+| :--- | :--- | :--- | :--- |
+| **Admin HR** | `nam.duong1@gmail.com` | `123456` | Toàn quyền quản trị nhân sự, cơ cấu phòng ban, phê duyệt nghỉ phép toàn công ty, thiết lập bảng lương |
+| **Trưởng phòng (Manager)** | `an.nguyen2@gmail.com` | `123456` | Quản lý thành viên trong phòng ban, duyệt đơn nghỉ phép của nhân viên trực thuộc |
+| **Nhân viên (Employee)** | `binh.tran3@gmail.com` | `123456` | Điểm danh chấm công, gửi yêu cầu nghỉ phép, xem lịch làm việc cá nhân, xem phiếu lương |
+
+---
+
+## 6. DANH SÁCH ENDPOINTS API CHÍNH (RESTful API)
+
+Tất cả các endpoint (ngoại trừ login) đều yêu cầu đính kèm Header: `Authorization: Bearer <Token>`.
+
+### **1. Xác thực (Auth)**
+- `POST /api/auth/login`: Xác thực thông tin đăng nhập, trả về JWT Token và User profile.
+- `GET /api/auth/me`: Lấy thông tin tài khoản hiện tại từ Token.
+
+### **2. Nhân viên (Employees)**
+- `GET /api/employees`: Lấy danh sách nhân viên (hỗ trợ query tìm kiếm, lọc phòng ban, trạng thái).
+- `POST /api/employees`: Thêm mới hồ sơ nhân sự (yêu cầu quyền Admin HR).
+- `GET /api/employees/:id`: Xem thông tin chi tiết một nhân viên.
+- `PUT /api/employees/:id`: Chỉnh sửa thông tin nhân viên.
+- `DELETE /api/employees/:id`: Xóa mềm nhân viên (chuyển trạng thái `inactive`).
+- `PATCH /api/employees/:id/restore`: Khôi phục tài khoản nhân viên đã nghỉ việc sang `active`.
+- `PATCH /api/employees/:id/transfer`: Điều chuyển phòng ban cho nhân sự.
+
+### **3. Phòng ban (Departments)**
+- `GET /api/departments`: Lấy danh sách phòng ban kèm số lượng nhân viên hoạt động.
+- `POST /api/departments`: Thêm mới phòng ban.
+- `PUT /api/departments/:id`: Cập nhật tên/thông tin phòng ban.
+- `DELETE /api/departments/:id`: Xóa phòng ban (ràng buộc kiểm tra không còn nhân sự).
+
+### **4. Ca làm việc & Lịch phân ca (Shifts & Schedules)**
+- `GET /api/shifts`: Lấy danh mục các ca làm việc.
+- `POST /api/shifts`: Thêm mới ca làm việc.
+- `GET /api/schedules`: Lấy lịch phân ca (lọc theo khoảng ngày, phòng ban, nhân viên).
+- `POST /api/schedules`: Tạo phân ca làm việc mới.
+- `DELETE /api/schedules/:id`: Xóa phân ca làm việc.
+
+### **5. Chấm công (Attendance)**
+- `GET /api/attendance`: Lấy bảng chấm công theo ngày/tháng.
+- `POST /api/attendance/check-in`: Ghi nhận giờ vào làm.
+- `POST /api/attendance/check-out`: Ghi nhận giờ về.
+- `GET /api/attendance/dashboard-stats`: Lấy số liệu thống kê tổng quan cho Dashboard.
+
+### **6. Nghỉ phép (Leave Requests)**
+- `GET /api/leave/types`: Lấy danh mục loại nghỉ phép.
+- `GET /api/leave/schedule-days`: Xem trước số ngày làm việc thực tế trong khoảng xin nghỉ.
+- `GET /api/leave/requests`: Lấy danh sách đơn nghỉ theo phạm vi quyền (Admin / Manager / Employee).
+- `POST /api/leave/requests`: Nhân viên tạo đơn xin nghỉ phép.
+- `DELETE /api/leave/requests/:id`: Xóa đơn nghỉ phép (chỉ khi đang ở trạng thái `pending`).
+- `POST /api/leave/requests/:id/approve`: Quản lý / Admin duyệt đơn nghỉ phép.
+- `POST /api/leave/requests/:id/reject`: Quản lý / Admin từ chối đơn nghỉ phép.
+
+### **7. Bảng lương (Payroll)**
+- `GET /api/payroll`: Lấy danh sách bảng lương theo kỳ.
+- `POST /api/payroll/calculate`: Tính toán và lập bảng lương tự động từ dữ liệu chấm công.
+- `GET /api/payroll/:id`: Xem chi tiết phiếu lương nhân viên.
+
+---
+
+## 7. ĐIỂM NỔI BẬT VỀ MẶT KỸ THUẬT & TRẢI NGHIỆM
+- **Toàn vẹn dữ liệu (Data Integrity):** Áp dụng xóa mềm (`soft-delete`) cho nhân sự để bảo vệ tính nhất quán của bảng lương và lịch sử chấm công quá khứ.
+- **Tối ưu UI/UX hiện đại:** 
+  - Toàn bộ dropdown select sử dụng React Component riêng, khắc phục hoàn toàn nhược điểm thẻ `<select>` nguyên bản của hệ điều hành.
+  - Hộp thoại xác nhận đăng xuất được gắn ra `document.body` qua **React Portal**, đảm bảo căn giữa màn hình tuyệt đối và loại bỏ lỗi đè lớp giao diện.
+- **Hiệu năng & Tương thích:** Tích hợp bộ chuyển đổi giao diện **Dark / Light Theme** mượt mà, lưu trạng thái người dùng trong `localStorage`.
+- **Clean Architecture:** Phân tách rõ ràng giữa Service Layer, State Management, Custom Hook và Presentation Component.
