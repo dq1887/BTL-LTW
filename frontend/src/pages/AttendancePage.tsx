@@ -25,6 +25,12 @@ export default function AttendancePage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  const formatDateVN = (dateInput?: string | Date) => {
+    if (!dateInput) return "";
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  };
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   const isManagerOrAdmin =
     currentUser?.role === "admin_hr" || currentUser?.role === "manager";
@@ -242,7 +248,7 @@ export default function AttendancePage() {
               <th style={{ padding: "14px 20px" }}>Giờ kết thúc</th>
               <th style={{ padding: "14px 20px" }}>Thời gian làm</th>
               <th style={{ padding: "14px 20px" }}>Công chuẩn</th>
-              <th style={{ padding: "14px 20px" }}>Công thêm</th>
+              <th style={{ padding: "14px 20px" }}>Giờ làm thêm</th>
               <th style={{ padding: "14px 20px" }}>Trạng thái</th>
             </tr>
           </thead>
@@ -279,7 +285,7 @@ export default function AttendancePage() {
                         </span>
                         <br />
                         <span style={{ fontSize: "12px", color: "#64748b" }}>
-                          {att.workDate}
+                          {formatDateVN(att.checkInAt) || att.workDate}
                         </span>
                       </>
                     ) : (
@@ -305,8 +311,22 @@ export default function AttendancePage() {
                           )}
                         </span>
                         <br />
-                        <span style={{ fontSize: "12px", color: "#64748b" }}>
-                          {att.workDate}
+                        <span
+                          style={{
+                            fontSize: "12px",
+                            fontWeight:
+                              formatDateVN(att.checkOutAt) !== att.workDate
+                                ? "600"
+                                : "normal",
+                            color:
+                              formatDateVN(att.checkOutAt) !== att.workDate
+                                ? "#ea580c"
+                                : "#64748b",
+                          }}
+                        >
+                          {formatDateVN(att.checkOutAt)}
+                          {formatDateVN(att.checkOutAt) !== att.workDate &&
+                            " (Hôm sau)"}
                         </span>
                       </>
                     ) : (

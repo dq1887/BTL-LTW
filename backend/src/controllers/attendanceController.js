@@ -18,25 +18,20 @@ const buildShiftDateTime = (workDate, timeStr) => {
   return new Date(`${workDate}T${hours}:${minutes}:00.000+07:00`);
 };
 
-// Giới hạn khoảng tính trong phạm vi ngày workDate (+07:00) để không bị dồn phút từ ngày khác
-const clampToWorkDate = (inTime, outTime, workDate) => {
-  const dayStart = new Date(`${workDate}T00:00:00.000+07:00`).getTime();
-  const dayEnd = new Date(`${workDate}T23:59:59.999+07:00`).getTime();
-
+// Tính tổng thời gian thực tế giữa inTime và outTime
+// Cho phép tính trọn vẹn số phút làm việc kể cả khi ca kéo dài xuyên đêm sang hôm sau
+const calculateWorkSpan = (inTime, outTime) => {
   const rawStart = new Date(inTime).getTime();
   const rawEnd = new Date(outTime).getTime();
 
-  const clampedStart = Math.max(rawStart, dayStart);
-  const clampedEnd = Math.min(rawEnd, dayEnd);
-
-  if (clampedEnd <= clampedStart) {
-    return { startMs: clampedStart, endMs: clampedStart, minutes: 0 };
+  if (rawEnd <= rawStart) {
+    return { startMs: rawStart, endMs: rawStart, minutes: 0 };
   }
 
   return {
-    startMs: clampedStart,
-    endMs: clampedEnd,
-    minutes: Math.round((clampedEnd - clampedStart) / 60000),
+    startMs: rawStart,
+    endMs: rawEnd,
+    minutes: Math.round((rawEnd - rawStart) / 60000),
   };
 };
 
@@ -53,7 +48,7 @@ const calculateCredits = (
     startMs,
     endMs,
     minutes: totalMinutes,
-  } = clampToWorkDate(inTime, outTime, workDate);
+  } = calculateWorkSpan(inTime, outTime);
 
   let inShiftMinutes = 0;
   let shiftTotalMins = 0;
@@ -77,6 +72,7 @@ const calculateCredits = (
     }
   }
 
+  // Toàn bộ thời gian làm việc ngoài ca (hoặc ngoài ca chuẩn) được tính vào làm thêm / công phụ
   const outShiftMinutes = Math.max(0, totalMinutes - inShiftMinutes);
 
   let workCredit = 0;
@@ -87,8 +83,12 @@ const calculateCredits = (
         : round2(inShiftMinutes / shiftTotalMins);
     const remaining = Math.max(0, round2(1 - existingWorkCreditToday));
     workCredit = round2(Math.min(rawCredit, remaining));
+  } else if (!shiftStartStr && totalMinutes > 0) {
+    // Trường hợp không có ca quy định cụ thể: 480 phút (8h) = 1 công chuẩn
+    workCredit = round2(Math.min(1, totalMinutes / 480));
   }
 
+  // Công phụ / làm thêm: Mỗi 60 phút làm ngoài ca được tính là 1 giờ công thêm
   const overtimeCredit = Math.floor(outShiftMinutes / 60);
 
   return { workCredit, overtimeCredit, totalMinutes };
