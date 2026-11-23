@@ -5,14 +5,41 @@ const Department = require("../models/Department");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 const { recalcPayroll } = require("../utils/payrollHelper");
+
+const VN_TIMEZONE = "Asia/Ho_Chi_Minh";
+
 const getTodayVN = () =>
-  new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+  new Date().toLocaleDateString("en-CA", { timeZone: VN_TIMEZONE });
+
 const buildShiftDateTime = (workDate, timeStr) => {
   const [hours, minutes] = String(timeStr || "08:00")
     .split(":")
     .map((n) => String(Number(n)).padStart(2, "0"));
   return new Date(`${workDate}T${hours}:${minutes}:00.000+07:00`);
 };
+
+// Giới hạn khoảng tính trong phạm vi ngày workDate (+07:00) để không bị dồn phút từ ngày khác
+const clampToWorkDate = (inTime, outTime, workDate) => {
+  const dayStart = new Date(`${workDate}T00:00:00.000+07:00`).getTime();
+  const dayEnd = new Date(`${workDate}T23:59:59.999+07:00`).getTime();
+
+  const rawStart = new Date(inTime).getTime();
+  const rawEnd = new Date(outTime).getTime();
+
+  const clampedStart = Math.max(rawStart, dayStart);
+  const clampedEnd = Math.min(rawEnd, dayEnd);
+
+  if (clampedEnd <= clampedStart) {
+    return { startMs: clampedStart, endMs: clampedStart, minutes: 0 };
+  }
+
+  return {
+    startMs: clampedStart,
+    endMs: clampedEnd,
+    minutes: Math.round((clampedEnd - clampedStart) / 60000),
+  };
+};
+
 const calculateCredits = (
   inTime,
   outTime,
@@ -22,14 +49,16 @@ const calculateCredits = (
   existingWorkCreditToday = 0,
 ) => {
   const round2 = (n) => Math.round(n * 100) / 100;
-  const inDate = new Date(inTime);
-  const outDate = new Date(outTime);
-  const totalMinutes = Math.max(0, Math.round((outDate - inDate) / 60000));
+  const {
+    startMs,
+    endMs,
+    minutes: totalMinutes,
+  } = clampToWorkDate(inTime, outTime, workDate);
 
   let inShiftMinutes = 0;
   let shiftTotalMins = 0;
 
-  if (shiftStartStr && shiftEndStr) {
+  if (shiftStartStr && shiftEndStr && totalMinutes > 0) {
     const shiftStart = buildShiftDateTime(workDate, shiftStartStr);
     const shiftEnd = buildShiftDateTime(workDate, shiftEndStr);
 
@@ -37,10 +66,12 @@ const calculateCredits = (
       shiftEnd.setDate(shiftEnd.getDate() + 1);
     }
 
-    shiftTotalMins = Math.round((shiftEnd - shiftStart) / 60000);
+    shiftTotalMins = Math.round(
+      (shiftEnd.getTime() - shiftStart.getTime()) / 60000,
+    );
 
-    const overlapStart = Math.max(inDate.getTime(), shiftStart.getTime());
-    const overlapEnd = Math.min(outDate.getTime(), shiftEnd.getTime());
+    const overlapStart = Math.max(startMs, shiftStart.getTime());
+    const overlapEnd = Math.min(endMs, shiftEnd.getTime());
     if (overlapEnd > overlapStart) {
       inShiftMinutes = Math.round((overlapEnd - overlapStart) / 60000);
     }
@@ -54,7 +85,7 @@ const calculateCredits = (
       inShiftMinutes >= shiftTotalMins
         ? 1
         : round2(inShiftMinutes / shiftTotalMins);
-    const remaining = Math.max(0, 1 - existingWorkCreditToday);
+    const remaining = Math.max(0, round2(1 - existingWorkCreditToday));
     workCredit = round2(Math.min(rawCredit, remaining));
   }
 
@@ -91,7 +122,7 @@ exports.checkIn = catchAsync(async (req, res, next) => {
   if (activeShift) {
     const shiftTimeStr = new Date(activeShift.checkInAt).toLocaleTimeString(
       "vi-VN",
-      { hour: "2-digit", minute: "2-digit" },
+      { hour: "2-digit", minute: "2-digit", timeZone: VN_TIMEZONE },
     );
     return next(
       new AppError(
