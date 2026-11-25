@@ -33,12 +33,18 @@ export interface LeaveRequest {
   endDate: string;
   scheduledDates: string[];
   totalDays: number | null;
+  calendarDays?: number | null;
+  currentScheduledDates?: string[];
+  draftDates?: string[];
+  scheduleChanged?: boolean;
+  unresolved?: boolean;
   reason: string;
   status: "pending" | "approved" | "rejected" | "cancelled";
   reviewedBy?: { _id: string; fullName: string; employeeCode: string } | null;
   reviewedAt?: string | null;
   reviewNote?: string;
   createdAt: string;
+  updatedAt?: string;
 };
 
 interface ApiList<T> {
@@ -55,6 +61,7 @@ interface ApiItem<T> {
 
 interface SchedulePreview {
   success: boolean;
+  calendarDays?: number;
   count: number;
   dates: string[];
   draftDates?: string[];
@@ -62,9 +69,14 @@ interface SchedulePreview {
 }
 
 export const leaveService = {
-  async getPaidBalance(year: number): Promise<PaidLeaveBalance> {
-    const response = await api.get("/leave/paid-balance", { params: { year } });
+  async getPaidBalance(year: number, employeeId?: string): Promise<PaidLeaveBalance> {
+    const response = await api.get("/leave/paid-balance", { params: { year, employeeId } });
     return (response.data as ApiItem<PaidLeaveBalance>).data;
+  },
+
+  async getBalanceEmployees(): Promise<LeaveEmployee[]> {
+    const response = await api.get("/leave/balance-employees");
+    return (response.data as ApiList<LeaveEmployee>).data;
   },
 
   async getTypes(): Promise<LeaveType[]> {
@@ -106,13 +118,13 @@ export const leaveService = {
     await api.delete(`/leave/requests/${id}`);
   },
 
-  async approve(id: string, reviewNote: string): Promise<LeaveRequest> {
-    const response = await api.post(`/leave/requests/${id}/approve`, { reviewNote });
-    return (response.data as ApiItem<LeaveRequest>).data;
+  async approve(id: string, reviewNote: string, expectedScheduledDates?: string[], expectedUpdatedAt?: string): Promise<ApiItem<LeaveRequest>> {
+    const response = await api.post(`/leave/requests/${id}/approve`, { reviewNote, expectedScheduledDates, expectedUpdatedAt });
+    return response.data as ApiItem<LeaveRequest>;
   },
 
-  async reject(id: string, reviewNote: string): Promise<LeaveRequest> {
-    const response = await api.post(`/leave/requests/${id}/reject`, { reviewNote });
+  async reject(id: string, reviewNote: string, expectedUpdatedAt?: string): Promise<LeaveRequest> {
+    const response = await api.post(`/leave/requests/${id}/reject`, { reviewNote, expectedUpdatedAt });
     return (response.data as ApiItem<LeaveRequest>).data;
   },
 };

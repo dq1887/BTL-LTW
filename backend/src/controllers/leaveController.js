@@ -7,6 +7,7 @@ const LeaveRequest = require("../models/LeaveRequest");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 const { recalcPayroll } = require("../utils/payrollHelper");
+const { isValidDateOnly, calendarDays, currentYearVN, describeRequest } = require("../utils/leaveDates");
 
 const {
   PAID_QUOTA_DAYS,
@@ -16,6 +17,30 @@ const {
   summarizeQuota,
   exceedsPaidQuota,
 } = require("../utils/leaveQuota");
+
+// Tuần tự hóa các thao tác đơn nghỉ cùng nhân viên trong một tiến trình backend.
+const mutationQueues = new Map();
+const withEmployeeMutation = (handler, create = false) => catchAsync(async (req, res, next) => {
+  let employeeId = req.user._id;
+  if (!create) {
+    if (!mongoose.isValidObjectId(req.params.id)) return next(new AppError("Mã đơn nghỉ phép không hợp lệ.", 400));
+    const target = await LeaveRequest.findById(req.params.id).select("employeeId").lean();
+    if (!target) return next(new AppError("Không tìm thấy đơn nghỉ phép.", 404));
+    employeeId = target.employeeId;
+  }
+  const key = String(employeeId);
+  const previous = mutationQueues.get(key) || Promise.resolve();
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  mutationQueues.set(key, gate);
+  await previous;
+  try {
+    await handler(req, res, next);
+  } finally {
+    release();
+    if (mutationQueues.get(key) === gate) mutationQueues.delete(key);
+  }
+});
 
 const DEFAULT_LEAVE_TYPES = [
   {
@@ -32,32 +57,12 @@ const DEFAULT_LEAVE_TYPES = [
   },
 ];
 
-const isValidDateOnly = (value) => {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false;
-  }
-  const date = new Date(`${value}T00:00:00.000Z`);
-  return (
-    !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
-  );
-};
-
 const validateDateRange = (startDate, endDate) => {
   if (!isValidDateOnly(startDate) || !isValidDateOnly(endDate)) {
-    throw new AppError(
-      "Ngày nghỉ không hợp lệ. Hãy dùng định dạng YYYY-MM-DD.",
-      400,
-    );
+    throw new AppError("Ngày nghỉ không hợp lệ (năm 2000–2099).", 400);
   }
-  if (startDate > endDate) {
-    throw new AppError("Ngày bắt đầu không được sau ngày kết thúc.", 400);
-  }
-  const rangeMs =
-    new Date(`${endDate}T00:00:00.000Z`).getTime() -
-    new Date(`${startDate}T00:00:00.000Z`).getTime();
-  if (rangeMs > 1000 * 60 * 60 * 24 * 366) {
-    throw new AppError("Khoảng nghỉ không được vượt quá 366 ngày.", 400);
-  }
+  if (startDate > endDate) throw new AppError("Ngày bắt đầu không được sau ngày kết thúc.", 400);
+  if (calendarDays(startDate, endDate) > 366) throw new AppError("Khoảng nghỉ không được vượt quá 366 ngày.", 400);
 };
 
 const ensureDefaultTypes = async () => {
@@ -120,6 +125,27 @@ const getDraftDates = async (employeeId, startDate, endDate) => {
   ].sort();
 };
 
+// Lịch hiện tại chỉ dùng để dự tính đơn chờ duyệt và cảnh báo đơn đã xử lý.
+// Không tự sửa lịch sử đã duyệt trong API đọc.
+const describeRequests = async (requests) => {
+  const valid = requests.filter(r => calendarDays(r.startDate, r.endDate) !== null && (r.employeeId?._id || r.employeeId));
+  const byEmployee = new Map();
+  for (const r of valid) {
+    const id = String(r.employeeId?._id || r.employeeId);
+    if (!byEmployee.has(id)) byEmployee.set(id, []);
+    byEmployee.get(id).push(r);
+  }
+  await Promise.all([...byEmployee].map(async ([id, list]) => {
+    const start = list.map(r => r.startDate).sort()[0];
+    const end = list.map(r => r.endDate).sort().at(-1);
+    const [days, drafts] = await Promise.all([getScheduledDays(id, start, end), getDraftDates(id, start, end)]);
+    const dates = days.map(d => d.date);
+    for (const r of list) Object.assign(r, describeRequest(r, dates, drafts));
+  }));
+  for (const r of requests) if (!valid.includes(r)) Object.assign(r, describeRequest(r, [], []));
+  return requests;
+};
+
 const ensureNoConflictingLeave = async ({
   employeeId,
   startDate,
@@ -146,7 +172,7 @@ const ensureNoConflictingLeave = async ({
 };
 
 const loadPaidQuota = async (employeeId, year, excludeRequestId) => {
-  const paidTypes = await LeaveType.find({ isPaid: true }).select("_id").lean();
+  const paidTypes = await LeaveType.find({ $or: [{ isPaid: true }, { isPaid: { $exists: false }, paid: true }] }).select("_id").lean();
   const yearStart = `${year}-01-01`;
   const yearEnd = `${year}-12-31`;
   const filter = {
@@ -158,8 +184,9 @@ const loadPaidQuota = async (employeeId, year, excludeRequestId) => {
   };
   if (excludeRequestId) filter._id = { $ne: excludeRequestId };
   const requests = await LeaveRequest.find(filter)
-    .select("_id startDate endDate scheduledDates status totalDays")
+    .select("_id employeeId startDate endDate scheduledDates status totalDays")
     .lean();
+  await describeRequests(requests.filter(r => r.status === "pending"));
   const summary = summarizeQuota(requests, year);
   return { year, limit: PAID_QUOTA_DAYS, ...summary };
 };
@@ -185,7 +212,7 @@ const ensurePaidQuota = async ({
     const quota = await loadPaidQuota(employeeId, year, excludeRequestId);
     if (quota.unresolvedApproved.length) {
       throw new AppError(
-        `Năm ${year} có đơn nghỉ có lương đã duyệt nhưng chưa xác định số ngày (ID: ${quota.unresolvedApproved.join(", ")}). Cần đối chiếu lịch cũ trước khi cấp thêm phép.`,
+        `Năm ${year} có đơn nghỉ có lương đã duyệt cần kiểm tra lại số ngày. Vui lòng liên hệ quản lý trước khi xin thêm phép.`,
         409,
       );
     }
@@ -224,7 +251,7 @@ const validateRequestData = async ({
     _id: leaveTypeId,
     isActive: true,
   });
-  if (!leaveType || !SUPPORTED_LEAVE_CODES.includes(leaveType.code)) {
+  if (!leaveType || !SUPPORTED_LEAVE_CODES.includes(leaveType.code) || leaveType.isPaid !== (leaveType.code === "paid")) {
     throw new AppError(
       "Chỉ được chọn Nghỉ có lương hoặc Nghỉ không lương.",
       400,
@@ -262,42 +289,6 @@ const validateRequestData = async ({
     totalDays: scheduledDates.length,
     reason: normalizedReason,
   };
-};
-
-const refreshUndeterminedRequests = async (requests) => {
-  const unresolved = requests.filter(
-    (item) =>
-      item.totalDays == null && ["pending", "approved"].includes(item.status),
-  );
-  if (unresolved.length === 0) return;
-
-  await Promise.all(
-    unresolved.map(async (request) => {
-      const employeeId = request.employeeId?._id || request.employeeId;
-      if (
-        !employeeId ||
-        !isValidDateOnly(request.startDate) ||
-        !isValidDateOnly(request.endDate)
-      )
-        return;
-      const scheduledDays = await getScheduledDays(
-        employeeId,
-        request.startDate,
-        request.endDate,
-      );
-      if (scheduledDays.length === 0) return;
-      const scheduledDates = scheduledDays.map((item) => item.date);
-      const updated = await LeaveRequest.findOneAndUpdate(
-        { _id: request._id, status: request.status, totalDays: null },
-        { $set: { scheduledDates, totalDays: scheduledDates.length } },
-        { new: true, runValidators: true },
-      );
-      if (updated) {
-        request.totalDays = scheduledDates.length;
-        request.scheduledDates = scheduledDates;
-      }
-    }),
-  );
 };
 
 const isReviewRole = (user) => ["admin_hr", "manager"].includes(user?.role);
@@ -392,14 +383,26 @@ exports.updateLeaveType = catchAsync(async (req, res, next) => {
   });
 });
 
+exports.getBalanceEmployees = catchAsync(async (req, res) => {
+  const filter = req.user.role === "admin_hr" ? {} : req.user.departmentId ? { departmentId: req.user.departmentId } : { _id: req.user._id };
+  const data = await Employee.find(filter).select("_id employeeCode fullName").sort({ fullName: 1 }).lean();
+  res.status(200).json({ success: true, count: data.length, data });
+});
+
 exports.getPaidLeaveBalance = catchAsync(async (req, res, next) => {
-  const yearText = String(req.query.year || new Date().getUTCFullYear());
-  if (!/^20\d{2}$/.test(yearText)) {
-    return next(
-      new AppError("Năm phải có định dạng YYYY, từ 2000 đến 2099.", 400),
-    );
+  const yearText = String(req.query.year || currentYearVN());
+  if (!/^20\d{2}$/.test(yearText)) return next(new AppError("Năm phải từ 2000 đến 2099.", 400));
+  const target = req.query.employeeId || req.user._id;
+  if (!mongoose.isValidObjectId(target)) return next(new AppError("Mã nhân viên không hợp lệ.", 400));
+  if (String(target) !== String(req.user._id)) {
+    if (!isReviewRole(req.user)) return next(new AppError("Bạn không có quyền xem số dư phép của nhân viên khác.", 403));
+    const employee = await Employee.findById(target).select("departmentId").lean();
+    if (!employee) return next(new AppError("Không tìm thấy nhân viên.", 404));
+    if (req.user.role === "manager" && (!req.user.departmentId || String(employee.departmentId) !== String(req.user.departmentId))) {
+      return next(new AppError("Bạn chỉ được xem số dư phép của nhân viên thuộc phòng ban mình.", 403));
+    }
   }
-  const data = await loadPaidQuota(req.user._id, Number(yearText));
+  const data = await loadPaidQuota(target, Number(yearText));
   res.status(200).json({ success: true, data });
 });
 
@@ -412,6 +415,7 @@ exports.getScheduleDays = catchAsync(async (req, res) => {
   ]);
   res.status(200).json({
     success: true,
+    calendarDays: calendarDays(startDate, endDate),
     count: days.length,
     dates: days.map((item) => item.date),
     draftDates: draftDates.filter(
@@ -448,7 +452,7 @@ exports.getLeaveRequests = catchAsync(async (req, res) => {
   const requests = await populateRequest(
     LeaveRequest.find(filter).sort({ createdAt: -1 }),
   ).lean();
-  await refreshUndeterminedRequests(requests);
+  await describeRequests(requests);
 
   res
     .status(200)
@@ -469,17 +473,17 @@ exports.getLeaveRequestById = catchAsync(async (req, res, next) => {
   let canViewDepartment = false;
   if (req.user.role === "manager") {
     canViewDepartment =
-      String(request.employeeId?.departmentId) ===
-      String(req.user.departmentId);
+      Boolean(req.user.departmentId && request.employeeId?.departmentId) &&
+      String(request.employeeId.departmentId) === String(req.user.departmentId);
   }
   if (!ownRequest && !canViewAll && !canViewDepartment) {
     return next(new AppError("Bạn không có quyền xem đơn nghỉ phép này.", 403));
   }
-  await refreshUndeterminedRequests([request]);
+  await describeRequests([request]);
   res.status(200).json({ success: true, data: request });
 });
 
-exports.createLeaveRequest = catchAsync(async (req, res) => {
+exports.createLeaveRequest = withEmployeeMutation(async (req, res) => {
   const { leaveTypeId, startDate, endDate, reason } = req.body || {};
   const validated = await validateRequestData({
     employeeId: req.user._id,
@@ -502,14 +506,15 @@ exports.createLeaveRequest = catchAsync(async (req, res) => {
   const populated = await populateRequest(
     LeaveRequest.findById(request._id),
   ).lean();
+  await describeRequests([populated]);
   res.status(201).json({
     success: true,
     message: "Đã gửi đơn nghỉ phép thành công.",
     data: populated,
   });
-});
+}, true);
 
-exports.updateLeaveRequest = catchAsync(async (req, res, next) => {
+exports.updateLeaveRequest = withEmployeeMutation(async (req, res, next) => {
   if (!mongoose.isValidObjectId(req.params.id)) {
     return next(new AppError("Mã đơn nghỉ phép không hợp lệ.", 400));
   }
@@ -527,24 +532,24 @@ exports.updateLeaveRequest = catchAsync(async (req, res, next) => {
   const { leaveTypeId, startDate, endDate, reason } = req.body || {};
   const validated = await validateRequestData({
     employeeId: req.user._id,
-    leaveTypeId: leaveTypeId || request.leaveTypeId,
-    startDate: startDate || request.startDate,
-    endDate: endDate || request.endDate,
+    leaveTypeId: leaveTypeId ?? request.leaveTypeId,
+    startDate: startDate ?? request.startDate,
+    endDate: endDate ?? request.endDate,
     reason: reason !== undefined ? reason : request.reason,
     excludeRequestId: request._id,
   });
 
-  request.leaveTypeId = leaveTypeId || request.leaveTypeId;
-  request.startDate = startDate || request.startDate;
-  request.endDate = endDate || request.endDate;
-  request.reason = validated.reason;
-  request.scheduledDates = validated.scheduledDates;
-  request.totalDays = validated.totalDays;
-  await request.save();
+  const updated = await LeaveRequest.findOneAndUpdate(
+    { _id: request._id, status: "pending", updatedAt: request.updatedAt },
+    { $set: { leaveTypeId: leaveTypeId ?? request.leaveTypeId, startDate: startDate ?? request.startDate, endDate: endDate ?? request.endDate, reason: validated.reason, scheduledDates: validated.scheduledDates, totalDays: validated.totalDays } },
+    { new: true, runValidators: true },
+  );
+  if (!updated) return next(new AppError("Đơn đã thay đổi. Vui lòng tải lại danh sách.", 409));
 
   const populated = await populateRequest(
     LeaveRequest.findById(request._id),
   ).lean();
+  await describeRequests([populated]);
   res.status(200).json({
     success: true,
     message: "Đã cập nhật đơn nghỉ phép.",
@@ -552,7 +557,7 @@ exports.updateLeaveRequest = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.deleteLeaveRequest = catchAsync(async (req, res, next) => {
+exports.deleteLeaveRequest = withEmployeeMutation(async (req, res, next) => {
   if (!mongoose.isValidObjectId(req.params.id)) {
     return next(new AppError("Mã đơn nghỉ phép không hợp lệ.", 400));
   }
@@ -570,12 +575,13 @@ exports.deleteLeaveRequest = catchAsync(async (req, res, next) => {
       ),
     );
   }
-  await request.deleteOne();
+  const result = await LeaveRequest.deleteOne({ _id: request._id, status: "pending", updatedAt: request.updatedAt });
+  if (!result.deletedCount) return next(new AppError("Đơn đã thay đổi. Vui lòng tải lại danh sách.", 409));
   res.status(200).json({ success: true, message: "Đã xóa đơn nghỉ phép." });
 });
 
 const reviewLeaveRequest = (status) =>
-  catchAsync(async (req, res, next) => {
+  withEmployeeMutation(async (req, res, next) => {
     if (!mongoose.isValidObjectId(req.params.id)) {
       return next(new AppError("Mã đơn nghỉ phép không hợp lệ.", 400));
     }
@@ -589,6 +595,9 @@ const reviewLeaveRequest = (status) =>
       );
     }
 
+    if (req.body?.expectedUpdatedAt && new Date(req.body.expectedUpdatedAt).getTime() !== new Date(request.updatedAt).getTime()) {
+      return next(new AppError("Nội dung đơn đã thay đổi. Vui lòng tải lại trước khi xử lý.", 409));
+    }
     const reviewNote = String(req.body?.reviewNote || "").trim();
     if (reviewNote.length > 1000) {
       return next(
@@ -597,12 +606,17 @@ const reviewLeaveRequest = (status) =>
     }
 
     if (status === "approved") {
-      const scheduledDays = await getScheduledDays(
-        request.employeeId,
-        request.startDate,
-        request.endDate,
-      );
+      validateDateRange(request.startDate, request.endDate);
+      const [scheduledDays, drafts] = await Promise.all([
+        getScheduledDays(request.employeeId, request.startDate, request.endDate),
+        getDraftDates(request.employeeId, request.startDate, request.endDate),
+      ]);
       const currentDates = scheduledDays.map((item) => item.date);
+      if (drafts.some(d => !currentDates.includes(d))) return next(new AppError("Còn ngày làm việc chưa được xác nhận. Vui lòng hoàn tất lịch trước khi duyệt.", 409));
+      const expected = req.body?.expectedScheduledDates;
+      if (expected !== undefined && (!Array.isArray(expected) || expected.join(',') !== currentDates.join(','))) {
+        return next(new AppError("Lịch làm việc đã thay đổi. Vui lòng tải lại danh sách và kiểm tra số ngày trước khi duyệt.", 409));
+      }
       if (currentDates.length === 0) {
         return next(
           new AppError(
@@ -618,8 +632,8 @@ const reviewLeaveRequest = (status) =>
         excludeRequestId: request._id,
       });
       const requestType = await LeaveType.findById(request.leaveTypeId);
-      if (!requestType)
-        throw new AppError("Loại nghỉ của đơn không còn trong dữ liệu.", 409);
+      if (!requestType || !requestType.isActive || !SUPPORTED_LEAVE_CODES.includes(requestType.code) || requestType.isPaid !== (requestType.code === 'paid'))
+        throw new AppError("Loại nghỉ không còn phù hợp. Vui lòng yêu cầu nhân viên cập nhật đơn.", 409);
       await ensurePaidQuota({
         employeeId: request.employeeId,
         leaveType: requestType,
@@ -633,7 +647,7 @@ const reviewLeaveRequest = (status) =>
     }
 
     const updated = await LeaveRequest.findOneAndUpdate(
-      { _id: request._id, status: "pending" },
+      { _id: request._id, status: "pending", updatedAt: request.updatedAt },
       {
         $set: {
           status,
@@ -658,6 +672,7 @@ const reviewLeaveRequest = (status) =>
         ),
       );
 
+    let payrollSyncWarning = false;
     // Đồng bộ lại bảng lương nháp (nếu có) ngay khi đơn được duyệt
     if (status === "approved" && updated.scheduledDates?.length) {
       const months = [
@@ -665,7 +680,7 @@ const reviewLeaveRequest = (status) =>
       ];
       await Promise.all(
         months.map((m) =>
-          recalcPayroll(updated.employeeId, m).catch(() => null),
+          recalcPayroll(updated.employeeId, m).catch((error) => { payrollSyncWarning = true; console.error("Leave payroll sync failed:", error.message); }),
         ),
       );
     }
@@ -673,11 +688,12 @@ const reviewLeaveRequest = (status) =>
     const populated = await populateRequest(
       LeaveRequest.findById(updated._id),
     ).lean();
+    await describeRequests([populated]);
     res.status(200).json({
       success: true,
       message:
         status === "approved"
-          ? "Đã duyệt đơn nghỉ phép."
+          ? (payrollSyncWarning ? "Đã duyệt đơn. Cần kiểm tra lại cập nhật bảng lương." : "Đã duyệt đơn nghỉ phép.")
           : "Đã từ chối đơn nghỉ phép.",
       data: populated,
     });

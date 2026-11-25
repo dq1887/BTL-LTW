@@ -5,6 +5,7 @@ import {
   type LeaveRequest,
   type LeaveType,
   type PaidLeaveBalance,
+  type LeaveEmployee,
 } from "../services/leaveService";
 import "./LeaveRequests.css";
 import CustomSelect from "../components/layouts/CustomSelect";
@@ -32,22 +33,82 @@ const statusLabels: Record<LeaveRequest["status"], string> = {
   cancelled: "Đã hủy",
 };
 
+const validDate = (value: string) => {
+  if (!/^20\d{2}-\d{2}-\d{2}$/.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(d.getTime()) && d.toISOString().slice(0, 10) === value;
+};
+const calendarDays = (start: string, end: string) => {
+  if (!validDate(start) || !validDate(end) || start > end) return null;
+  return (Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86400000 + 1;
+};
+const currentYear = () => Number(new Intl.DateTimeFormat('en', { year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date()));
+
 const dateLabel = (value?: string) => {
-  if (!value) return "—";
+  if (!value || !validDate(value.slice(0, 10))) return "—";
   const [year, month, day] = value.slice(0, 10).split("-");
   return `${day}/${month}/${year}`;
 };
 
-// Giới hạn phần năm tối đa 4 chữ số
-const sanitizeDateInput = (raw: string) => {
-  if (!raw) return "";
-  const parts = raw.split("-");
-  if (parts[0] && parts[0].length > 4) {
-    parts[0] = parts[0].slice(0, 4);
-    return parts.join("-");
-  }
-  return raw;
-};
+// Ngày lịch theo múi giờ Việt Nam, không phụ thuộc múi giờ của máy.
+const todayDate = () => new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit",
+}).format(new Date());
+const makeDate = (year: number, month: number, day: number) =>
+  `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+function LeaveCalendar({ value, min, onSelect, onClose }: {
+  value: string; min: string; onSelect: (date: string) => void; onClose: () => void;
+}) {
+  const today = todayDate();
+  const initial = validDate(value) && value >= min ? value : today >= min ? today : min;
+  const [year, setYear] = useState(Number(initial.slice(0, 4)));
+  const [month, setMonth] = useState(Number(initial.slice(5, 7)));
+  const minYear = Number(min.slice(0, 4));
+  const minMonth = Number(min.slice(5, 7));
+  const firstMonth = year === minYear ? minMonth : 1;
+  const firstDay = (new Date(Date.UTC(year, month - 1, 1)).getUTCDay() + 6) % 7;
+  const count = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const moveMonth = (delta: number) => {
+    const next = new Date(Date.UTC(year, month - 1 + delta, 1));
+    setYear(next.getUTCFullYear());
+    setMonth(next.getUTCMonth() + 1);
+  };
+  return (
+    <section className="leave-calendar" aria-label="Chọn ngày nghỉ" onKeyDown={event => {
+      if (event.key === "Escape") { event.stopPropagation(); onClose(); }
+    }}>
+      <div className="leave-calendar-toolbar">
+        <button type="button" aria-label="Tháng trước" disabled={year === minYear && month === minMonth} onClick={() => moveMonth(-1)}>‹</button>
+        <select aria-label="Chọn tháng" value={month} onChange={event => setMonth(Number(event.target.value))}>
+          {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m} disabled={m < firstMonth}>Tháng {m}</option>)}
+        </select>
+        <select aria-label="Chọn năm" value={year} onChange={event => {
+          const y = Number(event.target.value);
+          setYear(y);
+          if (y === minYear && month < minMonth) setMonth(minMonth);
+        }}>
+          {Array.from({ length: 2100 - minYear }, (_, i) => minYear + i).map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <button type="button" aria-label="Tháng sau" disabled={year === 2099 && month === 12} onClick={() => moveMonth(1)}>›</button>
+      </div>
+      <div className="leave-calendar-grid">
+        {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map(day => <span className="leave-calendar-weekday" key={day}>{day}</span>)}
+        {Array.from({ length: firstDay }, (_, i) => <span aria-hidden="true" key={`empty-${i}`} />)}
+        {Array.from({ length: count }, (_, i) => {
+          const day = i + 1;
+          const date = makeDate(year, month, day);
+          return <button type="button" key={date} className={`leave-calendar-day${date === value ? " selected" : ""}${date === today ? " today" : ""}`} disabled={date < min} aria-label={dateLabel(date)} aria-pressed={date === value} onClick={() => onSelect(date)}>{day}</button>;
+        })}
+      </div>
+      <div className="leave-calendar-footer">
+        <button type="button" onClick={() => onSelect("")}>Xóa ngày</button>
+        <button type="button" disabled={!validDate(today) || today < min} onClick={() => onSelect(today)}>Hôm nay</button>
+        <button type="button" onClick={onClose}>Đóng lịch</button>
+      </div>
+    </section>
+  );
+}
 
 const getEmployee = (request: LeaveRequest) =>
   typeof request.employeeId === "string" ? null : request.employeeId;
@@ -79,17 +140,27 @@ export default function LeaveRequests() {
     null,
   );
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [calendarField, setCalendarField] = useState<"startDate" | "endDate" | null>(null);
   const [scheduleDates, setScheduleDates] = useState<string[]>([]);
   const [draftDates, setDraftDates] = useState<string[]>([]);
   const [scheduleError, setScheduleError] = useState("");
   const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [previewKey, setPreviewKey] = useState("");
+  const [balanceEmployees, setBalanceEmployees] = useState<LeaveEmployee[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const [reviewBalance, setReviewBalance] = useState<PaidLeaveBalance | null>(null);
+  const [reviewBalanceError, setReviewBalanceError] = useState("");
+  const [reviewYear, setReviewYear] = useState(currentYear);
+  const formCalendarDays = calendarDays(form.startDate, form.endDate);
+  const previewReady = previewKey === `${form.startDate}/${form.endDate}` && !scheduleLoading;
+
   const [paidBalance, setPaidBalance] = useState<PaidLeaveBalance | null>(null);
   const [balanceError, setBalanceError] = useState("");
 
   const balanceYear =
     form.startDate && /^20\d{2}-/.test(form.startDate)
       ? Number(form.startDate.slice(0, 4))
-      : new Date().getFullYear();
+      : currentYear();
 
   const isOwnRequest = useCallback(
     (request: LeaveRequest) => {
@@ -124,6 +195,9 @@ export default function LeaveRequests() {
 
   useEffect(() => {
     let active = true;
+    setPreviewKey("");
+    setScheduleDates([]);
+    setDraftDates([]);
     if (!form.startDate || !form.endDate) {
       setScheduleDates([]);
       setDraftDates([]);
@@ -132,9 +206,10 @@ export default function LeaveRequests() {
       return;
     }
     if (
-      !/^\d{4}-\d{2}-\d{2}$/.test(form.startDate) ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(form.endDate)
+      !validDate(form.startDate) || !validDate(form.endDate)
     ) {
+      setScheduleError("Ngày nghỉ không hợp lệ.");
+      setScheduleLoading(false);
       return;
     }
     if (form.startDate > form.endDate) {
@@ -154,6 +229,7 @@ export default function LeaveRequests() {
           if (active) {
             setScheduleDates(result.dates || []);
             setDraftDates(result.draftDates || []);
+            setPreviewKey(`${form.startDate}/${form.endDate}`);
           }
         })
         .catch((scheduleLoadError: unknown) => {
@@ -194,6 +270,27 @@ export default function LeaveRequests() {
       active = false;
     };
   }, [balanceYear, requests]);
+
+  useEffect(() => {
+    if (!canReview) return;
+    let active = true;
+    leaveService.getBalanceEmployees().then(data => {
+      if (active) setBalanceEmployees(data);
+    }).catch((err: unknown) => { if (active) setReviewBalanceError(getErrorMessage(err)); });
+    return () => { active = false; };
+  }, [canReview]);
+
+  useEffect(() => {
+    let active = true;
+    setReviewBalance(null);
+    setReviewBalanceError("");
+    if (!canReview || !selectedEmployeeId) return;
+    if (reviewYear < 2000 || reviewYear > 2099 || !Number.isInteger(reviewYear)) { setReviewBalanceError("Năm không hợp lệ."); return; }
+    leaveService.getPaidBalance(reviewYear, selectedEmployeeId).then(data => {
+      if (active) setReviewBalance(data);
+    }).catch((err: unknown) => { if (active) setReviewBalanceError(getErrorMessage(err)); });
+    return () => { active = false; };
+  }, [canReview, selectedEmployeeId, reviewYear, requests]);
 
   // Tách riêng đơn của chính tài khoản đăng nhập và đơn nhân viên khác cần duyệt
   const myRequests = useMemo(
@@ -252,8 +349,9 @@ export default function LeaveRequests() {
   const showEmployeeColumn = canReview && activeTab === "review";
 
   const openCreateForm = () => {
+    setCalendarField(null);
     setEditingRequest(null);
-    setForm({ ...emptyForm, leaveTypeId: types[0]?._id || "" });
+    setForm({ ...emptyForm });
     setScheduleDates([]);
     setDraftDates([]);
     setScheduleError("");
@@ -262,12 +360,13 @@ export default function LeaveRequests() {
   };
 
   const openEditForm = (request: LeaveRequest) => {
+    setCalendarField(null);
     setEditingRequest(request);
     setForm({
       leaveTypeId:
         typeof request.leaveTypeId === "string"
           ? request.leaveTypeId
-          : request.leaveTypeId._id,
+          : request.leaveTypeId?._id || "",
       startDate: request.startDate,
       endDate: request.endDate,
       reason: request.reason,
@@ -281,6 +380,7 @@ export default function LeaveRequests() {
 
   const closeForm = () => {
     if (submitting) return;
+    setCalendarField(null);
     setIsFormOpen(false);
     setEditingRequest(null);
     setForm(emptyForm);
@@ -300,7 +400,7 @@ export default function LeaveRequests() {
       setScheduleError("Vui lòng điền đầy đủ thông tin đơn nghỉ phép.");
       return;
     }
-    if (scheduleLoading) {
+    if (!previewReady) {
       setScheduleError("Đang kiểm tra lịch làm việc, vui lòng đợi giây lát.");
       return;
     }
@@ -364,9 +464,13 @@ export default function LeaveRequests() {
     action: "approve" | "reject",
   ) => {
     const label = action === "approve" ? "duyệt" : "từ chối";
+    if (action === "approve" && (!request.totalDays || request.draftDates?.length)) {
+      setError("Cần xác nhận lịch làm việc trước khi duyệt đơn này.");
+      return;
+    }
     if (
       !window.confirm(
-        `Bạn xác nhận ${label} đơn nghỉ phép của ${getEmployee(request)?.fullName || "nhân viên này"}?`,
+        `Bạn xác nhận ${label} đơn nghỉ phép của ${getEmployee(request)?.fullName || "nhân viên này"}? ${action === "approve" ? `Số ngày nghỉ: ${request.totalDays}. Loại nghỉ nhân viên đã chọn: ${getLeaveType(request)?.name || "—"}. Khi duyệt, loại nghỉ này được giữ nguyên.` : ""}`,
       )
     )
       return;
@@ -378,10 +482,10 @@ export default function LeaveRequests() {
       setActionId(request._id);
       setError("");
       if (action === "approve") {
-        await leaveService.approve(request._id, reviewNote);
-        setNotice("Đã duyệt đơn nghỉ phép.");
+        const result = await leaveService.approve(request._id, reviewNote, request.scheduledDates, request.updatedAt);
+        setNotice(result.message || "Đã duyệt đơn nghỉ phép.");
       } else {
-        await leaveService.reject(request._id, reviewNote);
+        await leaveService.reject(request._id, reviewNote, request.updatedAt);
         setNotice("Đã từ chối đơn nghỉ phép.");
       }
       await loadData();
@@ -442,7 +546,7 @@ export default function LeaveRequests() {
           <p>
             Đã duyệt: <b>{paidBalance.usedDays}</b> ngày · Đang chờ duyệt:{" "}
             <b>{paidBalance.reservedDays}</b> ngày · Còn có thể xin:{" "}
-            <b>{paidBalance.remainingDays}</b> ngày.
+            {paidBalance.unresolvedApproved.length ? <b>Cần kiểm tra</b> : <><b>{paidBalance.remainingDays}</b> ngày.</>}
           </p>
         ) : (
           <p>Đang tải số ngày phép...</p>
@@ -479,7 +583,7 @@ export default function LeaveRequests() {
           <span className="leave-stat-icon green">✓</span>
           <div>
             <strong>{stats.approvedDays} ngày</strong>
-            <span>Đã duyệt ({stats.approved} đơn)</span>
+            <span>Ngày đã duyệt ({stats.approved} đơn)</span>
           </div>
         </div>
         <div className="leave-stat-card">
@@ -535,6 +639,7 @@ export default function LeaveRequests() {
             )}
           </div>
           <div className="leave-tools">
+            <button className="leave-secondary-btn" type="button" onClick={() => void loadData()} disabled={loading}>Làm mới</button>
             <label className="leave-search">
               <span aria-hidden="true">⌕</span>
               <input
@@ -561,10 +666,24 @@ export default function LeaveRequests() {
           </div>
         </div>
 
+        {showEmployeeColumn && (
+          <section className="leave-review-balance" aria-label="Tra cứu phép nhân viên">
+            <div className="leave-review-controls">
+              <label className="leave-field"><span>Tra cứu phép nhân viên</span>
+                <CustomSelect value={selectedEmployeeId} onChange={setSelectedEmployeeId} options={[{value: "", label: "Chọn nhân viên"}, ...balanceEmployees.map(emp => ({value: emp._id, label: `${emp.employeeCode} · ${emp.fullName}`}))]} />
+              </label>
+              <label className="leave-field"><span>Năm</span><input type="number" min={2000} max={2099} value={reviewYear || ""} onChange={event => setReviewYear(Number(event.target.value))} /></label>
+            </div>
+            {reviewBalance && <div className="leave-balance-result"><strong>{reviewBalance.unresolvedApproved.length ? "Số dư cần kiểm tra" : `Còn có thể xin: ${reviewBalance.remainingDays}/${reviewBalance.limit} ngày`}</strong><span>Đã duyệt: {reviewBalance.usedDays} ngày · Chờ duyệt: {reviewBalance.reservedDays} ngày</span>{reviewBalance.unresolvedApproved.length > 0 && <p className="leave-day-warning">Có đơn đã duyệt cần kiểm tra trước khi cấp thêm phép.</p>}</div>}
+            {selectedEmployeeId && !reviewBalance && !reviewBalanceError && <p>Đang tải số dư phép...</p>}
+            {reviewBalanceError && <p className="leave-day-warning">{reviewBalanceError}</p>}
+          </section>
+        )}
+
         {loading ? (
           <div className="leave-empty">
             <span className="leave-spinner" />
-            Đang tải dữ liệu từ MongoDB...
+            Đang tải dữ liệu...
           </div>
         ) : visibleRequests.length === 0 ? (
           <div className="leave-empty">
@@ -586,7 +705,8 @@ export default function LeaveRequests() {
                   {showEmployeeColumn && <th>Nhân viên</th>}
                   <th>Loại nghỉ</th>
                   <th>Thời gian nghỉ</th>
-                  <th>Số ngày</th>
+                  <th>Tổng thời gian</th>
+                  <th>Ngày tính phép</th>
                   <th>Lý do</th>
                   <th>Trạng thái</th>
                   <th>Thao tác</th>
@@ -597,6 +717,7 @@ export default function LeaveRequests() {
                   const employee = getEmployee(request);
                   const type = getLeaveType(request);
                   const isOwner = isOwnRequest(request);
+                  const spanDays = request.calendarDays ?? calendarDays(request.startDate, request.endDate);
                   const canEdit = isOwner && request.status === "pending";
                   const canDelete =
                     request.status === "pending" && (isOwner || isAdminHr);
@@ -617,6 +738,7 @@ export default function LeaveRequests() {
                                 {employee?.fullName || "Nhân viên"}
                               </strong>
                               <small>{employee?.employeeCode || "—"}</small>
+                              {employee && <button type="button" className="leave-balance-link" onClick={() => { setSelectedEmployeeId(employee._id); setReviewYear(Number(request.startDate.slice(0,4)) || currentYear()); }}>Xem số dư phép</button>}
                             </span>
                           </div>
                         </td>
@@ -626,9 +748,7 @@ export default function LeaveRequests() {
                           {type?.name || "Loại nghỉ"}
                         </span>
                         <small className="leave-subtle">
-                          {type?.isPaid
-                            ? "Có hưởng lương"
-                            : "Không hưởng lương"}
+                          {type ? (type.isPaid ? "Có hưởng lương" : "Không hưởng lương") : "Chưa xác định"}
                         </small>
                       </td>
                       <td>
@@ -638,11 +758,22 @@ export default function LeaveRequests() {
                         </small>
                       </td>
                       <td>
-                        <span className="leave-days">
-                          {request.totalDays == null
-                            ? "Chưa xác định"
-                            : `${request.totalDays} ngày`}
-                        </span>
+                        <span className="leave-days">{spanDays === null ? "Chưa xác định" : `${spanDays} ngày`}</span>
+                        <small className="leave-subtle">Theo lịch</small>
+                      </td>
+                      <td>
+                        <span className="leave-days">{request.totalDays == null ? "Chưa xác định" : `${request.totalDays} ngày`}</span>
+                        {request.status === "pending" && <small className="leave-subtle">Dự kiến{request.scheduleChanged ? " · Lịch đã thay đổi" : ""}</small>}
+                        {request.status === "pending" && !!request.draftDates?.length && <small className="leave-day-warning">Còn lịch chưa xác nhận</small>}
+                        {request.status === "approved" && (request.scheduleChanged || request.unresolved) && <small className="leave-day-warning">Cần kiểm tra lịch</small>}
+                        <details className="leave-day-detail">
+                          <summary>Chi tiết ngày nghỉ</summary>
+                          <div className="leave-date-list">{(request.scheduledDates || []).length ? request.scheduledDates.map(d => <span key={d}>{dateLabel(d)}</span>) : <small>Chưa xác định được ngày nghỉ.</small>}</div>
+                          {request.draftDates?.length ? <p className="leave-day-warning">Lịch chưa xác nhận: {request.draftDates.map(dateLabel).join(", ")}</p> : null}
+                          {request.status === "approved" && request.scheduleChanged && <p className="leave-day-warning">Lịch hiện tại khác với đơn đã duyệt. Cần kiểm tra lại; số ngày đã duyệt chưa bị thay đổi.</p>}
+                          {request.status === "pending" && spanDays !== null && spanDays > (request.totalDays ?? 0) && <p className="leave-subtle">Các ngày còn lại không có lịch làm việc chính thức; số ngày có thể thay đổi trước khi duyệt.</p>}
+                          {request.unresolved && <p className="leave-day-warning">Dữ liệu cũ chưa đủ căn cứ xác định số ngày.</p>}
+                        </details>
                       </td>
                       <td>
                         <span className="leave-reason" title={request.reason}>
@@ -659,11 +790,12 @@ export default function LeaveRequests() {
                           {canHandle && (
                             <>
                               <button
+                                title={request.draftDates?.length ? "Còn lịch chưa xác nhận" : undefined}
                                 className="leave-action approve"
                                 onClick={() =>
                                   void handleReview(request, "approve")
                                 }
-                                disabled={actionId === request._id}
+                                disabled={actionId === request._id || !request.totalDays || Boolean(request.draftDates?.length)}
                               >
                                 Duyệt
                               </button>
@@ -741,55 +873,42 @@ export default function LeaveRequests() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="leave-form-grid">
-                <label className="leave-field full">
-                  <span>Loại nghỉ phép</span>
-                  <CustomSelect
-                    value={form.leaveTypeId}
-                    onChange={(val) =>
-                      setForm((value) => ({ ...value, leaveTypeId: val }))
-                    }
-                    placeholder="Chọn loại nghỉ phép"
-                    options={[
-                      { value: "", label: "Chọn loại nghỉ phép" },
-                      ...types.map((type) => ({
-                        value: type._id,
-                        label: `${type.name}${type.isPaid ? " · Có lương" : " · Không lương"}`,
-                      })),
-                    ]}
-                  />
-                </label>
-                <label className="leave-field">
-                  <span>Từ ngày</span>
-                  <input
-                    type="date"
-                    min="2000-01-01"
-                    max="2099-12-31"
-                    value={form.startDate}
-                    onChange={(event) =>
-                      setForm((value) => ({
-                        ...value,
-                        startDate: sanitizeDateInput(event.target.value),
-                      }))
-                    }
-                    required
-                  />
-                </label>
-                <label className="leave-field">
-                  <span>Đến ngày</span>
-                  <input
-                    type="date"
-                    min={form.startDate || "2000-01-01"}
-                    max="2099-12-31"
-                    value={form.endDate}
-                    onChange={(event) =>
-                      setForm((value) => ({
-                        ...value,
-                        endDate: sanitizeDateInput(event.target.value),
-                      }))
-                    }
-                    required
-                  />
-                </label>
+                <fieldset className="leave-field full leave-type-choice">
+                  <legend>Loại nghỉ phép mong muốn</legend>
+                  <div className="leave-type-options">
+                    {["paid", "unpaid"].map(code => {
+                      const type = types.find(item => item.code === code);
+                      const selected = !!type && form.leaveTypeId === type._id;
+                      return <label key={code} className={`leave-type-option${selected ? " selected" : ""}${!type ? " unavailable" : ""}`}>
+                        <input type="radio" name="leave-type" value={type?._id || ""} checked={selected} disabled={!type || submitting} required onChange={() => type && setForm(value => ({ ...value, leaveTypeId: type._id }))} />
+                        <span><strong>{code === "paid" ? "Nghỉ có lương" : "Nghỉ không lương"}</strong>
+                          <small>{code === "paid" ? "Tối đa 12 ngày/năm" : "Không trừ phép năm"}</small>
+                        </span>
+                      </label>;
+                    })}
+                  </div>
+                  {types.length === 0 && <p className="leave-day-warning">Chưa tải được loại nghỉ. Vui lòng tải lại trang.</p>}
+                  <p className="leave-type-hint">Bạn chọn loại nghỉ; người quản lý duyệt hoặc từ chối đơn theo loại đã đăng ký.</p>
+                </fieldset>
+                <div className="leave-field">
+                  <span id="leave-start-label">Từ ngày</span>
+                  <button type="button" className="leave-date-trigger" aria-labelledby="leave-start-label leave-start-value" aria-expanded={calendarField === "startDate"} disabled={submitting} onClick={() => setCalendarField(old => old === "startDate" ? null : "startDate")}>
+                    <span id="leave-start-value">{form.startDate ? dateLabel(form.startDate) : "Chọn ngày bắt đầu"}</span><span aria-hidden="true">▦</span>
+                  </button>
+                </div>
+                <div className="leave-field">
+                  <span id="leave-end-label">Đến ngày</span>
+                  <button type="button" className="leave-date-trigger" aria-labelledby="leave-end-label leave-end-value" aria-expanded={calendarField === "endDate"} disabled={submitting} onClick={() => setCalendarField(old => old === "endDate" ? null : "endDate")}>
+                    <span id="leave-end-value">{form.endDate ? dateLabel(form.endDate) : "Chọn ngày kết thúc"}</span><span aria-hidden="true">▦</span>
+                  </button>
+                </div>
+                {calendarField && <div className="leave-field full">
+                  <span>{calendarField === "startDate" ? "Chọn ngày bắt đầu" : "Chọn ngày kết thúc"}</span>
+                  <LeaveCalendar key={calendarField} value={form[calendarField]} min={calendarField === "endDate" && validDate(form.startDate) ? form.startDate : "2000-01-01"} onClose={() => setCalendarField(null)} onSelect={date => {
+                    setForm(value => calendarField === "startDate" ? { ...value, startDate: date, endDate: date && value.endDate < date ? "" : value.endDate } : { ...value, endDate: date });
+                    setCalendarField(null);
+                  }} />
+                </div>}
                 <label className="leave-field full">
                   <span>Lý do nghỉ phép</span>
                   <textarea
@@ -813,22 +932,24 @@ export default function LeaveRequests() {
                 className={`leave-schedule-preview ${scheduleError || (!scheduleLoading && form.startDate && form.endDate && scheduleDates.length === 0) ? "has-error" : ""}`}
               >
                 <div>
-                  <strong>Ngày làm việc được tính</strong>
-                  <span>
-                    {scheduleLoading
-                      ? "Đang kiểm tra lịch trong MongoDB..."
-                      : `${scheduleDates.length} ngày có phân ca`}
-                  </span>
+                  <strong>Tổng thời gian nghỉ</strong>
+                  <span>{formCalendarDays === null ? "—" : `${formCalendarDays} ngày`}</span>
+                </div>
+                <div>
+                  <strong>Ngày nghỉ tính phép</strong>
+                  <span>{scheduleLoading ? "Đang kiểm tra lịch làm việc..." : !previewReady ? "Chưa xác định" : `${scheduleDates.length} ngày`}</span>
                 </div>
                 {scheduleDates.length > 0 && (
-                  <p>{scheduleDates.map(dateLabel).join(" · ")}</p>
+                  <div className="leave-date-list">{scheduleDates.map(d => <span key={d}>{dateLabel(d)}</span>)}</div>
                 )}
                 {draftDates.length > 0 && (
                   <p>
-                    {draftDates.length} ngày đang ở trạng thái nháp:{" "}
+                    {draftDates.length} ngày có lịch chưa xác nhận:{" "}
                     {draftDates.map(dateLabel).join(" · ")}
                   </p>
                 )}
+                {previewReady && formCalendarDays !== null && formCalendarDays > scheduleDates.length && <p>Chỉ tính ngày có lịch làm việc chính thức. Những ngày còn lại có thể thay đổi khi lịch được hoàn tất.</p>}
+                {previewReady && form.leaveTypeId && <p>{types.find(t => t._id === form.leaveTypeId)?.isPaid ? `Dự kiến trừ ${scheduleDates.length} ngày phép có lương.` : "Nghỉ không lương không trừ hạn mức phép năm."}</p>}
                 {scheduleError && (
                   <p className="leave-schedule-error">{scheduleError}</p>
                 )}
@@ -859,7 +980,8 @@ export default function LeaveRequests() {
                   className="leave-primary-btn"
                   disabled={
                     submitting ||
-                    scheduleLoading ||
+                    !previewReady ||
+                    !form.leaveTypeId ||
                     !form.startDate ||
                     !form.endDate ||
                     scheduleDates.length === 0

@@ -12,8 +12,8 @@ test('nghỉ vắt năm được tách đúng năm', () => {
 });
 test('approved trừ ngày, pending giữ chỗ, rejected bỏ qua', () => {
   const summary = summarizeQuota([
-    {_id:'a',status:'approved',startDate:'2026-01-01',endDate:'2026-01-05',scheduledDates:['2026-01-02','2026-01-03']},
-    {_id:'b',status:'pending',startDate:'2026-07-01',endDate:'2026-07-02',scheduledDates:['2026-07-01']},
+    {_id:'a',status:'approved',startDate:'2026-01-01',endDate:'2026-01-05',totalDays:2,scheduledDates:['2026-01-02','2026-01-03']},
+    {_id:'b',status:'pending',startDate:'2026-07-01',endDate:'2026-07-02',totalDays:1,scheduledDates:['2026-07-01']},
     {_id:'c',status:'rejected',startDate:'2026-08-01',endDate:'2026-08-09',scheduledDates:['2026-08-01']},
   ],2026);
   assert.equal(summary.usedDays,2); assert.equal(summary.reservedDays,1);

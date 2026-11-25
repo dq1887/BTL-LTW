@@ -10,6 +10,7 @@ router.post("/types", authorize("admin_hr"), leaveController.createLeaveType);
 router.patch("/types/:id", authorize("admin_hr"), leaveController.updateLeaveType);
 
 router.get("/schedule-days", leaveController.getScheduleDays);
+router.get("/balance-employees", authorize("admin_hr", "manager"), leaveController.getBalanceEmployees);
 router.get("/paid-balance", leaveController.getPaidLeaveBalance);
 router.get("/requests", leaveController.getLeaveRequests);
 router.post("/requests", leaveController.createLeaveRequest);
