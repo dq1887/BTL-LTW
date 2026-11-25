@@ -77,8 +77,11 @@ exports.updatePayroll = catchAsync(async (req, res, next) => {
   const totalHours = round2((stat?.minutes || 0) / 60);
   const totalCredit = round1(stat?.credit || 0);
   const hourBonus = Math.round(totalHours * newRate);
-  // Nghỉ phép luôn tính lại mới nhất (quá 2 ngày thì từ ngày thứ 3 trừ 200.000 đ/ngày)
-  const { leaveDays, leaveDeduction } = await computeLeave(month, employeeId);
+  // Nghỉ phép luôn tính lại mới nhất (trừ 100.000 đ/ngày với nghỉ không lương và nghỉ có lương quá 12 ngày/năm)
+  const { leaveDays, leaveDeduction, totalLeaveDays } = await computeLeave(
+    month,
+    employeeId,
+  );
 
   await Payroll.findOneAndUpdate(
     { employeeId, month },
@@ -93,6 +96,7 @@ exports.updatePayroll = catchAsync(async (req, res, next) => {
         hourBonus,
         leaveDays,
         leaveDeduction,
+        totalLeaveDays,
         total:
           newBase + hourBonus + newAllowance + newAdjustment - leaveDeduction,
         note: note !== undefined ? note : row.note,

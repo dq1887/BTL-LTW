@@ -471,11 +471,11 @@ export default function PayrollPage() {
                     </li>
                     <li className="leave-row">
                       <span>
-                        Nghỉ phép ({r.leaveDays ?? 0} ngày)
+                        Nghỉ bị trừ ({r.leaveDays ?? 0} ngày)
                         <small>
-                          {(r.leaveDays ?? 0) > 2
-                            ? `Quá 2 ngày: trừ ${(r.leaveDays - 2) * 200}k`
-                            : "Dưới 2 ngày: không trừ"}
+                          {(r.leaveDays ?? 0) > 0
+                            ? `Trừ ${r.leaveDays * 100}k (100k/ngày)`
+                            : "Không bị trừ"}
                         </small>
                       </span>
                       <b
@@ -485,6 +485,13 @@ export default function PayrollPage() {
                           ? "-" + money(r.leaveDeduction)
                           : "0 đ"}
                       </b>
+                    </li>
+                    <li className="leave-row">
+                      <span>
+                        Tổng số ngày nghỉ
+                        <small>Gồm nghỉ có lương và không lương</small>
+                      </span>
+                      <b>{r.totalLeaveDays ?? 0} ngày</b>
                     </li>
                     <li>
                       <span>Điều chỉnh</span>

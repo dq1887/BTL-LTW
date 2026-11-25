@@ -16,8 +16,9 @@ export interface PayrollRow {
   allowance: number;
   adjustment: number;
   hourBonus: number;
-  leaveDays: number; // số ngày nghỉ phép đã duyệt trong tháng
-  leaveDeduction: number; // tiền trừ do nghỉ quá 2 ngày
+  leaveDays: number; // số ngày nghỉ bị trừ tiền trong tháng
+  leaveDeduction: number; // tiền trừ do nghỉ (100k/ngày)
+  totalLeaveDays: number; // tổng số ngày nghỉ trong tháng (có lương + không lương)
   total: number;
   note: string;
   status: "draft" | "finalized";
