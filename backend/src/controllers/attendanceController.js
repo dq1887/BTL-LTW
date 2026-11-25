@@ -18,42 +18,52 @@ const buildShiftDateTime = (workDate, timeStr) => {
   return new Date(`${workDate}T${hours}:${minutes}:00.000+07:00`);
 };
 
-// Tính tổng thời gian thực tế giữa inTime và outTime
-// Cho phép tính trọn vẹn số phút làm việc kể cả khi ca kéo dài xuyên đêm sang hôm sau
-const calculateWorkSpan = (inTime, outTime) => {
+// Giới hạn khoảng tính trong phạm vi ngày workDate (+07:00)
+const clampToWorkDate = (inTime, outTime, workDate) => {
+  const dayStart = new Date(`${workDate}T00:00:00.000+07:00`).getTime();
+  const dayEnd = new Date(`${workDate}T23:59:59.999+07:00`).getTime();
+
   const rawStart = new Date(inTime).getTime();
   const rawEnd = new Date(outTime).getTime();
 
-  if (rawEnd <= rawStart) {
-    return { startMs: rawStart, endMs: rawStart, minutes: 0 };
+  const clampedStart = Math.max(rawStart, dayStart);
+  const clampedEnd = Math.min(rawEnd, dayEnd);
+
+  if (clampedEnd <= clampedStart) {
+    return { startMs: clampedStart, endMs: clampedStart, minutes: 0 };
   }
 
   return {
-    startMs: rawStart,
-    endMs: rawEnd,
-    minutes: Math.round((rawEnd - rawStart) / 60000),
+    startMs: clampedStart,
+    endMs: clampedEnd,
+    minutes: Math.round((clampedEnd - clampedStart) / 60000),
   };
 };
 
-const calculateCredits = (
+const calculateAttendanceMetrics = (
   inTime,
   outTime,
   workDate,
   shiftStartStr,
   shiftEndStr,
   existingWorkCreditToday = 0,
+  isFirstSession = true,
 ) => {
   const round2 = (n) => Math.round(n * 100) / 100;
   const {
     startMs,
     endMs,
     minutes: totalMinutes,
-  } = calculateWorkSpan(inTime, outTime);
+  } = clampToWorkDate(inTime, outTime, workDate);
 
-  let inShiftMinutes = 0;
+  const hasPublishedSchedule = Boolean(shiftStartStr && shiftEndStr);
+  let standardMinutes = 0;
+  let overtimeMinutes = totalMinutes;
+  let lateMinutes = 0;
+  let earlyLeaveMinutes = 0;
   let shiftTotalMins = 0;
 
-  if (shiftStartStr && shiftEndStr && totalMinutes > 0) {
+  if (hasPublishedSchedule) {
     const shiftStart = buildShiftDateTime(workDate, shiftStartStr);
     const shiftEnd = buildShiftDateTime(workDate, shiftEndStr);
 
@@ -61,37 +71,53 @@ const calculateCredits = (
       shiftEnd.setDate(shiftEnd.getDate() + 1);
     }
 
-    shiftTotalMins = Math.round(
-      (shiftEnd.getTime() - shiftStart.getTime()) / 60000,
-    );
+    const shiftStartMs = shiftStart.getTime();
+    const shiftEndMs = shiftEnd.getTime();
+    shiftTotalMins = Math.round((shiftEndMs - shiftStartMs) / 60000);
 
-    const overlapStart = Math.max(startMs, shiftStart.getTime());
-    const overlapEnd = Math.min(endMs, shiftEnd.getTime());
+    // Thời gian làm trong khung giờ ca -> Thời gian chuẩn
+    const overlapStart = Math.max(startMs, shiftStartMs);
+    const overlapEnd = Math.min(endMs, shiftEndMs);
     if (overlapEnd > overlapStart) {
-      inShiftMinutes = Math.round((overlapEnd - overlapStart) / 60000);
+      standardMinutes = Math.round((overlapEnd - overlapStart) / 60000);
+    }
+
+    // Thời gian làm ngoài khung giờ ca -> Tăng ca
+    overtimeMinutes = Math.max(0, totalMinutes - standardMinutes);
+
+    // Chỉ tính Đi muộn & Về sớm cho lượt check-in đầu tiên trong ngày
+    if (isFirstSession) {
+      if (startMs > shiftStartMs) {
+        lateMinutes = Math.round((startMs - shiftStartMs) / 60000);
+      }
+      if (endMs < shiftEndMs) {
+        earlyLeaveMinutes = Math.round((shiftEndMs - endMs) / 60000);
+      }
     }
   }
 
-  // Toàn bộ thời gian làm việc ngoài ca (hoặc ngoài ca chuẩn) được tính vào làm thêm / công phụ
-  const outShiftMinutes = Math.max(0, totalMinutes - inShiftMinutes);
-
+  // Vẫn quy đổi workCredit & overtimeCredit ngầm để Bảng lương hoạt động bình thường
   let workCredit = 0;
-  if (shiftTotalMins > 0 && inShiftMinutes > 0) {
+  if (shiftTotalMins > 0 && standardMinutes > 0) {
     const rawCredit =
-      inShiftMinutes >= shiftTotalMins
+      standardMinutes >= shiftTotalMins
         ? 1
-        : round2(inShiftMinutes / shiftTotalMins);
+        : round2(standardMinutes / shiftTotalMins);
     const remaining = Math.max(0, round2(1 - existingWorkCreditToday));
     workCredit = round2(Math.min(rawCredit, remaining));
-  } else if (!shiftStartStr && totalMinutes > 0) {
-    // Trường hợp không có ca quy định cụ thể: 480 phút (8h) = 1 công chuẩn
-    workCredit = round2(Math.min(1, totalMinutes / 480));
   }
+  const overtimeCredit = Math.floor(overtimeMinutes / 60);
 
-  // Công phụ / làm thêm: Mỗi 60 phút làm ngoài ca được tính là 1 giờ công thêm
-  const overtimeCredit = Math.floor(outShiftMinutes / 60);
-
-  return { workCredit, overtimeCredit, totalMinutes };
+  return {
+    totalMinutes,
+    standardMinutes,
+    overtimeMinutes,
+    lateMinutes,
+    earlyLeaveMinutes,
+    hasPublishedSchedule,
+    workCredit,
+    overtimeCredit,
+  };
 };
 
 const refreshPayroll = (employeeId, workDate) => {
@@ -147,6 +173,7 @@ exports.checkIn = catchAsync(async (req, res, next) => {
   }
 
   let resolvedScheduleId = scheduleId || null;
+  let hasPublishedSchedule = false;
   if (!resolvedScheduleId) {
     const publishedSchedule = await Schedule.findOne({
       employeeId,
@@ -155,6 +182,7 @@ exports.checkIn = catchAsync(async (req, res, next) => {
     });
     if (publishedSchedule) {
       resolvedScheduleId = publishedSchedule.shiftId || null;
+      hasPublishedSchedule = true;
     }
   }
 
@@ -163,6 +191,7 @@ exports.checkIn = catchAsync(async (req, res, next) => {
     scheduleId: resolvedScheduleId,
     workDate: targetDate,
     checkInAt: new Date(),
+    hasPublishedSchedule,
     status: "present",
   });
 
@@ -236,19 +265,41 @@ exports.checkOut = catchAsync(async (req, res, next) => {
     0,
   );
 
-  const { workCredit, overtimeCredit, totalMinutes } = calculateCredits(
+  // Kiểm tra xem đây có phải lượt check-in đầu tiên trong ngày hay không
+  const earlierCount = await Attendance.countDocuments({
+    employeeId: attendance.employeeId,
+    workDate: attendance.workDate,
+    _id: { $ne: attendance._id },
+    checkInAt: { $lt: attendance.checkInAt },
+  });
+  const isFirstSession = earlierCount === 0;
+
+  const metrics = calculateAttendanceMetrics(
     attendance.checkInAt,
     checkOutTime,
     attendance.workDate,
     shiftStart,
     shiftEnd,
     existingWorkCreditToday,
+    isFirstSession,
   );
 
-  attendance.minutesWorked = totalMinutes;
-  attendance.workCredit = workCredit;
-  attendance.overtimeCredit = overtimeCredit;
-  attendance.status = totalMinutes > 0 ? "present" : "absent";
+  attendance.minutesWorked = metrics.totalMinutes;
+  attendance.standardMinutes = metrics.standardMinutes;
+  attendance.overtimeMinutes = metrics.overtimeMinutes;
+  attendance.lateMinutes = metrics.lateMinutes;
+  attendance.earlyLeaveMinutes = metrics.earlyLeaveMinutes;
+  attendance.hasPublishedSchedule = metrics.hasPublishedSchedule;
+  attendance.workCredit = metrics.workCredit;
+  attendance.overtimeCredit = metrics.overtimeCredit;
+
+  if (metrics.totalMinutes === 0) {
+    attendance.status = "absent";
+  } else if (metrics.hasPublishedSchedule && metrics.lateMinutes > 0) {
+    attendance.status = "late";
+  } else {
+    attendance.status = "present";
+  }
 
   await attendance.save();
 
@@ -256,7 +307,7 @@ exports.checkOut = catchAsync(async (req, res, next) => {
 
   res.status(200).json({
     success: true,
-    message: "Check-out thành công và đã quy đổi công tự động!",
+    message: "Tan ca thành công và đã tính thời gian tự động!",
     data: attendance,
   });
 });
@@ -285,7 +336,75 @@ exports.getAttendances = catchAsync(async (req, res, next) => {
 
   const records = await Attendance.find(filter)
     .populate("employeeId", "fullName employeeCode position email role")
-    .sort({ workDate: -1, createdAt: -1 });
+    .sort({ workDate: -1, createdAt: -1 })
+    .lean();
+
+  // Tự động tính lại các trường mới cho những bản ghi cũ chưa có dữ liệu
+  const needRecalc = records.filter(
+    (r) => r.standardMinutes === undefined && r.checkInAt && r.checkOutAt,
+  );
+
+  if (needRecalc.length > 0) {
+    const empIds = [
+      ...new Set(
+        needRecalc
+          .map((r) => String(r.employeeId?._id || r.employeeId))
+          .filter(Boolean),
+      ),
+    ];
+    const dates = [...new Set(needRecalc.map((r) => r.workDate))];
+
+    const schedules = await Schedule.find({
+      employeeId: { $in: empIds },
+      workDate: { $in: dates },
+      status: "published",
+    })
+      .populate("shiftId")
+      .lean();
+
+    const scheduleMap = new Map();
+    for (const s of schedules) {
+      if (s.shiftId) {
+        scheduleMap.set(`${s.employeeId}_${s.workDate}`, s.shiftId);
+      }
+    }
+
+    // Tìm lượt check-in sớm nhất của mỗi nhân viên trong từng ngày
+    const earliestCheckInMap = new Map();
+    for (const r of records) {
+      if (!r.checkInAt) continue;
+      const empId = String(r.employeeId?._id || r.employeeId);
+      const key = `${empId}_${r.workDate}`;
+      const time = new Date(r.checkInAt).getTime();
+      if (!earliestCheckInMap.has(key) || time < earliestCheckInMap.get(key)) {
+        earliestCheckInMap.set(key, time);
+      }
+    }
+
+    for (const r of needRecalc) {
+      const empId = String(r.employeeId?._id || r.employeeId);
+      const key = `${empId}_${r.workDate}`;
+      const shift = scheduleMap.get(key);
+      const isFirstSession =
+        new Date(r.checkInAt).getTime() === earliestCheckInMap.get(key);
+
+      const metrics = calculateAttendanceMetrics(
+        r.checkInAt,
+        r.checkOutAt,
+        r.workDate,
+        shift?.startTime || null,
+        shift?.endTime || null,
+        0,
+        isFirstSession,
+      );
+
+      r.standardMinutes = metrics.standardMinutes;
+      r.overtimeMinutes = metrics.overtimeMinutes;
+      r.lateMinutes = metrics.lateMinutes;
+      r.earlyLeaveMinutes = metrics.earlyLeaveMinutes;
+      r.hasPublishedSchedule = metrics.hasPublishedSchedule;
+    }
+  }
 
   res.status(200).json({
     success: true,
