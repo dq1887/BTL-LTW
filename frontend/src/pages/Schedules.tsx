@@ -1,6 +1,7 @@
 import { useState, useEffect, type SyntheticEvent } from "react";
 import api from "../services/api"; // chỉnh đường dẫn cho đúng vị trí api.ts của bạn
 import "./Schedules.css";
+import CustomSelect from "../components/layouts/CustomSelect";
 
 interface Schedule {
   _id: string;
@@ -105,6 +106,42 @@ const longDateLabel = (s: string) => {
   )}/${d.getFullYear()}`;
 };
 
+// Lấy vai trò của người đang đăng nhập.
+// Dò trong localStorage (đối tượng user có trường role), rồi tới payload của token.
+// Không xác định được thì trả về "employee" (chỉ xem) cho an toàn.
+const getCurrentRole = (): string => {
+  const roleOf = (v: unknown): string | null => {
+    const o = v as {
+      role?: unknown;
+      user?: { role?: unknown };
+      employee?: { role?: unknown };
+    } | null;
+    const r = o?.role ?? o?.user?.role ?? o?.employee?.role;
+    return typeof r === "string" ? r : null;
+  };
+  try {
+    const keys = ["user", "currentUser", "userInfo", "employee", "auth"];
+    for (const key of [...keys, ...Object.keys(localStorage)]) {
+      const raw = localStorage.getItem(key);
+      if (!raw || raw[0] !== "{") continue;
+      const role = roleOf(JSON.parse(raw));
+      if (role) return role;
+    }
+    const token = localStorage.getItem("token");
+    if (token) {
+      const payload = JSON.parse(
+        atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
+      );
+      const role = roleOf(payload);
+      if (role) return role;
+    }
+  } catch {
+    /* bỏ qua, dùng giá trị mặc định bên dưới */
+  }
+  console.warn("Không xác định được vai trò đăng nhập, mặc định chỉ xem.");
+  return "employee";
+};
+
 export default function Schedules() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -132,12 +169,13 @@ export default function Schedules() {
   const [autoError, setAutoError] = useState<string | null>(null);
   const [autoLoading, setAutoLoading] = useState(false);
 
-  // Giả lập user đang đăng nhập (sau này lấy từ localStorage/Redux)
-  const currentUserRole: string = "admin_hr";
-  // admin_hr và manager: phân ca, xóa lịch nháp. Chỉ admin_hr: công bố (publish)
+  // Vai trò thật của người đang đăng nhập
+  const currentUserRole = getCurrentRole();
+  // admin_hr và manager: phân ca. Chỉ admin_hr: xóa ca và công bố (publish)
   const canManage =
     currentUserRole === "admin_hr" || currentUserRole === "manager";
   const canPublish = currentUserRole === "admin_hr";
+  const canDelete = currentUserRole === "admin_hr";
 
   const fetchSchedules = async (silent = false) => {
     try {
@@ -245,7 +283,7 @@ export default function Schedules() {
 
   // Xóa lịch (chỉ lịch draft, backend cũng chặn lịch đã published)
   const handleDelete = async (item: Schedule) => {
-    if (item.status !== "draft") return;
+    if (!canDelete || item.status !== "draft") return;
     const ok = window.confirm(
       `Xóa ca ${item.shiftId?.name || ""} ngày ${item.workDate} của ${
         item.employeeId?.fullName || "nhân viên này"
@@ -286,8 +324,13 @@ export default function Schedules() {
     return <div className="schedule-loading">Đang tải dữ liệu phân ca...</div>;
   if (error) return <div className="schedule-error">Lỗi: {error}</div>;
 
-  const renderActions = (item: Schedule) =>
-    item.status === "draft" && (canPublish || canManage) ? (
+  const renderActions = (item: Schedule) => {
+    // Không có quyền thao tác (không phải admin_hr): chỉ xem
+    if (!canPublish && !canDelete) {
+      return <span className="action-readonly">Chỉ xem</span>;
+    }
+    if (item.status !== "draft") return null;
+    return (
       <div className="action-cell">
         {canPublish && (
           <button
@@ -298,7 +341,7 @@ export default function Schedules() {
             Publish
           </button>
         )}
-        {canManage && (
+        {canDelete && (
           <button
             className="btn-delete"
             onClick={() => handleDelete(item)}
@@ -308,7 +351,8 @@ export default function Schedules() {
           </button>
         )}
       </div>
-    ) : null;
+    );
+  };
 
   const renderDayView = () => {
     const dayItems = schedules.filter((s) => s.workDate === selectedDate);
@@ -540,37 +584,34 @@ export default function Schedules() {
 
             <label className="form-field">
               <span>Nhân viên</span>
-              <select
+              <CustomSelect
                 value={form.employeeId}
-                onChange={(e) =>
-                  setForm({ ...form, employeeId: e.target.value })
-                }
-                required
-              >
-                <option value="">-- Chọn nhân viên --</option>
-                {employees.map((emp) => (
-                  <option key={emp._id} value={emp._id}>
-                    {emp.employeeCode} - {emp.fullName} (
-                    {emp.position || emp.role})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setForm({ ...form, employeeId: val })}
+                placeholder="-- Chọn nhân viên --"
+                options={[
+                  { value: "", label: "-- Chọn nhân viên --" },
+                  ...employees.map((emp) => ({
+                    value: emp._id,
+                    label: `${emp.employeeCode} - ${emp.fullName} (${emp.position || emp.role})`,
+                  })),
+                ]}
+              />
             </label>
 
             <label className="form-field">
               <span>Ca làm việc</span>
-              <select
+              <CustomSelect
                 value={form.shiftId}
-                onChange={(e) => setForm({ ...form, shiftId: e.target.value })}
-                required
-              >
-                <option value="">-- Chọn ca --</option>
-                {shifts.map((s) => (
-                  <option key={s._id} value={s._id}>
-                    {s.name} ({s.startTime} - {s.endTime})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setForm({ ...form, shiftId: val })}
+                placeholder="-- Chọn ca --"
+                options={[
+                  { value: "", label: "-- Chọn ca --" },
+                  ...shifts.map((s) => ({
+                    value: s._id,
+                    label: `${s.name} (${s.startTime} - ${s.endTime})`,
+                  })),
+                ]}
+              />
             </label>
 
             <label className="form-field">

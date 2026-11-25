@@ -559,3 +559,9 @@
 .shift-group-count {
   margin-left: auto;
 }
+
+/* Cột Thao tác khi chỉ có quyền xem */
+.action-readonly {
+  font-size: 12px;
+  color: var(--sc-muted);
+}

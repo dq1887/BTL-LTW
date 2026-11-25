@@ -13,7 +13,7 @@ const attendanceSchema = new mongoose.Schema(
       default: null,
     },
     workDate: {
-      type: String,
+      type: String, // "YYYY-MM-DD"
       required: true,
     },
     checkInAt: {
@@ -28,6 +28,26 @@ const attendanceSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    standardMinutes: {
+      type: Number,
+      default: 0, // Thời gian chuẩn (phút làm trong ca published)
+    },
+    overtimeMinutes: {
+      type: Number,
+      default: 0, // Tăng ca (phút làm ngoài ca)
+    },
+    lateMinutes: {
+      type: Number,
+      default: 0, // Đi muộn (phút)
+    },
+    earlyLeaveMinutes: {
+      type: Number,
+      default: 0, // Về sớm (phút)
+    },
+    hasPublishedSchedule: {
+      type: Boolean,
+      default: false, // Có lịch published trong ngày hay không
+    },
     workCredit: {
       type: Number,
       default: 0,
@@ -35,10 +55,6 @@ const attendanceSchema = new mongoose.Schema(
     overtimeCredit: {
       type: Number,
       default: 0,
-    },
-    breakMinutes: {
-      type: Number,
-      default: 60,
     },
     status: {
       type: String,
@@ -48,5 +64,7 @@ const attendanceSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
+attendanceSchema.index({ employeeId: 1, workDate: 1 });
 
 module.exports = mongoose.model("Attendance", attendanceSchema, "attendances");
