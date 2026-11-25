@@ -4,6 +4,16 @@
 > **Học phần:** Lập trình Web  
 > **Quy mô:** Nhóm 5 thành viên (Mô hình Fullstack khép kín 5 Module nghiệp vụ)
 
+### Thành viên nhóm thực hiện
+
+| STT | Họ và tên | Mã sinh viên | Module / Vai trò phụ trách |
+| :---: | :--- | :--- | :--- |
+| 1 | Dương Hoài Nam | B25DCCC150 | Auth, Nhân sự & Phòng ban |
+| 2 | Đỗ Vũ Hồng Quân | B25DCCC198 | Ca làm việc & Lịch phân ca |
+| 3 | Vũ Tuấn Minh | B25DCCC144 | Chấm công & Dashboard|
+| 4 | Đồng Mạnh Cường | B25DCCC048 | Quản lý nghỉ phép |
+| 5 | Phạm Thành Đạt | B25DCCC288 | Tính lương & Bảng lương |
+
 ---
 
 ## 1. TỔNG QUAN DỰ ÁN
@@ -16,7 +26,7 @@ Hệ thống được thiết kế hướng tới trải nghiệm người dùng
 
 ## 2. CÁC CHỨC NĂNG CHÍNH
 
-Hệ thống tích hợp chặt chẽ 6 phân hệ cốt lõi với luồng dữ liệu liên thông hoàn chỉnh:
+Hệ thống tích hợp chặt chẽ 7 phân hệ cốt lõi với luồng dữ liệu liên thông hoàn chỉnh:
 
 1. **Xác thực & Phân quyền (Authentication & RBAC):**
    - Đăng nhập bảo mật qua JWT (JSON Web Token), hỗ trợ đối chiếu mật khẩu băm `bcrypt` và tài khoản thử nghiệm nhanh 1-click.
@@ -141,7 +151,7 @@ BTL-LTW/
 3. Cấu hình file biến môi trường `.env` tại thư mục `backend/`:
    ```env
    PORT=5000
-   MONGO_URI=mongodb+srv://employee_management:emp123@hrm-database.87l2z1y.mongodb.net/EmployeeManagement?retryWrites=true&w=majority
+   MONGO_URI=mongodb+srv://<username>:<password>@<cluster-url>/EmployeeManagement?retryWrites=true&w=majority
    JWT_SECRET=your_super_secret_jwt_key_here
    NODE_ENV=development
    ```
@@ -192,7 +202,8 @@ Tất cả các endpoint (ngoại trừ login) đều yêu cầu đính kèm Hea
 
 ### **1. Xác thực (Auth)**
 - `POST /api/auth/login`: Xác thực thông tin đăng nhập, trả về JWT Token và User profile.
-- `GET /api/auth/me`: Lấy thông tin tài khoản hiện tại từ Token.
+- `PUT /api/auth/change-password`: Đổi mật khẩu tài khoản hiện tại.
+- `GET /api/auth/login-history`: Xem lịch sử đăng nhập.
 
 ### **2. Nhân viên (Employees)**
 - `GET /api/employees`: Lấy danh sách nhân viên (hỗ trợ query tìm kiếm, lọc phòng ban, trạng thái).
@@ -217,10 +228,10 @@ Tất cả các endpoint (ngoại trừ login) đều yêu cầu đính kèm Hea
 - `DELETE /api/schedules/:id`: Xóa phân ca làm việc.
 
 ### **5. Chấm công (Attendance)**
-- `GET /api/attendance`: Lấy bảng chấm công theo ngày/tháng.
-- `POST /api/attendance/check-in`: Ghi nhận giờ vào làm.
-- `POST /api/attendance/check-out`: Ghi nhận giờ về.
-- `GET /api/attendance/dashboard-stats`: Lấy số liệu thống kê tổng quan cho Dashboard.
+- `GET /api/attendances`: Lấy bảng chấm công theo ngày/tháng.
+- `POST /api/attendances/check-in`: Ghi nhận giờ vào làm.
+- `POST /api/attendances/check-out`: Ghi nhận giờ về (hoặc `POST /api/attendances/:id/check-out`).
+- `GET /api/attendances/dashboard-stats`: Lấy số liệu thống kê tổng quan cho Dashboard.
 
 ### **6. Nghỉ phép (Leave Requests)**
 - `GET /api/leave/types`: Lấy danh mục loại nghỉ phép.
@@ -233,8 +244,11 @@ Tất cả các endpoint (ngoại trừ login) đều yêu cầu đính kèm Hea
 
 ### **7. Bảng lương (Payroll)**
 - `GET /api/payroll`: Lấy danh sách bảng lương theo kỳ.
-- `POST /api/payroll/calculate`: Tính toán và lập bảng lương tự động từ dữ liệu chấm công.
-- `GET /api/payroll/:id`: Xem chi tiết phiếu lương nhân viên.
+- `POST /api/payroll/finalize`: Chốt bảng lương tháng (yêu cầu quyền Kế toán / Giám đốc).
+- `PUT /api/payroll/edit`: Chỉnh sửa thông tin bảng lương (yêu cầu quyền Kế toán / Giám đốc).
+- `GET /api/payroll/requests`: Lấy danh sách yêu cầu chỉnh sửa lương.
+- `POST /api/payroll/requests`: Tạo yêu cầu chỉnh sửa lương.
+- `PUT /api/payroll/requests/:id`: Phê duyệt / xử lý yêu cầu chỉnh sửa lương.
 
 ---
 
