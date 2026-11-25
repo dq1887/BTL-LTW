@@ -65,7 +65,7 @@ interface SchedulePreview {
   count: number;
   dates: string[];
   draftDates?: string[];
-  data: { date: string; source?: string; shift: { id: string; name: string; startTime: string; endTime: string } }[];
+  data: { date: string; source?: string; shift: { id: string; name: string; startTime: string; endTime: string } | null }[];
 }
 
 export const leaveService = {

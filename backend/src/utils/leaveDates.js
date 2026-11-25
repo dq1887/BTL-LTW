@@ -1,5 +1,7 @@
 // Ngày nghiệp vụ YYYY-MM-DD; UTC chỉ để tính khoảng ngày, không đổi múi giờ.
 const DAY_MS = 86400000;
+// Dùng cùng cấu hình ngày lễ với tính lương, không phụ thuộc lịch phân ca đã sinh.
+const { isHoliday, isWeekend } = require('./payrollCalc');
 function isValidDateOnly(value) {
   if (typeof value !== 'string' || !/^20\d{2}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00Z`);
@@ -13,12 +15,28 @@ function validDates(dates, start, end) {
   if (!Array.isArray(dates) || calendarDays(start, end) === null) return [];
   return [...new Set(dates.filter(d => isValidDateOnly(d) && d >= start && d <= end))].sort();
 }
+// Ngày làm việc mặc định T2–T6; ca cuối tuần đã công bố là ngoại lệ.
+// Ngày lễ trong cấu hình công ty không tính phép. Không suy ra ca nghỉ từ việc thiếu lịch.
+function getCountedLeaveDates(start, end, published = []) {
+  const span = calendarDays(start, end);
+  if (span === null) return [];
+  const explicit = new Set(validDates(published, start, end));
+  const result = [];
+  const first = Date.parse(`${start}T00:00:00Z`);
+  for (let i = 0; i < span; i++) {
+    const date = new Date(first + i * DAY_MS);
+    const day = date.toISOString().slice(0, 10);
+    if (isHoliday(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())) continue;
+    if (!isWeekend(date.getUTCDay()) || explicit.has(day)) result.push(day);
+  }
+  return result;
+}
 function currentYearVN() {
   return Number(new Intl.DateTimeFormat('en', {year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh'}).format(new Date()));
 }
-function describeRequest(request, published, drafts) {
+function describeRequest(request, countedDates, drafts) {
   const { startDate: start, endDate: end, status } = request;
-  const current = validDates(published, start, end);
+  const current = validDates(countedDates, start, end);
   const draftDates = validDates(drafts, start, end).filter(d => !current.includes(d));
   const stored = validDates(request.scheduledDates, start, end);
   const snapshotValid = stored.length > 0 && stored.length === request.totalDays && stored.length === request.scheduledDates?.length;
@@ -34,4 +52,4 @@ function describeRequest(request, published, drafts) {
     unresolved: !pending && !snapshotValid,
   };
 }
-module.exports = { isValidDateOnly, calendarDays, validDates, currentYearVN, describeRequest };
+module.exports = { isValidDateOnly, calendarDays, validDates, currentYearVN, describeRequest, getCountedLeaveDates };

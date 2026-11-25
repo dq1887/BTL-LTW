@@ -1,9 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { calendarDays, isValidDateOnly, describeRequest } = require('../src/utils/leaveDates');
+const { calendarDays, isValidDateOnly, describeRequest, getCountedLeaveDates } = require('../src/utils/leaveDates');
 const { summarizeQuota } = require('../src/utils/leaveQuota');
 const sample = { _id:'old', startDate:'2026-11-18', endDate:'2026-11-30', scheduledDates:['2026-11-19','2026-11-23'], totalDays:2, status:'approved' };
-test('18–30/11: 13 ngày theo lịch, 2 ngày tính phép', () => {
+test('đơn lịch sử 18–30/11 giữ 13 ngày theo lịch, 2 ngày đã duyệt', () => {
   const result = describeRequest(sample, sample.scheduledDates, []);
   assert.equal(result.calendarDays, 13);
   assert.equal(result.totalDays, 2);
@@ -53,4 +53,14 @@ test('số ngày đã duyệt và chờ duyệt không đếm trùng', () => {
 test('đơn cũ có tổng số nhưng thiếu danh sách ngày phải đối chiếu', () => {
   const r = {...sample,scheduledDates:[],totalDays:2};
   assert.deepEqual(summarizeQuota([r],2026).unresolvedApproved,['old']);
+});
+
+test('quy tắc mới: 18–30 có 9 ngày, không có lịch vẫn tính được', () => {
+  assert.equal(getCountedLeaveDates('2026-11-18','2026-11-30').length,9);
+  assert.deepEqual(getCountedLeaveDates('2026-11-26','2026-11-30'),['2026-11-26','2026-11-27','2026-11-30']);
+});
+test('ngày lễ, ngày cuối tuần và ca cuối tuần đã công bố', () => {
+  assert.deepEqual(getCountedLeaveDates('2026-12-31','2027-01-04'),['2026-12-31','2027-01-04']);
+  assert.deepEqual(getCountedLeaveDates('2026-11-27','2026-11-29',['2026-11-28','2026-11-28','2026-12-01']),['2026-11-27','2026-11-28']);
+  assert.deepEqual(getCountedLeaveDates('2027-01-01','2027-01-01',['2027-01-01']),[]);
 });

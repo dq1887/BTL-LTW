@@ -46,23 +46,41 @@ function invoke(name,user,body={},params={},q={}){return new Promise((resolve,re
  controller[name]({user,body,params,query:q},res,err=>{clearTimeout(timeout);resolve({code:err.statusCode||500,message:err.message})});
 })}
 test.beforeEach(()=>{db={requests:[],schedules:[]};counter=0;payroll=[];schedule('2026-11-19');schedule('2026-11-23')});
-test('tạo đơn 18–30: 13 ngày theo lịch, 2 ngày tính phép; lưu đúng loại nghỉ',async()=>{
- const r=await invoke('createLeaveRequest',emp,requestBody());assert.equal(r.code,201);assert.equal(r.data.calendarDays,13);assert.equal(r.data.totalDays,2);assert.equal(db.requests[0].leaveTypeId,'paid');
+test('18–30: 13 ngày theo lịch, 9 ngày tính phép dù chưa có ca',async()=>{
+ db.schedules=[];
+ const r=await invoke('createLeaveRequest',emp,requestBody());assert.equal(r.code,201);assert.equal(r.data.calendarDays,13);assert.equal(r.data.totalDays,9);assert.equal(db.requests[0].leaveTypeId,'paid');
+ assert.deepEqual(r.data.scheduledDates,['2026-11-18','2026-11-19','2026-11-20','2026-11-23','2026-11-24','2026-11-25','2026-11-26','2026-11-27','2026-11-30']);
 });
-test('đơn chờ duyệt tính lại khi thêm lịch; không ghi DB khi chỉ xem',async()=>{
- const r=await invoke('createLeaveRequest',emp,requestBody());schedule('2026-11-24');const list=await invoke('getLeaveRequests',emp);assert.equal(list.data[0].totalDays,3);assert.equal(db.requests[0].totalDays,2);const b=await invoke('getPaidLeaveBalance',emp,{}, {}, {year:'2026'});assert.equal(b.data.remainingDays,9);assert.equal(r.code,201);
+test('preview trước khi phân ca: 26–30 có 3 ngày làm việc, không có shift vẫn hợp lệ',async()=>{
+ db.schedules=[];const r=await invoke('getScheduleDays',emp,{}, {},{startDate:'2026-11-26',endDate:'2026-11-30'});
+ assert.equal(r.code,200);assert.equal(r.calendarDays,5);assert.equal(r.count,3);assert.deepEqual(r.dates,['2026-11-26','2026-11-27','2026-11-30']);assert.ok(r.data.every(x=>x.shift===null));
 });
-test('không duyệt nếu còn lịch nháp hoặc người duyệt đang xem lịch cũ',async()=>{
- const r=await invoke('createLeaveRequest',emp,requestBody());const id=r.data._id;schedule('2026-11-24','draft');assert.equal((await invoke('approveLeaveRequest',manager,{}, {id})).code,409);db.schedules.at(-1).status='published';assert.equal((await invoke('approveLeaveRequest',manager,{expectedScheduledDates:r.data.scheduledDates},{id})).code,409);assert.equal(db.requests[0].status,'pending');
+test('thêm ca ngày thường không làm đổi số phép; ca cuối tuần đã công bố tính thêm',async()=>{
+ const r=await invoke('createLeaveRequest',emp,requestBody());assert.equal(r.code,201);schedule('2026-11-24');let list=await invoke('getLeaveRequests',emp);assert.equal(list.data[0].totalDays,9);assert.equal(list.data[0].scheduleChanged,false);schedule('2026-11-28');list=await invoke('getLeaveRequests',emp);assert.equal(list.data[0].totalDays,10);assert.equal(db.requests[0].totalDays,9);assert.equal(list.data[0].scheduleChanged,true);const b=await invoke('getPaidLeaveBalance',emp,{}, {}, {year:'2026'});assert.equal(b.data.remainingDays,2);
 });
-test('duyệt đúng loại nghỉ, giữ ảnh chụp ngày, gọi cập nhật lương; thêm lịch không sửa lịch sử',async()=>{
- const r=await invoke('createLeaveRequest',emp,requestBody());const id=r.data._id;const a=await invoke('approveLeaveRequest',manager,{leaveTypeId:'unpaid',expectedScheduledDates:r.data.scheduledDates},{id});assert.equal(a.code,200);assert.equal(db.requests[0].leaveTypeId,'paid');assert.equal(db.requests[0].status,'approved');assert.deepEqual(payroll,[{id:'emp',month:'2026-11'}]);schedule('2026-11-24');const list=await invoke('getLeaveRequests',emp);assert.equal(list.data[0].totalDays,2);assert.equal(list.data[0].scheduleChanged,true);
+test('duyệt trước khi có lịch; ca nháp không chặn duyệt',async()=>{
+ db.schedules=[];const r=await invoke('createLeaveRequest',emp,requestBody('paid','2026-11-26','2026-11-30'));assert.equal(r.code,201);schedule('2026-11-27','draft');const a=await invoke('approveLeaveRequest',manager,{expectedScheduledDates:r.data.scheduledDates},{id:r.data._id});assert.equal(a.code,200);assert.equal(db.requests[0].status,'approved');assert.equal(db.requests[0].totalDays,3);assert.deepEqual(payroll,[{id:'emp',month:'2026-11'}]);
+});
+test('nếu ca cuối tuần mới công bố làm đổi số phép thì yêu cầu tải lại trước khi duyệt',async()=>{
+ const r=await invoke('createLeaveRequest',emp,requestBody());const id=r.data._id;schedule('2026-11-28','draft');db.schedules.at(-1).status='published';assert.equal((await invoke('approveLeaveRequest',manager,{expectedScheduledDates:r.data.scheduledDates},{id})).code,409);assert.equal(db.requests[0].status,'pending');
+});
+test('duyệt đúng loại nghỉ, giữ ngày đã chốt, gọi cập nhật lương; thêm ca không sửa lịch sử',async()=>{
+ const r=await invoke('createLeaveRequest',emp,requestBody());const id=r.data._id;const a=await invoke('approveLeaveRequest',manager,{leaveTypeId:'unpaid',expectedScheduledDates:r.data.scheduledDates},{id});assert.equal(a.code,200);assert.equal(db.requests[0].leaveTypeId,'paid');assert.equal(db.requests[0].status,'approved');assert.deepEqual(payroll,[{id:'emp',month:'2026-11'}]);schedule('2026-11-28');const list=await invoke('getLeaveRequests',emp);assert.equal(list.data[0].totalDays,9);assert.equal(list.data[0].scheduleChanged,true);
+});
+test('đơn không lương không cần ca, duyệt không làm trừ quỹ 12 ngày',async()=>{
+ db.schedules=[];const r=await invoke('createLeaveRequest',emp,requestBody('unpaid','2026-11-02','2026-11-30'));assert.equal(r.code,201);assert.equal(r.data.totalDays,21);assert.equal((await invoke('approveLeaveRequest',manager,{}, {id:r.data._id})).code,200);const b=await invoke('getPaidLeaveBalance',emp,{}, {},{year:'2026'});assert.equal(b.data.remainingDays,12);
+});
+test('chỉ nghỉ cuối tuần hoặc ngày lễ thì không tạo đơn; có ca cuối tuần published thì được',async()=>{
+ db.schedules=[];assert.equal((await invoke('createLeaveRequest',emp,requestBody('paid','2026-11-28','2026-11-29'))).code,400);assert.equal((await invoke('createLeaveRequest',emp,requestBody('paid','2027-01-01','2027-01-01'))).code,400);schedule('2026-11-28');const r=await invoke('createLeaveRequest',emp,requestBody('paid','2026-11-28','2026-11-29'));assert.equal(r.code,201);assert.equal(r.data.totalDays,1);
+});
+test('đơn đã duyệt từ trước chỉ 2 ngày: giữ nguyên số dư và dữ liệu cũ',async()=>{
+ db.requests.push({_id:'legacy',employeeId:'emp',leaveTypeId:'paid',startDate:'2026-11-18',endDate:'2026-11-30',scheduledDates:['2026-11-19','2026-11-23'],totalDays:2,status:'approved'});const list=await invoke('getLeaveRequests',emp);assert.equal(list.data[0].totalDays,2);assert.equal(list.data[0].scheduleChanged,true);const b=await invoke('getPaidLeaveBalance',emp,{}, {},{year:'2026'});assert.equal(b.data.remainingDays,10);assert.equal(db.requests[0].totalDays,2);
 });
 test('tra số dư: nhân viên không xem người khác, manager đúng phòng, HR toàn công ty',async()=>{
  const q={year:'2026',employeeId:'emp'};assert.equal((await invoke('getPaidLeaveBalance',outsider,{}, {},q)).code,403);assert.equal((await invoke('getPaidLeaveBalance',emp,{}, {},{...q,employeeId:'mgr'})).code,403);assert.equal((await invoke('getPaidLeaveBalance',manager,{}, {},q)).code,200);assert.equal((await invoke('getPaidLeaveBalance',hr,{}, {},q)).code,200);
 });
 test('nghỉ có lương 13 ngày bị chặn, nghỉ không lương 13 ngày hợp lệ',async()=>{
- db.schedules=[];for(let d=1;d<=13;d++)schedule(`2026-11-${String(d).padStart(2,'0')}`);assert.equal((await invoke('createLeaveRequest',emp,requestBody('paid','2026-11-01','2026-11-13'))).code,409);assert.equal((await invoke('createLeaveRequest',emp,requestBody('unpaid','2026-11-01','2026-11-13'))).code,201);
+ db.schedules=[];assert.equal((await invoke('createLeaveRequest',emp,requestBody('paid','2026-11-02','2026-11-18'))).code,409);assert.equal((await invoke('createLeaveRequest',emp,requestBody('unpaid','2026-11-02','2026-11-18'))).code,201);
 });
 test('sửa đơn và duyệt đơn đều kiểm tra hạn mức mới',async()=>{
  const r=await invoke('createLeaveRequest',emp,requestBody());for(let d=1;d<=12;d++)schedule(`2026-11-${String(d).padStart(2,'0')}`);assert.equal((await invoke('updateLeaveRequest',emp,requestBody('paid','2026-11-01','2026-11-30'),{id:r.data._id})).code,409);for(let d=18;d<=30;d++)if(![19,23].includes(d))schedule(`2026-11-${d}`);assert.equal((await invoke('approveLeaveRequest',manager,{}, {id:r.data._id})).code,409);

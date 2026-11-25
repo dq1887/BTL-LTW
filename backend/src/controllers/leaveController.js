@@ -7,7 +7,7 @@ const LeaveRequest = require("../models/LeaveRequest");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 const { recalcPayroll } = require("../utils/payrollHelper");
-const { isValidDateOnly, calendarDays, currentYearVN, describeRequest } = require("../utils/leaveDates");
+const { isValidDateOnly, calendarDays, currentYearVN, describeRequest, getCountedLeaveDates } = require("../utils/leaveDates");
 
 const {
   PAID_QUOTA_DAYS,
@@ -111,22 +111,17 @@ const getScheduledDays = async (employeeId, startDate, endDate) => {
   return [...uniqueDays.values()].sort((a, b) => a.date.localeCompare(b.date));
 };
 
-const getDraftDates = async (employeeId, startDate, endDate) => {
-  const drafts = await Schedule.find({
-    employeeId,
-    workDate: { $gte: startDate, $lte: endDate },
-    status: "draft",
-  })
-    .select("workDate")
-    .lean();
-
-  return [
-    ...new Set(drafts.map((item) => item.workDate).filter(isValidDateOnly)),
-  ].sort();
+// Dùng danh sách ngày làm việc mặc định cộng ca cuối tuần đã công bố.
+// Giữ nguyên tên scheduledDates trong API/DB để các module khác đọc được.
+const getLeaveDays = async (employeeId, startDate, endDate) => {
+  const published = await getScheduledDays(employeeId, startDate, endDate);
+  const byDate = new Map(published.map(day => [day.date, day]));
+  return getCountedLeaveDates(startDate, endDate, [...byDate.keys()]).map(date =>
+    byDate.get(date) || { date, source: 'workday_policy', shift: null }
+  );
 };
 
-// Lịch hiện tại chỉ dùng để dự tính đơn chờ duyệt và cảnh báo đơn đã xử lý.
-// Không tự sửa lịch sử đã duyệt trong API đọc.
+// Đơn chờ duyệt tính theo quy định hiện tại; đơn đã duyệt giữ nguyên ngày chốt.
 const describeRequests = async (requests) => {
   const valid = requests.filter(r => calendarDays(r.startDate, r.endDate) !== null && (r.employeeId?._id || r.employeeId));
   const byEmployee = new Map();
@@ -138,9 +133,9 @@ const describeRequests = async (requests) => {
   await Promise.all([...byEmployee].map(async ([id, list]) => {
     const start = list.map(r => r.startDate).sort()[0];
     const end = list.map(r => r.endDate).sort().at(-1);
-    const [days, drafts] = await Promise.all([getScheduledDays(id, start, end), getDraftDates(id, start, end)]);
+    const days = await getLeaveDays(id, start, end);
     const dates = days.map(d => d.date);
-    for (const r of list) Object.assign(r, describeRequest(r, dates, drafts));
+    for (const r of list) Object.assign(r, describeRequest(r, dates, []));
   }));
   for (const r of requests) if (!valid.includes(r)) Object.assign(r, describeRequest(r, [], []));
   return requests;
@@ -200,12 +195,6 @@ const ensurePaidQuota = async ({
   excludeRequestId,
 }) => {
   if (!leaveType.isPaid) return;
-  if (scheduledDates.length === 0) {
-    throw new AppError(
-      "Bạn chỉ được tạo đơn nghỉ phép khi có lịch làm việc đã được phân công trong khoảng ngày này.",
-      400,
-    );
-  }
   for (const year of getYearsInRange(startDate, endDate)) {
     const requestedDays = countDaysForYear(scheduledDates, year);
     if (!requestedDays) continue;
@@ -265,12 +254,12 @@ const validateRequestData = async ({
     excludeRequestId,
   });
 
-  // Bắt buộc nhân viên phải có lịch làm việc đã phân công (published) trong ngày xin nghỉ
-  const scheduledDays = await getScheduledDays(employeeId, startDate, endDate);
+  // Ngày làm việc được tính kể cả khi ca chưa được tạo.
+  const scheduledDays = await getLeaveDays(employeeId, startDate, endDate);
   const scheduledDates = scheduledDays.map((item) => item.date);
   if (scheduledDates.length === 0) {
     throw new AppError(
-      "Bạn không có lịch làm việc được phân công trong khoảng thời gian này nên không thể tạo đơn xin nghỉ phép.",
+      "Khoảng nghỉ chỉ gồm ngày nghỉ hằng tuần hoặc ngày lễ, không có ngày làm việc tính nghỉ.",
       400,
     );
   }
@@ -409,18 +398,13 @@ exports.getPaidLeaveBalance = catchAsync(async (req, res, next) => {
 exports.getScheduleDays = catchAsync(async (req, res) => {
   const { startDate, endDate } = req.query;
   validateDateRange(startDate, endDate);
-  const [days, draftDates] = await Promise.all([
-    getScheduledDays(req.user._id, startDate, endDate),
-    getDraftDates(req.user._id, startDate, endDate),
-  ]);
+  const days = await getLeaveDays(req.user._id, startDate, endDate);
   res.status(200).json({
     success: true,
     calendarDays: calendarDays(startDate, endDate),
     count: days.length,
     dates: days.map((item) => item.date),
-    draftDates: draftDates.filter(
-      (date) => !days.some((item) => item.date === date),
-    ),
+    draftDates: [],
     data: days,
   });
 });
@@ -607,20 +591,16 @@ const reviewLeaveRequest = (status) =>
 
     if (status === "approved") {
       validateDateRange(request.startDate, request.endDate);
-      const [scheduledDays, drafts] = await Promise.all([
-        getScheduledDays(request.employeeId, request.startDate, request.endDate),
-        getDraftDates(request.employeeId, request.startDate, request.endDate),
-      ]);
+      const scheduledDays = await getLeaveDays(request.employeeId, request.startDate, request.endDate);
       const currentDates = scheduledDays.map((item) => item.date);
-      if (drafts.some(d => !currentDates.includes(d))) return next(new AppError("Còn ngày làm việc chưa được xác nhận. Vui lòng hoàn tất lịch trước khi duyệt.", 409));
       const expected = req.body?.expectedScheduledDates;
       if (expected !== undefined && (!Array.isArray(expected) || expected.join(',') !== currentDates.join(','))) {
-        return next(new AppError("Lịch làm việc đã thay đổi. Vui lòng tải lại danh sách và kiểm tra số ngày trước khi duyệt.", 409));
+        return next(new AppError("Số ngày nghỉ đã thay đổi. Vui lòng tải lại danh sách và kiểm tra trước khi duyệt.", 409));
       }
       if (currentDates.length === 0) {
         return next(
           new AppError(
-            "Không thể duyệt vì nhân viên không có lịch làm việc được phân công trong khoảng thời gian này.",
+            "Khoảng nghỉ không có ngày làm việc tính nghỉ. Vui lòng kiểm tra lại ngày nghỉ.",
             400,
           ),
         );

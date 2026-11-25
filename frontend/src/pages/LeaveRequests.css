@@ -462,7 +462,7 @@ html.dark .leave-balance-result strong { color: #86efac; }
 .leave-table { min-width: 1030px; }
 
 
-/* Leave request: accessible, full-width calendar and employee leave selection. */
+/* Leave request: accessible calendar and employee leave selection. */
 .leave-modal { width: min(720px, 100%); box-sizing: border-box; }
 .leave-type-choice { border: 0; margin: 0; padding: 0; min-width: 0; }
 .leave-type-choice legend { padding: 0; margin-bottom: 8px; color: #425574; font-size: 13px; font-weight: 700; }
@@ -509,35 +509,38 @@ html.dark .leave-calendar-footer button { color: #93c5fd; }
   .leave-calendar-day { min-height: 36px; height: 40px; padding: 0; }
 }
 
-/* Compact calendar */
-.leave-modal { width: min(560px, 100%); }
-.leave-calendar {
-  width: 330px;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding: 10px;
-  margin: 0 auto;
+/* Compact month view: fixed maximum width, responsive on narrow screens. */
+.leave-modal { width: min(760px, 100%); }
+.leave-modal .leave-calendar {
+  width: 100%; max-width: 360px; box-sizing: border-box;
+  align-self: flex-start; padding: 10px; border-radius: 12px;
 }
-.leave-calendar-toolbar {
-  grid-template-columns: 28px minmax(0,1.3fr) minmax(0,1fr) 28px;
-  gap: 6px;
-  margin-bottom: 8px;
+.leave-modal .leave-calendar-toolbar {
+  grid-template-columns: 30px minmax(0, 1.3fr) minmax(0, 1fr) 30px;
+  gap: 6px; margin-bottom: 8px;
 }
-.leave-calendar-toolbar button,
-.leave-calendar-toolbar select {
-  min-height: 32px;
-  font-size: 12px;
+.leave-modal .leave-calendar-toolbar button,
+.leave-modal .leave-calendar-toolbar select {
+  min-width: 0; width: 100%; min-height: 32px; height: 32px;
+  font-size: 13px; padding: 4px; box-sizing: border-box;
 }
-.leave-calendar-grid { gap: 5px; }
-.leave-calendar-day {
-  height: 34px;
-  min-height: 34px;
-  font-size: 12px;
-  padding: 0;
+.leave-modal .leave-calendar-toolbar button { font-size: 20px; line-height: 1; }
+.leave-modal .leave-calendar-grid { gap: 5px; }
+.leave-modal .leave-calendar-day {
+  min-width: 0; min-height: 32px; height: 32px;
+  font-size: 13px; padding: 0; border-radius: 6px;
 }
-.leave-calendar-footer { margin-top: 8px; }
-.leave-calendar-footer button {
-  padding: 5px;
-  font-size: 12px;
+.leave-modal .leave-calendar-weekday { font-size: 11px; padding: 4px 0; }
+.leave-calendar-weekday:nth-child(6), .leave-calendar-weekday:nth-child(7) { color: #64748b; }
+.leave-calendar-day.weekend:not(.selected):not(.today) { color: #64748b; background: #f1f5f9; }
+html.dark .leave-calendar-day.weekend:not(.selected):not(.today) { color: #94a3b8; background: #1e293b; }
+html.dark .leave-calendar-toolbar select { color: #e2e8f0; background: #0f172a; border-color: #475569; color-scheme: dark; }
+.leave-modal .leave-calendar-footer { margin-top: 8px; gap: 4px; }
+.leave-modal .leave-calendar-footer button { font-size: 12px; padding: 5px; }
+@media (max-width: 640px) {
+  .leave-modal-backdrop { padding: 10px; }
+  .leave-modal { padding: 14px; }
+  .leave-modal .leave-calendar { padding: 8px; }
+  .leave-modal .leave-calendar-toolbar { gap: 4px; grid-template-columns: 26px minmax(0, 1.3fr) minmax(0, 1fr) 26px; }
+  .leave-modal .leave-calendar-grid { gap: 4px; }
 }
-
