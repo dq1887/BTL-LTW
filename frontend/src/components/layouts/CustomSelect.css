@@ -1,4 +1,3 @@
-/* Container */
 .custom-select-container {
   position: relative;
   display: inline-block;
@@ -7,7 +6,6 @@
   font-family: inherit;
 }
 
-/* Trigger button */
 .custom-select-trigger {
   width: 100%;
   display: flex;
@@ -62,7 +60,6 @@
   color: #3b82f6;
 }
 
-/* Dropdown Menu */
 .custom-select-dropdown {
   position: absolute;
   top: calc(100% + 6px);
@@ -74,7 +71,9 @@
   background-color: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  box-shadow: 0 12px 30px -5px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  box-shadow:
+    0 12px 30px -5px rgba(15, 23, 42, 0.15),
+    0 0 0 1px rgba(0, 0, 0, 0.03);
   padding: 6px;
   max-height: 260px;
   overflow-y: auto;
@@ -140,7 +139,6 @@
   align-items: center;
 }
 
-/* Scrollbar styling */
 .custom-select-dropdown::-webkit-scrollbar {
   width: 6px;
 }
@@ -154,9 +152,6 @@
   border-radius: 10px;
 }
 
-/* =========================================================
-   DARK MODE
-   ========================================================= */
 html.dark .custom-select-trigger {
   background-color: #0f172a;
   border-color: #334155;
@@ -186,7 +181,9 @@ html.dark .custom-select-container.open .custom-select-arrow {
 html.dark .custom-select-dropdown {
   background-color: #1e293b;
   border-color: #334155;
-  box-shadow: 0 18px 40px -8px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow:
+    0 18px 40px -8px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 html.dark .custom-select-option {

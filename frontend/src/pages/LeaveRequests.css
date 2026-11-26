@@ -49,7 +49,10 @@
   border-radius: 11px;
   font-size: 13px;
   font-weight: 700;
-  transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    opacity 0.16s ease;
 }
 
 .leave-primary-btn {
@@ -104,10 +107,22 @@
   font-weight: 800;
 }
 
-.leave-stat-icon.blue { color: #3576e5; background: #eaf2ff; }
-.leave-stat-icon.amber { color: #d58a18; background: #fff5df; }
-.leave-stat-icon.green { color: #169b67; background: #e6f8f0; }
-.leave-stat-icon.red { color: #db5861; background: #fff0f1; }
+.leave-stat-icon.blue {
+  color: #3576e5;
+  background: #eaf2ff;
+}
+.leave-stat-icon.amber {
+  color: #d58a18;
+  background: #fff5df;
+}
+.leave-stat-icon.green {
+  color: #169b67;
+  background: #e6f8f0;
+}
+.leave-stat-icon.red {
+  color: #db5861;
+  background: #fff0f1;
+}
 
 .leave-stat-card div {
   display: flex;
@@ -167,7 +182,10 @@
   color: #71809a;
 }
 
-.leave-search span { font-size: 21px; line-height: 1; }
+.leave-search span {
+  font-size: 21px;
+  line-height: 1;
+}
 .leave-search input {
   width: 100%;
   min-width: 0;
@@ -192,14 +210,27 @@
   font-size: 13px;
 }
 
-.leave-tools select { padding: 0 10px; }
+.leave-tools select {
+  padding: 0 10px;
+}
 .leave-field input:focus,
 .leave-field select:focus,
 .leave-field textarea:focus,
-.leave-tools select:focus { border-color: #6b9bec; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12); }
+.leave-tools select:focus {
+  border-color: #6b9bec;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
 
-.leave-table-wrap { width: 100%; overflow-x: auto; }
-.leave-table { width: 100%; min-width: 850px; border-collapse: collapse; text-align: left; }
+.leave-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+.leave-table {
+  width: 100%;
+  min-width: 850px;
+  border-collapse: collapse;
+  text-align: left;
+}
 .leave-table th {
   padding: 12px 13px;
   color: #71809a;
@@ -218,16 +249,49 @@
   font-size: 12px;
   vertical-align: middle;
 }
-.leave-table tbody tr { transition: background 0.14s ease; }
-.leave-table tbody tr:hover { background: #f9fbff; }
-.leave-table td strong { color: #263957; font-weight: 700; }
-.leave-table td small { display: block; margin-top: 4px; }
-.leave-subtle { color: #8b98ad; font-size: 10px; }
-.leave-type-name { display: block; color: #314568; font-weight: 700; }
-.leave-days { color: #315fa8; font-weight: 800; white-space: nowrap; }
-.leave-reason { display: -webkit-box; overflow: hidden; color: #64748b; line-height: 1.45; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.leave-table tbody tr {
+  transition: background 0.14s ease;
+}
+.leave-table tbody tr:hover {
+  background: #f9fbff;
+}
+.leave-table td strong {
+  color: #263957;
+  font-weight: 700;
+}
+.leave-table td small {
+  display: block;
+  margin-top: 4px;
+}
+.leave-subtle {
+  color: #8b98ad;
+  font-size: 10px;
+}
+.leave-type-name {
+  display: block;
+  color: #314568;
+  font-weight: 700;
+}
+.leave-days {
+  color: #315fa8;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.leave-reason {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #64748b;
+  line-height: 1.45;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
 
-.leave-employee { display: flex; align-items: center; gap: 9px; min-width: 145px; }
+.leave-employee {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 145px;
+}
 .leave-avatar {
   flex: 0 0 32px;
   width: 32px;
@@ -240,8 +304,14 @@
   font-size: 12px;
   font-weight: 800;
 }
-.leave-employee strong { display: block; white-space: nowrap; }
-.leave-employee small { color: #91a0b5; font-size: 10px; }
+.leave-employee strong {
+  display: block;
+  white-space: nowrap;
+}
+.leave-employee small {
+  color: #91a0b5;
+  font-size: 10px;
+}
 
 .leave-status {
   display: inline-flex;
@@ -252,12 +322,29 @@
   font-weight: 800;
   white-space: nowrap;
 }
-.leave-status.pending { color: #a66a08; background: #fff4dc; }
-.leave-status.approved { color: #11835a; background: #e4f8ef; }
-.leave-status.rejected { color: #c2414b; background: #fff0f1; }
-.leave-status.cancelled { color: #64748b; background: #eef2f7; }
+.leave-status.pending {
+  color: #a66a08;
+  background: #fff4dc;
+}
+.leave-status.approved {
+  color: #11835a;
+  background: #e4f8ef;
+}
+.leave-status.rejected {
+  color: #c2414b;
+  background: #fff0f1;
+}
+.leave-status.cancelled {
+  color: #64748b;
+  background: #eef2f7;
+}
 
-.leave-actions { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.leave-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
 .leave-action {
   min-height: 29px;
   padding: 0 8px;
@@ -267,11 +354,30 @@
   font-size: 10px;
   font-weight: 800;
 }
-.leave-action.approve { color: #14835b; border-color: #bcebd6; background: #effbf5; }
-.leave-action.reject { color: #c24b53; border-color: #f4c9cc; background: #fff6f6; }
-.leave-action.edit { color: #3569bd; border-color: #c8daf8; background: #f2f7ff; }
-.leave-action.delete { color: #c24b53; border-color: #f4c9cc; background: #fff6f6; }
-.leave-muted-action { color: #a4afbf; font-size: 10px; }
+.leave-action.approve {
+  color: #14835b;
+  border-color: #bcebd6;
+  background: #effbf5;
+}
+.leave-action.reject {
+  color: #c24b53;
+  border-color: #f4c9cc;
+  background: #fff6f6;
+}
+.leave-action.edit {
+  color: #3569bd;
+  border-color: #c8daf8;
+  background: #f2f7ff;
+}
+.leave-action.delete {
+  color: #c24b53;
+  border-color: #f4c9cc;
+  background: #fff6f6;
+}
+.leave-muted-action {
+  color: #a4afbf;
+  font-size: 10px;
+}
 
 .leave-empty {
   min-height: 220px;
@@ -285,8 +391,15 @@
   font-size: 12px;
   text-align: center;
 }
-.leave-empty strong { color: #354968; font-size: 14px; }
-.leave-empty-icon { margin-bottom: 3px; color: #8aa8d8; font-size: 35px; }
+.leave-empty strong {
+  color: #354968;
+  font-size: 14px;
+}
+.leave-empty-icon {
+  margin-bottom: 3px;
+  color: #8aa8d8;
+  font-size: 35px;
+}
 .leave-spinner {
   width: 23px;
   height: 23px;
@@ -295,7 +408,11 @@
   border-radius: 50%;
   animation: leave-spin 0.7s linear infinite;
 }
-@keyframes leave-spin { to { transform: rotate(360deg); } }
+@keyframes leave-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 .leave-footnote {
   display: flex;
@@ -309,8 +426,13 @@
   font-size: 11px;
   line-height: 1.55;
 }
-.leave-footnote span { color: #3975d2; font-weight: 800; }
-.leave-footnote p { margin: 0; }
+.leave-footnote span {
+  color: #3975d2;
+  font-weight: 800;
+}
+.leave-footnote p {
+  margin: 0;
+}
 
 .leave-notice,
 .leave-alert {
@@ -323,10 +445,23 @@
   font-size: 12px;
   font-weight: 600;
 }
-.leave-notice { color: #16724f; border: 1px solid #b8e6d2; background: #effbf5; }
-.leave-alert { color: #b43f49; border: 1px solid #f1c4c8; background: #fff5f5; }
+.leave-notice {
+  color: #16724f;
+  border: 1px solid #b8e6d2;
+  background: #effbf5;
+}
+.leave-alert {
+  color: #b43f49;
+  border: 1px solid #f1c4c8;
+  background: #fff5f5;
+}
 .leave-notice button,
-.leave-alert button { border: 0; background: transparent; color: inherit; font-size: 18px; }
+.leave-alert button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+}
 
 .leave-modal-backdrop {
   position: fixed;
@@ -348,18 +483,58 @@
   background: #fff;
   box-shadow: 0 24px 70px rgba(6, 19, 42, 0.28);
 }
-.leave-modal-header { margin-bottom: 21px; }
-.leave-modal-header h2 { margin: 4px 0 0; color: #192b4d; font-size: 21px; font-weight: 800; }
-.leave-close { width: 34px; height: 34px; border: 0; border-radius: 9px; color: #72819a; background: #f1f5fb; font-size: 22px; }
-.leave-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
-.leave-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
-.leave-field.full { grid-column: 1 / -1; }
-.leave-field > span { color: #425574; font-size: 12px; font-weight: 700; }
+.leave-modal-header {
+  margin-bottom: 21px;
+}
+.leave-modal-header h2 {
+  margin: 4px 0 0;
+  color: #192b4d;
+  font-size: 21px;
+  font-weight: 800;
+}
+.leave-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9px;
+  color: #72819a;
+  background: #f1f5fb;
+  font-size: 22px;
+}
+.leave-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+.leave-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.leave-field.full {
+  grid-column: 1 / -1;
+}
+.leave-field > span {
+  color: #425574;
+  font-size: 12px;
+  font-weight: 700;
+}
 .leave-field input,
 .leave-field select,
-.leave-field textarea { width: 100%; padding: 9px 11px; }
-.leave-field textarea { min-height: 95px; resize: vertical; }
-.leave-field small { color: #91a0b5; font-size: 10px; text-align: right; }
+.leave-field textarea {
+  width: 100%;
+  padding: 9px 11px;
+}
+.leave-field textarea {
+  min-height: 95px;
+  resize: vertical;
+}
+.leave-field small {
+  color: #91a0b5;
+  font-size: 10px;
+  text-align: right;
+}
 .leave-schedule-preview {
   display: flex;
   flex-direction: column;
@@ -372,175 +547,610 @@
   color: #6680a5;
   font-size: 11px;
 }
-.leave-schedule-preview > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.leave-schedule-preview strong { color: #334c73; font-size: 11px; }
-.leave-schedule-preview p { margin: 0; line-height: 1.5; }
-.leave-schedule-preview.has-error { border-color: #f0c8cb; background: #fff7f7; }
-.leave-schedule-error { color: #bd4750; }
-.leave-modal-footer { justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid #edf1f7; }
+.leave-schedule-preview > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.leave-schedule-preview strong {
+  color: #334c73;
+  font-size: 11px;
+}
+.leave-schedule-preview p {
+  margin: 0;
+  line-height: 1.5;
+}
+.leave-schedule-preview.has-error {
+  border-color: #f0c8cb;
+  background: #fff7f7;
+}
+.leave-schedule-error {
+  color: #bd4750;
+}
+.leave-modal-footer {
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #edf1f7;
+}
 
-html.dark .leave-page { color: #e2e8f0; }
+html.dark .leave-page {
+  color: #e2e8f0;
+}
 html.dark .leave-heading h1,
 html.dark .leave-stat-card strong,
 html.dark .leave-toolbar h2,
 html.dark .leave-table td strong,
 html.dark .leave-type-name,
-html.dark .leave-modal-header h2 { color: #f1f5f9; }
+html.dark .leave-modal-header h2 {
+  color: #f1f5f9;
+}
 html.dark .leave-heading p,
 html.dark .leave-toolbar p,
 html.dark .leave-stat-card div span,
 html.dark .leave-table td,
 html.dark .leave-reason,
-html.dark .leave-subtle { color: #aebbd0; }
+html.dark .leave-subtle {
+  color: #aebbd0;
+}
 html.dark .leave-stat-card,
 html.dark .leave-panel,
-html.dark .leave-modal { border-color: #334155; background: #1e293b; }
-html.dark .leave-toolbar { border-color: #334155; }
-html.dark .leave-table th { color: #aebbd0; background: #172235; }
-html.dark .leave-table td { border-color: #334155; }
-html.dark .leave-table tbody tr:hover { background: #26364d; }
+html.dark .leave-modal {
+  border-color: #334155;
+  background: #1e293b;
+}
+html.dark .leave-toolbar {
+  border-color: #334155;
+}
+html.dark .leave-table th {
+  color: #aebbd0;
+  background: #172235;
+}
+html.dark .leave-table td {
+  border-color: #334155;
+}
+html.dark .leave-table tbody tr:hover {
+  background: #26364d;
+}
 html.dark .leave-search,
 html.dark .leave-tools select,
 html.dark .leave-field input,
 html.dark .leave-field select,
-html.dark .leave-field textarea { border-color: #475569; color: #e2e8f0; background: #0f172a; }
-html.dark .leave-search input { color: #e2e8f0; }
+html.dark .leave-field textarea {
+  border-color: #475569;
+  color: #e2e8f0;
+  background: #0f172a;
+}
+html.dark .leave-search input {
+  color: #e2e8f0;
+}
 html.dark .leave-field > span,
-html.dark .leave-schedule-preview strong { color: #d5dfed; }
-html.dark .leave-schedule-preview { border-color: #405573; background: #172b45; color: #b2c5df; }
-html.dark .leave-footnote { border-color: #344967; background: #172b45; color: #b2c5df; }
-html.dark .leave-empty strong { color: #e2e8f0; }
-html.dark .leave-secondary-btn { border-color: #475569; color: #d8e1ed; background: #26364d; }
-html.dark .leave-modal-footer { border-color: #334155; }
+html.dark .leave-schedule-preview strong {
+  color: #d5dfed;
+}
+html.dark .leave-schedule-preview {
+  border-color: #405573;
+  background: #172b45;
+  color: #b2c5df;
+}
+html.dark .leave-footnote {
+  border-color: #344967;
+  background: #172b45;
+  color: #b2c5df;
+}
+html.dark .leave-empty strong {
+  color: #e2e8f0;
+}
+html.dark .leave-secondary-btn {
+  border-color: #475569;
+  color: #d8e1ed;
+  background: #26364d;
+}
+html.dark .leave-modal-footer {
+  border-color: #334155;
+}
 
 @media (max-width: 1050px) {
-  .leave-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .leave-toolbar { align-items: flex-start; flex-direction: column; }
-  .leave-tools { width: 100%; }
-  .leave-search { width: 100%; flex: 1; }
+  .leave-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .leave-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .leave-tools {
+    width: 100%;
+  }
+  .leave-search {
+    width: 100%;
+    flex: 1;
+  }
 }
 
 @media (max-width: 640px) {
-  .leave-heading { align-items: flex-start; flex-direction: column; }
-  .leave-heading .leave-primary-btn { width: 100%; }
-  .leave-stats { gap: 9px; }
-  .leave-stat-card { min-height: 82px; padding: 11px; gap: 9px; }
-  .leave-stat-icon { width: 36px; height: 36px; }
-  .leave-stat-card strong { font-size: 20px; }
-  .leave-stat-card div span { font-size: 10px; }
-  .leave-tools { align-items: stretch; flex-direction: column; }
-  .leave-tools select { min-height: 39px; }
-  .leave-form-grid { grid-template-columns: 1fr; }
-  .leave-field.full { grid-column: auto; }
-  .leave-modal { padding: 18px; }
-  .leave-schedule-preview > div { align-items: flex-start; flex-direction: column; }
+  .leave-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .leave-heading .leave-primary-btn {
+    width: 100%;
+  }
+  .leave-stats {
+    gap: 9px;
+  }
+  .leave-stat-card {
+    min-height: 82px;
+    padding: 11px;
+    gap: 9px;
+  }
+  .leave-stat-icon {
+    width: 36px;
+    height: 36px;
+  }
+  .leave-stat-card strong {
+    font-size: 20px;
+  }
+  .leave-stat-card div span {
+    font-size: 10px;
+  }
+  .leave-tools {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .leave-tools select {
+    min-height: 39px;
+  }
+  .leave-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .leave-field.full {
+    grid-column: auto;
+  }
+  .leave-modal {
+    padding: 18px;
+  }
+  .leave-schedule-preview > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
-/* TV4: thong tin han muc phep co luong */
-.leave-balance { margin: 14px 0; padding: 14px 18px; border-radius: 10px; border: 1px solid var(--border, #d1d5db); background: var(--surface, transparent); }
-.leave-balance p { margin: 6px 0 0; line-height: 1.5; }
-.leave-balance b { font-weight: 700; }
+.leave-balance {
+  margin: 14px 0;
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--border, #d1d5db);
+  background: var(--surface, transparent);
+}
+.leave-balance p {
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+.leave-balance b {
+  font-weight: 700;
+}
 
-/* Thời gian nghỉ và số ngày tính phép */
-.leave-day-detail { margin-top: 7px; min-width: 126px; max-width: 260px; }
-.leave-day-detail summary, .leave-balance-link { color: #2866d7; font-size: 11px; cursor: pointer; }
-.leave-balance-link { display: block; border: 0; background: transparent; padding: 4px 0; text-align: left; }
-.leave-date-list, .leave-schedule-preview > .leave-date-list { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 5px; margin-top: 5px; }
-.leave-date-list > span { border: 1px solid #dbe5f4; background: #edf4ff; border-radius: 6px; padding: 4px 6px; font-size: 11px; white-space: nowrap; }
-.leave-day-warning { color: #a16207; font-size: 11px; white-space: normal; line-height: 1.45; margin: 6px 0 0; }
-.leave-review-balance { padding: 16px; margin: 12px 16px; border: 1px solid #dbe5f4; border-radius: 12px; background: #f8fafc; }
-.leave-review-controls { display: grid; grid-template-columns: minmax(180px, 1fr) 100px; gap: 12px; align-items: end; }
-.leave-balance-result { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; font-size: 13px; }
-.leave-balance-result strong { color: #16724f; }
-html.dark .leave-day-detail summary, html.dark .leave-balance-link { color: #93c5fd; }
-html.dark .leave-date-list > span { background: #253c57; border-color: #405573; color: #dbeafe; }
-html.dark .leave-day-warning { color: #fbbf24; }
-html.dark .leave-review-balance { background: #172235; border-color: #405573; }
-html.dark .leave-balance-result strong { color: #86efac; }
-@media (max-width: 640px) { .leave-review-controls { grid-template-columns: 1fr; } .leave-review-balance { margin: 10px; padding: 12px; } }
-
-.leave-table { min-width: 1030px; }
-
-
-/* Leave request: accessible calendar and employee leave selection. */
-.leave-modal { width: min(720px, 100%); box-sizing: border-box; }
-.leave-type-choice { border: 0; margin: 0; padding: 0; min-width: 0; }
-.leave-type-choice legend { padding: 0; margin-bottom: 8px; color: #425574; font-size: 13px; font-weight: 700; }
-.leave-type-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.leave-type-option { display: flex; gap: 10px; align-items: flex-start; border: 1px solid #dbe3ef; border-radius: 12px; padding: 15px; background: #f8fafc; cursor: pointer; }
-.leave-type-option.selected { border-color: #2563eb; background: #eff6ff; box-shadow: 0 0 0 1px #2563eb; }
-.leave-type-option.unavailable { opacity: .5; cursor: not-allowed; }
-.leave-type-option input[type="radio"] { width: 18px; height: 18px; flex: 0 0 18px; margin: 2px 0 0; padding: 0; accent-color: #2563eb; }
-.leave-type-option > span { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.leave-type-option strong { color: #172b4d; font-size: 14px; }
-.leave-type-option small { color: #536783; text-align: left; font-size: 12px; }
-.leave-type-hint { font-size: 12px; color: #536783; margin: 3px 0 0; line-height: 1.5; }
-.leave-date-trigger { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 46px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #172b4d; cursor: pointer; text-align: left; font: inherit; }
-.leave-date-trigger[aria-expanded="true"] { border-color: #2563eb; box-shadow: 0 0 0 1px #2563eb; }
-.leave-calendar { padding: 16px; border: 1px solid #dbe3ef; background: #f8fafc; border-radius: 14px; }
-.leave-calendar-toolbar { display: grid; grid-template-columns: 42px minmax(0, 1.3fr) minmax(0, 1fr) 42px; gap: 10px; align-items: center; margin-bottom: 16px; }
-.leave-calendar-toolbar button, .leave-calendar-toolbar select, .leave-calendar-day { min-height: 44px; border: 1px solid #dbe3ef; border-radius: 9px; background: #fff; color: #172b4d; font: inherit; }
-.leave-calendar-toolbar button { font-size: 25px; cursor: pointer; }
-.leave-calendar-toolbar select { padding: 6px 8px; }
-.leave-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 8px; text-align: center; }
-.leave-calendar-weekday { font-size: 12px; font-weight: 700; color: #536783; padding: 6px 0; }
-.leave-calendar-day { height: 46px; cursor: pointer; font-weight: 600; }
-.leave-calendar-day.today:not(.selected) { border: 2px solid #2563eb; color: #2563eb; }
-.leave-calendar-day.selected { background: #2563eb; border-color: #2563eb; color: #fff; }
-.leave-calendar-day:not(:disabled):not(.selected):hover { background: #dbeafe; }
-.leave-calendar button:disabled { opacity: .35; cursor: not-allowed; }
-.leave-calendar-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 14px; }
-.leave-calendar-footer button { border: 0; padding: 8px 10px; border-radius: 8px; color: #1d4ed8; background: transparent; font: inherit; cursor: pointer; }
-.leave-calendar button:focus-visible, .leave-date-trigger:focus-visible, .leave-type-option:focus-within { outline: 2px solid #60a5fa; outline-offset: 2px; }
-html.dark .leave-type-choice legend, html.dark .leave-type-option strong { color: #e2e8f0; }
-html.dark .leave-type-option, html.dark .leave-calendar { background: #172235; border-color: #475569; }
-html.dark .leave-type-option.selected { background: #1e3a5f; border-color: #60a5fa; box-shadow: 0 0 0 1px #60a5fa; }
-html.dark .leave-type-option small, html.dark .leave-type-hint, html.dark .leave-calendar-weekday { color: #aabbd3; }
-html.dark .leave-date-trigger, html.dark .leave-calendar-toolbar button, html.dark .leave-calendar-day { color: #e2e8f0; background: #0f172a; border-color: #475569; }
-html.dark .leave-calendar-day.today:not(.selected) { color: #93c5fd; border-color: #60a5fa; }
-html.dark .leave-calendar-day.selected { color: #fff; background: #2563eb; border-color: #60a5fa; }
-html.dark .leave-calendar-day:not(:disabled):not(.selected):hover { background: #334e73; }
-html.dark .leave-calendar-footer button { color: #93c5fd; }
+.leave-day-detail {
+  margin-top: 7px;
+  min-width: 126px;
+  max-width: 260px;
+}
+.leave-day-detail summary,
+.leave-balance-link {
+  color: #2866d7;
+  font-size: 11px;
+  cursor: pointer;
+}
+.leave-balance-link {
+  display: block;
+  border: 0;
+  background: transparent;
+  padding: 4px 0;
+  text-align: left;
+}
+.leave-date-list,
+.leave-schedule-preview > .leave-date-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 5px;
+  margin-top: 5px;
+}
+.leave-date-list > span {
+  border: 1px solid #dbe5f4;
+  background: #edf4ff;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.leave-day-warning {
+  color: #a16207;
+  font-size: 11px;
+  white-space: normal;
+  line-height: 1.45;
+  margin: 6px 0 0;
+}
+.leave-review-balance {
+  padding: 16px;
+  margin: 12px 16px;
+  border: 1px solid #dbe5f4;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.leave-review-controls {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 100px;
+  gap: 12px;
+  align-items: end;
+}
+.leave-balance-result {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+.leave-balance-result strong {
+  color: #16724f;
+}
+html.dark .leave-day-detail summary,
+html.dark .leave-balance-link {
+  color: #93c5fd;
+}
+html.dark .leave-date-list > span {
+  background: #253c57;
+  border-color: #405573;
+  color: #dbeafe;
+}
+html.dark .leave-day-warning {
+  color: #fbbf24;
+}
+html.dark .leave-review-balance {
+  background: #172235;
+  border-color: #405573;
+}
+html.dark .leave-balance-result strong {
+  color: #86efac;
+}
 @media (max-width: 640px) {
-  .leave-type-options { grid-template-columns: 1fr; }
-  .leave-calendar { padding: 10px; }
-  .leave-calendar-toolbar { grid-template-columns: 32px minmax(0,1.2fr) minmax(0,1fr) 32px; gap: 5px; }
-  .leave-calendar-grid { gap: 4px; }
-  .leave-calendar-day { min-height: 36px; height: 40px; padding: 0; }
+  .leave-review-controls {
+    grid-template-columns: 1fr;
+  }
+  .leave-review-balance {
+    margin: 10px;
+    padding: 12px;
+  }
 }
 
-/* Compact month view: fixed maximum width, responsive on narrow screens. */
-.leave-modal { width: min(760px, 100%); }
+.leave-table {
+  min-width: 1030px;
+}
+
+.leave-modal {
+  width: min(720px, 100%);
+  box-sizing: border-box;
+}
+.leave-type-choice {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.leave-type-choice legend {
+  padding: 0;
+  margin-bottom: 8px;
+  color: #425574;
+  font-size: 13px;
+  font-weight: 700;
+}
+.leave-type-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.leave-type-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  padding: 15px;
+  background: #f8fafc;
+  cursor: pointer;
+}
+.leave-type-option.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+.leave-type-option.unavailable {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.leave-type-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: 2px 0 0;
+  padding: 0;
+  accent-color: #2563eb;
+}
+.leave-type-option > span {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.leave-type-option strong {
+  color: #172b4d;
+  font-size: 14px;
+}
+.leave-type-option small {
+  color: #536783;
+  text-align: left;
+  font-size: 12px;
+}
+.leave-type-hint {
+  font-size: 12px;
+  color: #536783;
+  margin: 3px 0 0;
+  line-height: 1.5;
+}
+.leave-date-trigger {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #172b4d;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.leave-date-trigger[aria-expanded="true"] {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+.leave-calendar {
+  padding: 16px;
+  border: 1px solid #dbe3ef;
+  background: #f8fafc;
+  border-radius: 14px;
+}
+.leave-calendar-toolbar {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1.3fr) minmax(0, 1fr) 42px;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.leave-calendar-toolbar button,
+.leave-calendar-toolbar select,
+.leave-calendar-day {
+  min-height: 44px;
+  border: 1px solid #dbe3ef;
+  border-radius: 9px;
+  background: #fff;
+  color: #172b4d;
+  font: inherit;
+}
+.leave-calendar-toolbar button {
+  font-size: 25px;
+  cursor: pointer;
+}
+.leave-calendar-toolbar select {
+  padding: 6px 8px;
+}
+.leave-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  text-align: center;
+}
+.leave-calendar-weekday {
+  font-size: 12px;
+  font-weight: 700;
+  color: #536783;
+  padding: 6px 0;
+}
+.leave-calendar-day {
+  height: 46px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.leave-calendar-day.today:not(.selected) {
+  border: 2px solid #2563eb;
+  color: #2563eb;
+}
+.leave-calendar-day.selected {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+.leave-calendar-day:not(:disabled):not(.selected):hover {
+  background: #dbeafe;
+}
+.leave-calendar button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.leave-calendar-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+}
+.leave-calendar-footer button {
+  border: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: #1d4ed8;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.leave-calendar button:focus-visible,
+.leave-date-trigger:focus-visible,
+.leave-type-option:focus-within {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+html.dark .leave-type-choice legend,
+html.dark .leave-type-option strong {
+  color: #e2e8f0;
+}
+html.dark .leave-type-option,
+html.dark .leave-calendar {
+  background: #172235;
+  border-color: #475569;
+}
+html.dark .leave-type-option.selected {
+  background: #1e3a5f;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 1px #60a5fa;
+}
+html.dark .leave-type-option small,
+html.dark .leave-type-hint,
+html.dark .leave-calendar-weekday {
+  color: #aabbd3;
+}
+html.dark .leave-date-trigger,
+html.dark .leave-calendar-toolbar button,
+html.dark .leave-calendar-day {
+  color: #e2e8f0;
+  background: #0f172a;
+  border-color: #475569;
+}
+html.dark .leave-calendar-day.today:not(.selected) {
+  color: #93c5fd;
+  border-color: #60a5fa;
+}
+html.dark .leave-calendar-day.selected {
+  color: #fff;
+  background: #2563eb;
+  border-color: #60a5fa;
+}
+html.dark .leave-calendar-day:not(:disabled):not(.selected):hover {
+  background: #334e73;
+}
+html.dark .leave-calendar-footer button {
+  color: #93c5fd;
+}
+@media (max-width: 640px) {
+  .leave-type-options {
+    grid-template-columns: 1fr;
+  }
+  .leave-calendar {
+    padding: 10px;
+  }
+  .leave-calendar-toolbar {
+    grid-template-columns: 32px minmax(0, 1.2fr) minmax(0, 1fr) 32px;
+    gap: 5px;
+  }
+  .leave-calendar-grid {
+    gap: 4px;
+  }
+  .leave-calendar-day {
+    min-height: 36px;
+    height: 40px;
+    padding: 0;
+  }
+}
+
+.leave-modal {
+  width: min(760px, 100%);
+}
 .leave-modal .leave-calendar {
-  width: 100%; max-width: 360px; box-sizing: border-box;
-  align-self: flex-start; padding: 10px; border-radius: 12px;
+  width: 100%;
+  max-width: 360px;
+  box-sizing: border-box;
+  align-self: flex-start;
+  padding: 10px;
+  border-radius: 12px;
 }
 .leave-modal .leave-calendar-toolbar {
   grid-template-columns: 30px minmax(0, 1.3fr) minmax(0, 1fr) 30px;
-  gap: 6px; margin-bottom: 8px;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 .leave-modal .leave-calendar-toolbar button,
 .leave-modal .leave-calendar-toolbar select {
-  min-width: 0; width: 100%; min-height: 32px; height: 32px;
-  font-size: 13px; padding: 4px; box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  min-height: 32px;
+  height: 32px;
+  font-size: 13px;
+  padding: 4px;
+  box-sizing: border-box;
 }
-.leave-modal .leave-calendar-toolbar button { font-size: 20px; line-height: 1; }
-.leave-modal .leave-calendar-grid { gap: 5px; }
+.leave-modal .leave-calendar-toolbar button {
+  font-size: 20px;
+  line-height: 1;
+}
+.leave-modal .leave-calendar-grid {
+  gap: 5px;
+}
 .leave-modal .leave-calendar-day {
-  min-width: 0; min-height: 32px; height: 32px;
-  font-size: 13px; padding: 0; border-radius: 6px;
+  min-width: 0;
+  min-height: 32px;
+  height: 32px;
+  font-size: 13px;
+  padding: 0;
+  border-radius: 6px;
 }
-.leave-modal .leave-calendar-weekday { font-size: 11px; padding: 4px 0; }
-.leave-calendar-weekday:nth-child(6), .leave-calendar-weekday:nth-child(7) { color: #64748b; }
-.leave-calendar-day.weekend:not(.selected):not(.today) { color: #64748b; background: #f1f5f9; }
-html.dark .leave-calendar-day.weekend:not(.selected):not(.today) { color: #94a3b8; background: #1e293b; }
-html.dark .leave-calendar-toolbar select { color: #e2e8f0; background: #0f172a; border-color: #475569; color-scheme: dark; }
-.leave-modal .leave-calendar-footer { margin-top: 8px; gap: 4px; }
-.leave-modal .leave-calendar-footer button { font-size: 12px; padding: 5px; }
+.leave-modal .leave-calendar-weekday {
+  font-size: 11px;
+  padding: 4px 0;
+}
+.leave-calendar-weekday:nth-child(6),
+.leave-calendar-weekday:nth-child(7) {
+  color: #64748b;
+}
+.leave-calendar-day.weekend:not(.selected):not(.today) {
+  color: #64748b;
+  background: #f1f5f9;
+}
+html.dark .leave-calendar-day.weekend:not(.selected):not(.today) {
+  color: #94a3b8;
+  background: #1e293b;
+}
+html.dark .leave-calendar-toolbar select {
+  color: #e2e8f0;
+  background: #0f172a;
+  border-color: #475569;
+  color-scheme: dark;
+}
+.leave-modal .leave-calendar-footer {
+  margin-top: 8px;
+  gap: 4px;
+}
+.leave-modal .leave-calendar-footer button {
+  font-size: 12px;
+  padding: 5px;
+}
 @media (max-width: 640px) {
-  .leave-modal-backdrop { padding: 10px; }
-  .leave-modal { padding: 14px; }
-  .leave-modal .leave-calendar { padding: 8px; }
-  .leave-modal .leave-calendar-toolbar { gap: 4px; grid-template-columns: 26px minmax(0, 1.3fr) minmax(0, 1fr) 26px; }
-  .leave-modal .leave-calendar-grid { gap: 4px; }
+  .leave-modal-backdrop {
+    padding: 10px;
+  }
+  .leave-modal {
+    padding: 14px;
+  }
+  .leave-modal .leave-calendar {
+    padding: 8px;
+  }
+  .leave-modal .leave-calendar-toolbar {
+    gap: 4px;
+    grid-template-columns: 26px minmax(0, 1.3fr) minmax(0, 1fr) 26px;
+  }
+  .leave-modal .leave-calendar-grid {
+    gap: 4px;
+  }
 }

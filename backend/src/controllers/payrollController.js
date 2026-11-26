@@ -16,20 +16,16 @@ const {
   computeLeave,
 } = require("../utils/payrollHelper");
 
-// GET /api/payroll?month=2026-11
-// Chỉ tính và hiển thị, không ghi gì vào database.
-// Tháng không có dữ liệu chấm công thì trả về danh sách rỗng.
 exports.getPayrolls = catchAsync(async (req, res) => {
   const month = req.query.month || currentMonth();
   const canManage = await isPayrollManager(req);
 
-  // Người không có quyền quản lý chỉ xem lương của chính mình
   const data = await loadPayrollRows(month, canManage ? null : req.user._id);
 
   res.status(200).json({
     success: true,
     canManage,
-    monthEnded: isMonthEnded(month), // false = tháng chưa hết, chưa được chốt lương
+    monthEnded: isMonthEnded(month),
     currentUserId: String(req.user._id),
     hasData: data.length > 0,
     count: data.length,
@@ -37,12 +33,16 @@ exports.getPayrolls = catchAsync(async (req, res) => {
   });
 });
 
-// PUT /api/payroll/edit  { employeeId, month, baseSalary, hourRate, allowance, adjustment, note }
-// Lưu thay đổi vào database và chuyển phiếu về "Nháp" (kể cả khi đã chốt),
-// để bấm "Chốt lương" lần nữa thì database được cập nhật lại.
 exports.updatePayroll = catchAsync(async (req, res, next) => {
-  const { employeeId, month, baseSalary, hourRate, allowance, adjustment, note } =
-    req.body;
+  const {
+    employeeId,
+    month,
+    baseSalary,
+    hourRate,
+    allowance,
+    adjustment,
+    note,
+  } = req.body;
 
   if (!employeeId || !/^\d{4}-\d{2}$/.test(month || "")) {
     return next(new AppError("Thiếu nhân viên hoặc tháng!", 400));
@@ -71,13 +71,10 @@ exports.updatePayroll = catchAsync(async (req, res, next) => {
   const newRate = num("hourRate", hourRate);
   const newAllowance = num("allowance", allowance);
   const newAdjustment = num("adjustment", adjustment, true);
-
-  // Số giờ luôn lấy mới nhất từ chấm công
   const stat = (await loadStats(month, employeeId)).get(String(employeeId));
   const totalHours = round2((stat?.minutes || 0) / 60);
   const totalCredit = round1(stat?.credit || 0);
   const hourBonus = Math.round(totalHours * newRate);
-  // Nghỉ phép luôn tính lại mới nhất (trừ 100.000 đ/ngày với nghỉ không lương và nghỉ có lương quá 12 ngày/năm)
   const { leaveDays, leaveDeduction, totalLeaveDays } = await computeLeave(
     month,
     employeeId,
@@ -100,7 +97,7 @@ exports.updatePayroll = catchAsync(async (req, res, next) => {
         total:
           newBase + hourBonus + newAllowance + newAdjustment - leaveDeduction,
         note: note !== undefined ? note : row.note,
-        status: "draft", // đưa về Nháp để chốt lại
+        status: "draft",
         updatedBy: req.user._id,
       },
       $unset: { finalizedBy: "", finalizedAt: "" },
@@ -117,13 +114,9 @@ exports.updatePayroll = catchAsync(async (req, res, next) => {
   });
 });
 
-// POST /api/payroll/finalize  { month }
-// Chưa hết tháng thì không được chốt.
-// Tháng không có dữ liệu chấm công thì không được chốt.
 exports.finalizePayroll = catchAsync(async (req, res, next) => {
   const month = req.body.month || currentMonth();
 
-  // Chưa hết tháng thì không được chốt lương
   if (!isMonthEnded(month)) {
     return next(
       new AppError(
@@ -147,14 +140,13 @@ exports.finalizePayroll = catchAsync(async (req, res, next) => {
   res.status(200).json({
     success: true,
     message: `Đã chốt lương tháng ${month}`,
-    count: result.changed, // số bảng lương vừa ghi/cập nhật lần này
-    saved: result.saved, // tổng số bảng đã chốt của tháng trong database
-    total: result.total, // tổng tiền lương của tháng
+    count: result.changed,
+    saved: result.saved,
+    total: result.total,
     finalizedAt: result.finalizedAt,
   });
 });
 
-// POST /api/payroll/requests  - nhân viên gửi kế toán xin sửa lương
 exports.createRequest = catchAsync(async (req, res, next) => {
   const { month, message } = req.body;
   if (!message || !message.trim()) {
@@ -172,7 +164,6 @@ exports.createRequest = catchAsync(async (req, res, next) => {
   });
 });
 
-// GET /api/payroll/requests
 exports.getRequests = catchAsync(async (req, res) => {
   const canManage = await isPayrollManager(req);
   const filter = canManage ? {} : { employeeId: req.user._id };
@@ -184,7 +175,6 @@ exports.getRequests = catchAsync(async (req, res) => {
   res.status(200).json({ success: true, canManage, count: data.length, data });
 });
 
-// PUT /api/payroll/requests/:id  { status: "resolved" | "rejected", reply }
 exports.handleRequest = catchAsync(async (req, res, next) => {
   const { status, reply } = req.body;
   if (!["resolved", "rejected"].includes(status)) {

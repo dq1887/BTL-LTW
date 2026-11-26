@@ -1,5 +1,3 @@
-// frontend/src/services/authService.ts
-
 const API_AUTH_URL = "http://localhost:5000/api/auth";
 
 export interface User {
@@ -16,7 +14,6 @@ export interface LoginResponse {
 }
 
 export const authService = {
-  // 1. Gửi request đăng nhập lên Backend
   async login(email: string, password: string): Promise<LoginResponse> {
     const res = await fetch(`${API_AUTH_URL}/login`, {
       method: "POST",
@@ -31,14 +28,12 @@ export const authService = {
       throw new Error(data.message || "Đăng nhập thất bại!");
     }
 
-    // Lưu token và thông tin user vào localStorage
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
 
     return data;
   },
 
-  // 2. Lấy thông tin user hiện tại
   getCurrentUser(): User | null {
     const userStr = localStorage.getItem("user");
     if (!userStr) return null;
@@ -49,21 +44,17 @@ export const authService = {
     }
   },
 
-  // 3. Lấy token
   getToken(): string | null {
     return localStorage.getItem("token");
   },
 
-  // 4. Kiểm tra đã đăng nhập chưa
   isAuthenticated(): boolean {
     return !!localStorage.getItem("token");
   },
 
-  // 5. Đăng xuất
   logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     window.location.href = "/login";
   },
 };
-

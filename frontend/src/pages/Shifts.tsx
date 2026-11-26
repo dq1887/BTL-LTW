@@ -17,8 +17,6 @@ export const Shifts: React.FC = () => {
   const [currentShift, setCurrentShift] = useState<Partial<Shift>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  // Tải danh sách ca làm việc từ Backend
   const loadShifts = async () => {
     try {
       setLoading(true);
@@ -37,21 +35,18 @@ export const Shifts: React.FC = () => {
     loadShifts();
   }, []);
 
-  // Mở modal thêm mới
   const handleOpenAddModal = () => {
     setCurrentShift({ name: "", startTime: "", endTime: "" });
     setIsEditing(false);
     setIsModalOpen(true);
   };
 
-  // Mở modal chỉnh sửa
   const handleOpenEditModal = (shift: Shift) => {
     setCurrentShift(shift);
     setIsEditing(true);
     setIsModalOpen(true);
   };
 
-  // Xử lý lưu form (Thêm hoặc Sửa thông qua API Backend)
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
@@ -95,7 +90,6 @@ export const Shifts: React.FC = () => {
     }
   };
 
-  // Xóa ca làm việc
   const handleDelete = async (id?: string) => {
     if (!id) return;
     if (!confirm("Bạn có chắc chắn muốn xóa ca làm này không?")) {
@@ -115,7 +109,6 @@ export const Shifts: React.FC = () => {
 
   return (
     <div className="shifts-container">
-      {/* Tiêu đề & Nút thêm */}
       <div className="shifts-header-top">
         <div>
           <h2>⏰ Quản lý Danh mục Ca làm việc</h2>
@@ -137,7 +130,6 @@ export const Shifts: React.FC = () => {
         )}
       </div>
 
-      {/* Hiển thị lỗi nếu có */}
       {error && (
         <div
           style={{
@@ -152,7 +144,6 @@ export const Shifts: React.FC = () => {
         </div>
       )}
 
-      {/* Bảng danh sách ca */}
       <div className="table-card">
         {loading ? (
           <div
@@ -234,7 +225,6 @@ export const Shifts: React.FC = () => {
         )}
       </div>
 
-      {/* Modal Thêm / Sửa ca làm */}
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">

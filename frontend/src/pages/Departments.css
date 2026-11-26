@@ -25,7 +25,6 @@
   font-size: 14px;
 }
 
-/* Master-Detail Layout */
 .dept-layout {
   display: grid;
   grid-template-columns: 340px 1fr;
@@ -118,7 +117,6 @@
   line-height: 1.4;
 }
 
-/* Panel chi tiết nhân viên bên phải */
 .dept-detail-panel {
   background: #ffffff;
   border: 1px solid #e2e8f0;

@@ -32,7 +32,6 @@
   background-color: #1d4ed8;
 }
 
-/* Bảng dữ liệu */
 .table-card {
   background: white;
   border-radius: 12px;
@@ -85,7 +84,6 @@
   color: #dc2626;
 }
 
-/* Modal CSS */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -170,9 +168,6 @@
   cursor: pointer;
 }
 
-/* ==========================================================================
-   CHẾ ĐỘ TỐI (DARK MODE) CHO TRANG CA LÀM VIỆC (SHIFTS)
-   ========================================================================== */
 html.dark .shifts-container h2 {
   color: #f8fafc !important;
 }
@@ -224,7 +219,6 @@ html.dark .btn-action:hover {
   opacity: 0.8;
 }
 
-/* Modal Dark Mode */
 html.dark .modal-content {
   background: #1e293b !important;
   border: 1px solid #334155 !important;

@@ -22,7 +22,6 @@ export default function Header({ onToggleSidebar, collapsed }: HeaderProps) {
       .replace(/đ/g, "d")
       .trim();
 
-  // Tải ngầm danh sách nhân viên & phòng ban để nhận diện khi nhấn Enter
   useEffect(() => {
     const fetchSearchData = async () => {
       try {

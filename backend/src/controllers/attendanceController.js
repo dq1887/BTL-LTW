@@ -18,7 +18,6 @@ const buildShiftDateTime = (workDate, timeStr) => {
   return new Date(`${workDate}T${hours}:${minutes}:00.000+07:00`);
 };
 
-// Giới hạn khoảng tính trong phạm vi ngày workDate (+07:00)
 const clampToWorkDate = (inTime, outTime, workDate) => {
   const dayStart = new Date(`${workDate}T00:00:00.000+07:00`).getTime();
   const dayEnd = new Date(`${workDate}T23:59:59.999+07:00`).getTime();
@@ -47,7 +46,6 @@ const calculateAttendanceMetrics = (
   shiftStartStr,
   shiftEndStr,
   existingWorkCreditToday = 0,
-  isFirstSession = true,
 ) => {
   const round2 = (n) => Math.round(n * 100) / 100;
   const {
@@ -59,8 +57,6 @@ const calculateAttendanceMetrics = (
   const hasPublishedSchedule = Boolean(shiftStartStr && shiftEndStr);
   let standardMinutes = 0;
   let overtimeMinutes = totalMinutes;
-  let lateMinutes = 0;
-  let earlyLeaveMinutes = 0;
   let shiftTotalMins = 0;
 
   if (hasPublishedSchedule) {
@@ -75,28 +71,15 @@ const calculateAttendanceMetrics = (
     const shiftEndMs = shiftEnd.getTime();
     shiftTotalMins = Math.round((shiftEndMs - shiftStartMs) / 60000);
 
-    // Thời gian làm trong khung giờ ca -> Thời gian chuẩn
     const overlapStart = Math.max(startMs, shiftStartMs);
     const overlapEnd = Math.min(endMs, shiftEndMs);
     if (overlapEnd > overlapStart) {
       standardMinutes = Math.round((overlapEnd - overlapStart) / 60000);
     }
 
-    // Thời gian làm ngoài khung giờ ca -> Tăng ca
     overtimeMinutes = Math.max(0, totalMinutes - standardMinutes);
-
-    // Chỉ tính Đi muộn & Về sớm cho lượt check-in đầu tiên trong ngày
-    if (isFirstSession) {
-      if (startMs > shiftStartMs) {
-        lateMinutes = Math.round((startMs - shiftStartMs) / 60000);
-      }
-      if (endMs < shiftEndMs) {
-        earlyLeaveMinutes = Math.round((shiftEndMs - endMs) / 60000);
-      }
-    }
   }
 
-  // Vẫn quy đổi workCredit & overtimeCredit ngầm để Bảng lương hoạt động bình thường
   let workCredit = 0;
   if (shiftTotalMins > 0 && standardMinutes > 0) {
     const rawCredit =
@@ -112,8 +95,6 @@ const calculateAttendanceMetrics = (
     totalMinutes,
     standardMinutes,
     overtimeMinutes,
-    lateMinutes,
-    earlyLeaveMinutes,
     hasPublishedSchedule,
     workCredit,
     overtimeCredit,
@@ -265,15 +246,6 @@ exports.checkOut = catchAsync(async (req, res, next) => {
     0,
   );
 
-  // Kiểm tra xem đây có phải lượt check-in đầu tiên trong ngày hay không
-  const earlierCount = await Attendance.countDocuments({
-    employeeId: attendance.employeeId,
-    workDate: attendance.workDate,
-    _id: { $ne: attendance._id },
-    checkInAt: { $lt: attendance.checkInAt },
-  });
-  const isFirstSession = earlierCount === 0;
-
   const metrics = calculateAttendanceMetrics(
     attendance.checkInAt,
     checkOutTime,
@@ -281,25 +253,15 @@ exports.checkOut = catchAsync(async (req, res, next) => {
     shiftStart,
     shiftEnd,
     existingWorkCreditToday,
-    isFirstSession,
   );
 
   attendance.minutesWorked = metrics.totalMinutes;
   attendance.standardMinutes = metrics.standardMinutes;
   attendance.overtimeMinutes = metrics.overtimeMinutes;
-  attendance.lateMinutes = metrics.lateMinutes;
-  attendance.earlyLeaveMinutes = metrics.earlyLeaveMinutes;
   attendance.hasPublishedSchedule = metrics.hasPublishedSchedule;
   attendance.workCredit = metrics.workCredit;
   attendance.overtimeCredit = metrics.overtimeCredit;
-
-  if (metrics.totalMinutes === 0) {
-    attendance.status = "absent";
-  } else if (metrics.hasPublishedSchedule && metrics.lateMinutes > 0) {
-    attendance.status = "late";
-  } else {
-    attendance.status = "present";
-  }
+  attendance.status = metrics.totalMinutes === 0 ? "absent" : "present";
 
   await attendance.save();
 
@@ -339,7 +301,6 @@ exports.getAttendances = catchAsync(async (req, res, next) => {
     .sort({ workDate: -1, createdAt: -1 })
     .lean();
 
-  // Tự động tính lại các trường mới cho những bản ghi cũ chưa có dữ liệu
   const needRecalc = records.filter(
     (r) => r.standardMinutes === undefined && r.checkInAt && r.checkOutAt,
   );
@@ -369,24 +330,9 @@ exports.getAttendances = catchAsync(async (req, res, next) => {
       }
     }
 
-    // Tìm lượt check-in sớm nhất của mỗi nhân viên trong từng ngày
-    const earliestCheckInMap = new Map();
-    for (const r of records) {
-      if (!r.checkInAt) continue;
-      const empId = String(r.employeeId?._id || r.employeeId);
-      const key = `${empId}_${r.workDate}`;
-      const time = new Date(r.checkInAt).getTime();
-      if (!earliestCheckInMap.has(key) || time < earliestCheckInMap.get(key)) {
-        earliestCheckInMap.set(key, time);
-      }
-    }
-
     for (const r of needRecalc) {
       const empId = String(r.employeeId?._id || r.employeeId);
-      const key = `${empId}_${r.workDate}`;
-      const shift = scheduleMap.get(key);
-      const isFirstSession =
-        new Date(r.checkInAt).getTime() === earliestCheckInMap.get(key);
+      const shift = scheduleMap.get(`${empId}_${r.workDate}`);
 
       const metrics = calculateAttendanceMetrics(
         r.checkInAt,
@@ -395,13 +341,10 @@ exports.getAttendances = catchAsync(async (req, res, next) => {
         shift?.startTime || null,
         shift?.endTime || null,
         0,
-        isFirstSession,
       );
 
       r.standardMinutes = metrics.standardMinutes;
       r.overtimeMinutes = metrics.overtimeMinutes;
-      r.lateMinutes = metrics.lateMinutes;
-      r.earlyLeaveMinutes = metrics.earlyLeaveMinutes;
       r.hasPublishedSchedule = metrics.hasPublishedSchedule;
     }
   }

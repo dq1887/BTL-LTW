@@ -11,7 +11,6 @@ export default function UserDropdown() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const currentUser = authService.getCurrentUser();
 
-  // Đóng dropdown khi nhấp ra ngoài
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -86,7 +85,6 @@ export default function UserDropdown() {
 
         {open && (
           <div className="user-dropdown">
-            {/* Header thông tin người dùng trong dropdown */}
             <div className="user-dropdown-header">
               <div className="dropdown-avatar-wrap">
                 <div className="dropdown-mini-avatar">{firstLetter}</div>

@@ -1,6 +1,3 @@
-/* ================= BẢNG MÀU ================= */
-
-/* Nền trắng */
 .pay-page[data-pay-theme="light"] {
   --p-text: #0f172a;
   --p-muted: #64748b;
@@ -39,7 +36,6 @@
   --p-pill-final-fg: #15803d;
   --p-pill-rej-bg: #fee2e2;
   --p-pill-rej-fg: #b91c1c;
-  /* Nhãn "Bạn": nền tím đậm, chữ trắng */
   --p-me-tag-bg: linear-gradient(135deg, #4f46e5, #6366f1);
   --p-me-tag-text: #ffffff;
   --p-me-tag-shadow: 0 2px 6px rgba(79, 70, 229, 0.35);
@@ -54,7 +50,6 @@
   --p-final-bar: #22c55e;
 }
 
-/* Nền đen */
 .pay-page[data-pay-theme="dark"] {
   --p-text: #e8ecf5;
   --p-muted: #94a3b8;
@@ -101,7 +96,6 @@
   --p-pill-final-fg: #4ade80;
   --p-pill-rej-bg: rgba(239, 68, 68, 0.18);
   --p-pill-rej-fg: #f87171;
-  /* Nhãn "Bạn": nền tím sáng, chữ trắng */
   --p-me-tag-bg: linear-gradient(135deg, #6366f1, #818cf8);
   --p-me-tag-text: #ffffff;
   --p-me-tag-shadow: 0 2px 8px rgba(99, 102, 241, 0.45);
@@ -116,8 +110,6 @@
   --p-final-bar: #22c55e;
 }
 
-/* ================= BỐ CỤC ================= */
-
 .pay-page {
   padding: 24px;
   display: flex;
@@ -126,7 +118,6 @@
   color: var(--p-text);
 }
 
-/* ===== Header ===== */
 .pay-header {
   display: flex;
   flex-wrap: wrap;
@@ -151,7 +142,6 @@
   gap: 10px;
 }
 
-/* ===== Input / Button ===== */
 .pay-input,
 .pay-textarea {
   border: 1px solid var(--p-input-border);
@@ -162,7 +152,9 @@
   font: inherit;
   font-size: 14px;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 .pay-input:focus,
 .pay-textarea:focus {
@@ -187,7 +179,10 @@
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.1s, filter 0.15s, box-shadow 0.15s;
+  transition:
+    transform 0.1s,
+    filter 0.15s,
+    box-shadow 0.15s;
 }
 .pay-btn:hover:not(:disabled) {
   filter: brightness(1.08);
@@ -246,7 +241,6 @@
   background: var(--p-soft-hover);
 }
 
-/* ===== Thông báo đã lưu ===== */
 .pay-notice {
   display: flex;
   align-items: center;
@@ -268,7 +262,6 @@
   cursor: pointer;
 }
 
-/* ===== Thẻ thống kê ===== */
 .pay-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -305,20 +298,25 @@
   color: var(--p-accent-text);
 }
 
-/* ===== Lưới phiếu lương ===== */
 .pay-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)); /* 4 cột, 12 phiếu = 3 hàng */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 @media (max-width: 1400px) {
-  .pay-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pay-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 @media (max-width: 1000px) {
-  .pay-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pay-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 640px) {
-  .pay-grid { grid-template-columns: 1fr; }
+  .pay-grid {
+    grid-template-columns: 1fr;
+  }
 }
 .pay-empty {
   grid-column: 1 / -1;
@@ -338,7 +336,10 @@
   border: 1px solid var(--p-card-border);
   box-shadow: var(--p-card-shadow);
   overflow: hidden;
-  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
 }
 .pc::before {
   content: "";
@@ -401,7 +402,6 @@
   text-overflow: ellipsis;
 }
 
-/* Số tiền thực nhận */
 .pc-net {
   display: flex;
   flex-direction: column;
@@ -479,7 +479,6 @@
   margin-top: auto;
 }
 
-/* Nhãn "Bạn": nền tím đậm, chữ trắng, rõ trên cả nền trắng và nền đen */
 .pay-me {
   display: inline-block;
   padding: 3px 11px;
@@ -493,7 +492,6 @@
   line-height: 1.4;
 }
 
-/* Nhãn trạng thái */
 .pay-pill {
   display: inline-block;
   padding: 3px 11px;
@@ -517,7 +515,6 @@
   color: var(--p-pill-rej-fg);
 }
 
-/* ===== Khung chờ tải dữ liệu ===== */
 .pc.skeleton {
   min-height: 250px;
 }
@@ -557,7 +554,6 @@
   }
 }
 
-/* ===== Khối yêu cầu ===== */
 .pay-card {
   border: 1px solid var(--p-card-border);
   border-radius: 14px;
@@ -611,7 +607,6 @@
   gap: 18px;
 }
 
-/* ===== Cửa sổ sửa lương ===== */
 .pay-overlay {
   position: fixed;
   inset: 0;
@@ -665,7 +660,7 @@
   gap: 8px;
   margin-top: 4px;
 }
-/* ===== Tháng không có dữ liệu chấm công ===== */
+
 .pay-nodata {
   display: flex;
   flex-direction: column;
@@ -692,7 +687,6 @@
   color: var(--p-muted);
 }
 
-/* ===== Số thứ tự trên phiếu lương ===== */
 .pc-stt {
   position: absolute;
   top: 10px;
@@ -705,15 +699,18 @@
   color: var(--p-accent-text);
   border: 1px solid var(--p-accent-border);
 }
-.pc-top { margin-top: 12px; }
-.pc-lines li.leave-row b.minus { color: #dc2626; }
+.pc-top {
+  margin-top: 12px;
+}
+.pc-lines li.leave-row b.minus {
+  color: #dc2626;
+}
 .pc-lines li.leave-row small {
   display: block;
   font-size: 11px;
   opacity: 0.7;
 }
 
-/* ===== Phân trang (12 phiếu / trang = 3 hàng x 4 cột) ===== */
 .pay-pager {
   display: flex;
   justify-content: center;
@@ -738,4 +735,7 @@
   border-color: var(--p-accent-border);
   color: var(--p-accent-text);
 }
-.pay-pager button:disabled { opacity: 0.4; cursor: not-allowed; }
+.pay-pager button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

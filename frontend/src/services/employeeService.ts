@@ -1,5 +1,3 @@
-// frontend/src/services/employeeService.ts
-
 const API_BASE_URL = "http://localhost:5000/api/employees";
 
 export interface DepartmentInfo {
@@ -47,7 +45,6 @@ const getAuthHeaders = (): HeadersInit => {
 };
 
 export const employeeService = {
-  // 1. Lấy danh sách nhân viên (hỗ trợ tìm kiếm, lọc theo phòng ban, lấy tất cả hoặc phân trang)
   async getAll(params?: {
     search?: string;
     departmentId?: string;
@@ -57,8 +54,10 @@ export const employeeService = {
     const query = new URLSearchParams();
     if (params?.search) query.append("search", params.search);
     if (params?.departmentId) query.append("departmentId", params.departmentId);
-    if (params?.page !== undefined) query.append("page", params.page.toString());
-    if (params?.limit !== undefined) query.append("limit", params.limit.toString());
+    if (params?.page !== undefined)
+      query.append("page", params.page.toString());
+    if (params?.limit !== undefined)
+      query.append("limit", params.limit.toString());
 
     const url = `${API_BASE_URL}${query.toString() ? `?${query.toString()}` : ""}`;
     const res = await fetch(url, {
@@ -73,7 +72,6 @@ export const employeeService = {
     return data;
   },
 
-  // 2. Lấy chi tiết nhân viên
   async getById(id: string): Promise<Employee> {
     const res = await fetch(`${API_BASE_URL}/${id}`, {
       method: "GET",
@@ -86,7 +84,6 @@ export const employeeService = {
     return data;
   },
 
-  // 3. Tạo mới nhân viên
   async create(employeeData: Partial<Employee>): Promise<Employee> {
     const res = await fetch(API_BASE_URL, {
       method: "POST",
@@ -100,7 +97,6 @@ export const employeeService = {
     return data;
   },
 
-  // 4. Cập nhật nhân viên
   async update(id: string, employeeData: Partial<Employee>): Promise<Employee> {
     const res = await fetch(`${API_BASE_URL}/${id}`, {
       method: "PATCH",
@@ -114,7 +110,6 @@ export const employeeService = {
     return data;
   },
 
-  // 5. Điều chuyển phòng ban
   async transfer(id: string, newDepartmentId: string): Promise<any> {
     const res = await fetch(`${API_BASE_URL}/${id}/transfer`, {
       method: "PATCH",
@@ -128,7 +123,6 @@ export const employeeService = {
     return data;
   },
 
-  // 6. Xóa mềm nhân viên
   async delete(id: string): Promise<any> {
     const res = await fetch(`${API_BASE_URL}/${id}`, {
       method: "DELETE",
@@ -141,7 +135,6 @@ export const employeeService = {
     return data;
   },
 
-  // 7. Khôi phục / Kích hoạt lại nhân viên
   async restore(id: string): Promise<any> {
     const res = await fetch(`${API_BASE_URL}/${id}/restore`, {
       method: "PATCH",
@@ -154,4 +147,3 @@ export const employeeService = {
     return data;
   },
 };
-

@@ -1,5 +1,3 @@
-// frontend/src/context/ThemeContext.tsx
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 type Theme = "light" | "dark";
@@ -46,7 +44,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <ThemeContext.Provider value={{ theme, isDark, toggleTheme, setTheme }}>
-      {/* Tự động áp dụng bảng màu chữ sáng khi bật chế độ tối (isDark = true) */}
       {isDark && (
         <style>{`
           /* 1. Đổi toàn bộ tiêu đề và chữ đậm sang màu trắng sáng (#f8fafc) */

@@ -1,12 +1,9 @@
 const Shift = require("../models/Shift");
-
-// Hàm phụ trợ để quy đổi chuỗi "HH:mm" ra tổng số phút từ đầu ngày
 const timeToMinutes = (timeStr) => {
   const [hours, minutes] = timeStr.split(":").map(Number);
   return hours * 60 + minutes;
 };
 
-// 1. Lấy danh sách tất cả ca làm việc
 const getShifts = async (req, res) => {
   try {
     const shifts = await Shift.find().sort({ createdAt: -1 });
@@ -16,7 +13,6 @@ const getShifts = async (req, res) => {
   }
 };
 
-// 2. Lấy chi tiết 1 ca làm việc theo ID
 const getShiftById = async (req, res) => {
   try {
     const shift = await Shift.findById(req.params.id);
@@ -29,12 +25,10 @@ const getShiftById = async (req, res) => {
   }
 };
 
-// 3. Tạo mới ca làm việc (Đã thêm validate nghiệp vụ thời gian)
 const createShift = async (req, res) => {
   try {
     const { name, startTime, endTime, breakMinutes } = req.body;
 
-    // Kiểm tra trùng tên ca làm
     const existingShift = await Shift.findOne({ name });
     if (existingShift) {
       return res
@@ -59,7 +53,6 @@ const createShift = async (req, res) => {
           "Thời gian nghỉ không được âm và phải nhỏ hơn tổng thời lượng ca!",
       });
     }
-    // -----------------------------------------------------
 
     const newShift = new Shift({
       name,
@@ -75,12 +68,10 @@ const createShift = async (req, res) => {
   }
 };
 
-// 4. Cập nhật thông tin ca làm việc (Cũng kiểm tra lại thời gian nếu có cập nhật giờ)
 const updateShift = async (req, res) => {
   try {
     const { startTime, endTime, breakMinutes } = req.body;
 
-    // Nếu có gửi thông tin thời gian lên thì kiểm tra logic
     if (startTime && endTime) {
       const startMins = timeToMinutes(startTime);
       const endMins = timeToMinutes(endTime);
@@ -121,7 +112,6 @@ const updateShift = async (req, res) => {
   }
 };
 
-// 5. Xóa ca làm việc
 const deleteShift = async (req, res) => {
   try {
     const shift = await Shift.findByIdAndDelete(req.params.id);

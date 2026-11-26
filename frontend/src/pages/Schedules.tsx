@@ -1,5 +1,5 @@
 import { useState, useEffect, type SyntheticEvent } from "react";
-import api from "../services/api"; // chỉnh đường dẫn cho đúng vị trí api.ts của bạn
+import api from "../services/api";
 import "./Schedules.css";
 import CustomSelect from "../components/layouts/CustomSelect";
 
@@ -37,8 +37,6 @@ interface ShiftOption {
   endTime: string;
 }
 
-// API có thể trả mảng trơn, { data: [...] }, { employees: [...] },
-// hoặc lồng thêm một tầng như { data: { items: [...] } } -> tìm mảng đầu tiên
 const toArray = <T,>(json: unknown, depth = 0): T[] => {
   if (Array.isArray(json)) return json as T[];
   if (json && typeof json === "object" && depth < 3) {
@@ -53,7 +51,6 @@ const toArray = <T,>(json: unknown, depth = 0): T[] => {
 const pad = (n: number) => String(n).padStart(2, "0");
 const fmtDate = (d: Date) =>
   `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-// Thứ 2 của tuần chứa ngày d, cộng thêm weekOffset tuần
 const mondayOf = (d: Date, weekOffset = 0) => {
   const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   x.setDate(x.getDate() - ((x.getDay() + 6) % 7) + weekOffset * 7);
@@ -86,18 +83,15 @@ const addDays = (s: string, n: number) => {
   d.setDate(d.getDate() + n);
   return fmtDate(d);
 };
-// Hiển thị ngày theo kiểu Việt Nam: dd/mm/yyyy
 const viDate = (s: string) => {
   const d = parseDate(s);
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 };
-// Mở lịch chọn ngày ngay khi bấm vào ô (không cần bấm đúng biểu tượng lịch)
+
 const openDatePicker = (e: { currentTarget: HTMLInputElement }) => {
   try {
     e.currentTarget.showPicker?.();
-  } catch {
-    /* trình duyệt không hỗ trợ thì dùng cách mặc định */
-  }
+  } catch {}
 };
 const longDateLabel = (s: string) => {
   const d = parseDate(s);
@@ -106,9 +100,6 @@ const longDateLabel = (s: string) => {
   )}/${d.getFullYear()}`;
 };
 
-// Lấy vai trò của người đang đăng nhập.
-// Dò trong localStorage (đối tượng user có trường role), rồi tới payload của token.
-// Không xác định được thì trả về "employee" (chỉ xem) cho an toàn.
 const getCurrentRole = (): string => {
   const roleOf = (v: unknown): string | null => {
     const o = v as {
@@ -135,9 +126,7 @@ const getCurrentRole = (): string => {
       const role = roleOf(payload);
       if (role) return role;
     }
-  } catch {
-    /* bỏ qua, dùng giá trị mặc định bên dưới */
-  }
+  } catch {}
   console.warn("Không xác định được vai trò đăng nhập, mặc định chỉ xem.");
   return "employee";
 };
@@ -147,7 +136,6 @@ export default function Schedules() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal phân ca thủ công
   const [showModal, setShowModal] = useState(false);
   const [employees, setEmployees] = useState<EmployeeOption[]>([]);
   const [shifts, setShifts] = useState<ShiftOption[]>([]);
@@ -159,19 +147,16 @@ export default function Schedules() {
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Ngày đang xem
   const [selectedDate, setSelectedDate] = useState(fmtDate(new Date()));
 
-  // Modal tự động phân ca
   const [showAuto, setShowAuto] = useState(false);
   const [autoMode, setAutoMode] = useState<"this" | "next" | "custom">("this");
   const [autoDate, setAutoDate] = useState("");
   const [autoError, setAutoError] = useState<string | null>(null);
   const [autoLoading, setAutoLoading] = useState(false);
 
-  // Vai trò thật của người đang đăng nhập
   const currentUserRole = getCurrentRole();
-  // admin_hr và manager: phân ca. Chỉ admin_hr: xóa ca và công bố (publish)
+
   const canManage =
     currentUserRole === "admin_hr" || currentUserRole === "manager";
   const canPublish = currentUserRole === "admin_hr";
@@ -195,7 +180,6 @@ export default function Schedules() {
     fetchSchedules();
   }, []);
 
-  // Mở modal: tải danh sách nhân viên và ca (chỉ tải lần đầu)
   const openModal = async () => {
     setForm({ employeeId: "", shiftId: "", workDate: "" });
     setFormError(null);
@@ -228,10 +212,10 @@ export default function Schedules() {
     try {
       setSaving(true);
       setFormError(null);
-      // Lỗi 409 (trùng ca) được api.ts ném ra kèm message từ backend
+
       await api.post("/schedules", form);
       setShowModal(false);
-      await fetchSchedules(true); // tải lại để có dữ liệu populate đầy đủ
+      await fetchSchedules(true);
     } catch (err: unknown) {
       setFormError(
         err instanceof Error ? err.message : "Đã xảy ra lỗi không xác định.",
@@ -241,7 +225,6 @@ export default function Schedules() {
     }
   };
 
-  // ----- Tự động phân ca -----
   const getAutoMonday = (): Date | null => {
     if (autoMode === "this") return mondayOf(new Date());
     if (autoMode === "next") return mondayOf(new Date(), 1);
@@ -281,7 +264,6 @@ export default function Schedules() {
     }
   };
 
-  // Xóa lịch (chỉ lịch draft, backend cũng chặn lịch đã published)
   const handleDelete = async (item: Schedule) => {
     if (!canDelete || item.status !== "draft") return;
     const ok = window.confirm(
@@ -306,7 +288,7 @@ export default function Schedules() {
       return;
     }
     try {
-      await api.post(`/schedules/${id}/publish`); // khớp router.post("/:id/publish")
+      await api.post(`/schedules/${id}/publish`);
       setSchedules((prev) =>
         prev.map((item) =>
           item._id === id ? { ...item, status: "published" } : item,
@@ -325,7 +307,6 @@ export default function Schedules() {
   if (error) return <div className="schedule-error">Lỗi: {error}</div>;
 
   const renderActions = (item: Schedule) => {
-    // Không có quyền thao tác (không phải admin_hr): chỉ xem
     if (!canPublish && !canDelete) {
       return <span className="action-readonly">Chỉ xem</span>;
     }
@@ -358,7 +339,6 @@ export default function Schedules() {
     const dayItems = schedules.filter((s) => s.workDate === selectedDate);
     const published = dayItems.filter((s) => s.status === "published").length;
 
-    // Gom theo ca, sắp xếp theo giờ bắt đầu
     const map = new Map<
       string,
       { shift: Schedule["shiftId"]; items: Schedule[] }
@@ -383,7 +363,6 @@ export default function Schedules() {
         ),
       }));
 
-    // Thanh tuần: số ca của từng ngày trong tuần đang xem
     const countByDate: Record<string, number> = {};
     for (const s of schedules)
       countByDate[s.workDate] = (countByDate[s.workDate] || 0) + 1;
@@ -433,7 +412,7 @@ export default function Schedules() {
               <line x1="8" y1="2" x2="8" y2="6" />
               <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
-            {/* Ô ngày gốc nằm đè lên và ẩn đi, chỉ dùng để mở lịch chọn */}
+
             <input
               type="date"
               className="date-pick-input"

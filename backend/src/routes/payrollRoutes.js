@@ -7,7 +7,6 @@ const payrollController = require("../controllers/payrollController");
 
 router.use(protect);
 
-// Yêu cầu sửa lương
 router.post("/requests", payrollController.createRequest);
 router.get("/requests", payrollController.getRequests);
 router.put(
@@ -16,7 +15,6 @@ router.put(
   payrollController.handleRequest,
 );
 
-// Chốt lương và sửa lương (chỉ Kế toán / Giám đốc)
 router.post(
   "/finalize",
   requirePayrollManager,
@@ -24,7 +22,6 @@ router.post(
 );
 router.put("/edit", requirePayrollManager, payrollController.updatePayroll);
 
-// Xem bảng lương
 router.get("/", payrollController.getPayrolls);
 
 module.exports = router;

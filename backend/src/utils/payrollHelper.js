@@ -10,16 +10,10 @@ const BASE_SALARY = {
   employee: 10_000_000,
   manager: 15_000_000,
   director: 20_000_000,
-  accountant: 10_000_000, // chưa có yêu cầu riêng, tạm để bằng nhân viên
+  accountant: 10_000_000,
 };
 const HOUR_RATE = 40_000;
 const ALLOWANCE = 1_000_000;
-
-// Nghỉ phép: mỗi ngày bị trừ 100.000 đ trong 2 trường hợp:
-//  1. Nghỉ KHÔNG LƯƠNG (leaveType.isPaid = false).
-//  2. Nghỉ CÓ LƯƠNG nhưng vượt hạn mức PAID_QUOTA_DAYS (12 ngày/năm):
-//     các ngày vượt quá 12 ngày trong năm sẽ tự động bị trừ lương.
-// Nghỉ có lương trong hạn mức 12 ngày/năm thì không bị trừ.
 const LEAVE_PENALTY_PER_DAY = 100_000;
 const calcLeaveDeduction = (deductibleDays) =>
   Math.max(0, deductibleDays) * LEAVE_PENALTY_PER_DAY;
@@ -28,11 +22,6 @@ const norm = (s) => (s || "").toString().toLowerCase();
 const round2 = (n) => Math.round(n * 100) / 100;
 const round1 = (n) => Math.round(n * 10) / 10;
 
-// Xác định vai trò tính lương của một nhân viên
-//  - Giám đốc    : role admin_hr, hoặc position chứa "giám đốc", hoặc email nam.duong
-//  - Kế toán     : role accountant, hoặc position chứa "kế toán"
-//  - Trưởng phòng: role manager, hoặc position chứa "trưởng phòng" / "leader"
-//  - Còn lại là nhân viên
 function getPayrollRole(emp) {
   const pos = norm(emp?.position);
   const role = norm(emp?.role);
@@ -62,11 +51,9 @@ function getPayrollRole(emp) {
   return "employee";
 }
 
-// Kế toán và giám đốc có quyền như nhau: xem lương mọi người, sửa lương, chốt lương
 const canManagePayroll = (emp) =>
   ["director", "accountant"].includes(getPayrollRole(emp));
 
-// Đọc lại người đang đăng nhập từ DATABASE (role, position, email luôn mới nhất)
 async function loadActor(req) {
   if (req._payrollActor) return req._payrollActor;
   const id = req.user?._id || req.user?.id;
@@ -86,27 +73,23 @@ const currentMonth = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
 
-// Ngày cuối cùng của tháng "YYYY-MM" -> "YYYY-MM-DD"
 function lastDayOfMonth(month) {
   const [y, m] = month.split("-").map(Number);
   return `${month}-${String(new Date(y, m, 0).getDate()).padStart(2, "0")}`;
 }
 
-// Tháng đã kết thúc chưa? (chỉ khi qua hết ngày cuối tháng mới được chốt lương)
 function isMonthEnded(month) {
   const d = new Date();
   const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   return today > lastDayOfMonth(month);
 }
 
-// Tháng này có dữ liệu chấm công không? (của cả công ty, hoặc của 1 nhân viên)
 async function hasAttendance(month, employeeId) {
   const filter = { workDate: { $regex: `^${month}` } };
   if (employeeId) filter.employeeId = employeeId;
   return !!(await Attendance.exists(filter));
 }
 
-// Tổng phút + tổng công từ bảng chấm công, gộp theo nhân viên (1 truy vấn)
 async function loadStats(month, employeeId) {
   const match = {
     workDate: { $regex: `^${month}` },
@@ -122,14 +105,13 @@ async function loadStats(month, employeeId) {
         _id: "$employeeId",
         minutes: { $sum: "$minutesWorked" },
         credit: { $sum: "$workCredit" },
-        dates: { $addToSet: "$workDate" }, // các ngày thực sự đi làm
+        dates: { $addToSet: "$workDate" },
       },
     },
   ]);
   return new Map(stats.map((s) => [String(s._id), s]));
 }
 
-// Liệt kê các ngày làm việc (T2-T6) trong khoảng start..end
 function weekdaysInRange(start, end) {
   const out = [];
   const d = new Date(`${start}T00:00:00Z`);
@@ -142,12 +124,6 @@ function weekdaysInRange(start, end) {
   return out;
 }
 
-// Thông tin nghỉ phép ĐÃ DUYỆT của từng nhân viên, gộp theo nhân viên:
-//   Map<employeeId, { unpaid: Set<ngày>, paid: Set<ngày>, paidBefore: Set<ngày> }>
-//  - unpaid     : ngày nghỉ KHÔNG LƯƠNG trong tháng
-//  - paid       : ngày nghỉ CÓ LƯƠNG trong tháng
-//  - paidBefore : ngày nghỉ CÓ LƯƠNG từ đầu năm đến hết tháng trước (để tính hạn mức 12 ngày/năm)
-// Ưu tiên scheduledDates (lịch đã công bố), nếu rỗng thì lấy theo khoảng startDate..endDate.
 async function loadLeaveDates(month, employeeId) {
   const start = `${month}-01`;
   const yearStart = `${month.slice(0, 4)}-01-01`;
@@ -157,7 +133,6 @@ async function loadLeaveDates(month, employeeId) {
     .toISOString()
     .slice(0, 10);
 
-  // Lấy các đơn từ đầu năm đến hết tháng này
   const filter = {
     status: "approved",
     startDate: { $lte: last },
@@ -169,7 +144,6 @@ async function loadLeaveDates(month, employeeId) {
     .select("employeeId leaveTypeId scheduledDates startDate endDate")
     .lean();
 
-  // Tra loại nghỉ: có lương hay không lương
   const types = await LeaveType.find({
     _id: { $in: requests.map((r) => r.leaveTypeId) },
   })
@@ -180,7 +154,7 @@ async function loadLeaveDates(month, employeeId) {
   const map = new Map();
   for (const r of requests) {
     const isPaid = isPaidMap.get(String(r.leaveTypeId));
-    // Không rõ loại nghỉ thì bỏ qua (không trừ)
+
     if (isPaid === undefined) continue;
 
     const dates = r.scheduledDates?.length
@@ -206,9 +180,6 @@ async function loadLeaveDates(month, employeeId) {
   return map;
 }
 
-// Số ngày nghỉ bị trừ tiền trong tháng =
-//   (ngày nghỉ KHÔNG LƯƠNG mà nhân viên không đi làm thực tế)
-// + (ngày nghỉ CÓ LƯƠNG vượt hạn mức 12 ngày/năm trong tháng này)
 function countLeave(leaveInfo, workedDates) {
   if (!leaveInfo) return 0;
   const worked = new Set(workedDates || []);
@@ -219,7 +190,6 @@ function countLeave(leaveInfo, workedDates) {
   let paidThisMonth = 0;
   for (const d of leaveInfo.paid) if (!worked.has(d)) paidThisMonth++;
 
-  // Ngày nghỉ có lương vượt quá 12 ngày/năm (tính dồn từ đầu năm)
   const before = leaveInfo.paidBefore.size;
   const overQuota =
     Math.max(0, before + paidThisMonth - PAID_QUOTA_DAYS) -
@@ -228,8 +198,6 @@ function countLeave(leaveInfo, workedDates) {
   return unpaid + overQuota;
 }
 
-// TỔNG số ngày nghỉ trong tháng (nghỉ có lương + không lương, đã duyệt)
-// Ngày nhân viên vẫn đi làm thực tế thì không tính là nghỉ.
 function countTotalLeave(leaveInfo, workedDates) {
   if (!leaveInfo) return 0;
   const worked = new Set(workedDates || []);
@@ -239,7 +207,6 @@ function countTotalLeave(leaveInfo, workedDates) {
   return n;
 }
 
-// Tính số ngày nghỉ bị trừ + tiền trừ + tổng ngày nghỉ của 1 nhân viên trong 1 tháng
 async function computeLeave(month, employeeId) {
   const [leaveMap, statMap] = await Promise.all([
     loadLeaveDates(month, employeeId),
@@ -255,9 +222,6 @@ async function computeLeave(month, employeeId) {
   };
 }
 
-// Dựng 1 dòng bảng lương (chưa ghi database)
-//  - Đã chốt (và tháng đã kết thúc): dùng đúng số liệu đã lưu trong database
-//  - Chưa chốt / tháng chưa hết: lấy số giờ mới nhất từ chấm công, giữ các giá trị đã sửa tay (nếu có)
 function buildRow(emp, stored, stat, month, leaveInfo) {
   const empInfo = {
     _id: emp._id,
@@ -268,13 +232,9 @@ function buildRow(emp, stored, stat, month, leaveInfo) {
     createdAt: emp.createdAt,
   };
 
-  // Chỉ phiếu của tháng ĐÃ KẾT THÚC mới được coi là đã chốt.
-  // Tháng chưa hết thì luôn tính tự động theo chấm công / nghỉ phép mới nhất.
   if (stored && stored.status === "finalized" && isMonthEnded(month)) {
     return {
       ...stored,
-      // Phiếu chốt từ trước khi có cột nghỉ phép: hiển thị số ngày nghỉ thực tế,
-      // còn tiền trừ giữ nguyên số đã chốt (chốt lại phiếu để áp dụng quy tắc mới)
       leaveDays: stored.leaveDays ?? countLeave(leaveInfo, stat?.dates),
       leaveDeduction: stored.leaveDeduction ?? 0,
       totalLeaveDays:
@@ -316,20 +276,20 @@ function buildRow(emp, stored, stat, month, leaveInfo) {
   };
 }
 
-// Tải bảng lương của cả công ty (hoặc 1 người). KHÔNG ghi database.
-// Tháng không có dữ liệu chấm công thì trả về danh sách rỗng (không tính lương).
 async function loadPayrollRows(month, onlyEmployeeId) {
-  const [hasData, employees, storedList, statMap, leaveMap] = await Promise.all([
-    hasAttendance(month, onlyEmployeeId),
-    Employee.find(onlyEmployeeId ? { _id: onlyEmployeeId } : {})
-      .select("fullName employeeCode position email role createdAt")
-      .lean(),
-    Payroll.find(
-      onlyEmployeeId ? { month, employeeId: onlyEmployeeId } : { month },
-    ).lean(),
-    loadStats(month, onlyEmployeeId),
-    loadLeaveDates(month, onlyEmployeeId),
-  ]);
+  const [hasData, employees, storedList, statMap, leaveMap] = await Promise.all(
+    [
+      hasAttendance(month, onlyEmployeeId),
+      Employee.find(onlyEmployeeId ? { _id: onlyEmployeeId } : {})
+        .select("fullName employeeCode position email role createdAt")
+        .lean(),
+      Payroll.find(
+        onlyEmployeeId ? { month, employeeId: onlyEmployeeId } : { month },
+      ).lean(),
+      loadStats(month, onlyEmployeeId),
+      loadLeaveDates(month, onlyEmployeeId),
+    ],
+  );
 
   if (!hasData) return [];
 
@@ -345,7 +305,7 @@ async function loadPayrollRows(month, onlyEmployeeId) {
         leaveMap.get(String(emp._id)),
       ),
     )
-    // Nhân viên cũ ở trên, nhân viên mới thêm vào luôn nằm ở cuối
+
     .sort((a, b) => {
       const ta = new Date(a.employeeId.createdAt || 0).getTime();
       const tb = new Date(b.employeeId.createdAt || 0).getTime();
@@ -358,8 +318,6 @@ async function loadPayrollRows(month, onlyEmployeeId) {
     });
 }
 
-// CHỐT LƯƠNG: ghi mọi bảng lương chưa chốt vào database với trạng thái finalized.
-// Bản ghi chưa có thì tạo mới, bản ghi đã có (ví dụ vừa sửa) thì cập nhật lại.
 async function finalizeMonth(month, userId) {
   const rows = await loadPayrollRows(month);
   const now = new Date();
@@ -396,7 +354,6 @@ async function finalizeMonth(month, userId) {
     await Payroll.bulkWrite(ops, { ordered: false });
   }
 
-  // Đọc lại từ database để xác nhận số liệu đã lưu
   const [summary] = await Payroll.aggregate([
     { $match: { month, status: "finalized" } },
     { $group: { _id: null, count: { $sum: 1 }, total: { $sum: "$total" } } },
@@ -410,8 +367,6 @@ async function finalizeMonth(month, userId) {
   };
 }
 
-// Tự cập nhật khi nhân viên vào ca / tan ca:
-// chỉ cập nhật bản ghi nháp đã có trong database, bản đã chốt thì giữ nguyên.
 async function recalcPayroll(employeeId, month) {
   const payroll = await Payroll.findOne({ employeeId, month });
   if (!payroll || payroll.status === "finalized") return payroll;
@@ -423,7 +378,7 @@ async function recalcPayroll(employeeId, month) {
   payroll.leaveDays = leave.leaveDays;
   payroll.leaveDeduction = leave.leaveDeduction;
   payroll.totalLeaveDays = leave.totalLeaveDays;
-  await payroll.save(); // hook pre("validate") tự tính lại tiền
+  await payroll.save();
   return payroll;
 }
 

@@ -1,8 +1,5 @@
 const jwt = require("jsonwebtoken");
 const Employee = require("../models/Employee");
-
-// allow("admin_hr", "manager") -> chỉ cho các vai trò liệt kê đi tiếp.
-// Quyền được kiểm tra lại từ database (không tin role ghi trong token).
 const allow =
   (...roles) =>
   async (req, res, next) => {
@@ -38,8 +35,6 @@ const allow =
     }
   };
 
-// Dùng riêng cho thao tác chỉ admin_hr: requireAdminHr
-// Dùng nhiều vai trò: requireAdminHr.allow("admin_hr", "manager")
 const requireAdminHr = allow("admin_hr");
 requireAdminHr.allow = allow;
 

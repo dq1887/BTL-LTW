@@ -1,5 +1,3 @@
-/* frontend/src/pages/Employees.css */
-
 .employees-container {
   display: flex;
   flex-direction: column;
@@ -27,7 +25,6 @@
   font-size: 14px;
 }
 
-/* Thẻ thống kê nhanh */
 .stats-strip {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -83,7 +80,6 @@
   color: #0f172a;
 }
 
-/* Thanh bộ lọc & tìm kiếm */
 .filter-bar {
   background: #ffffff;
   padding: 16px;
@@ -147,7 +143,6 @@
   border-color: #2563eb;
 }
 
-/* Bảng nhân sự */
 .employees-table-card {
   background: #ffffff;
   border-radius: 12px;
@@ -321,4 +316,3 @@ html.dark .btn-icon-action.restore:hover {
   background-color: rgba(16, 185, 129, 0.35) !important;
   color: #ffffff !important;
 }
-

@@ -1,7 +1,7 @@
 const BASE_URL = "http://localhost:5000/api";
 
 export interface PayrollRow {
-  _id: string | null; // null = chưa được lưu vào database
+  _id: string | null;
   employeeId: {
     _id: string;
     fullName: string;
@@ -16,9 +16,9 @@ export interface PayrollRow {
   allowance: number;
   adjustment: number;
   hourBonus: number;
-  leaveDays: number; // số ngày nghỉ bị trừ tiền trong tháng
-  leaveDeduction: number; // tiền trừ do nghỉ (100k/ngày)
-  totalLeaveDays: number; // tổng số ngày nghỉ trong tháng (có lương + không lương)
+  leaveDays: number;
+  leaveDeduction: number;
+  totalLeaveDays: number;
   total: number;
   note: string;
   status: "draft" | "finalized";
@@ -75,7 +75,7 @@ async function request<T>(
 export const getPayrolls = (month: string) =>
   request<{
     canManage: boolean;
-    monthEnded: boolean; // false = tháng chưa hết, chưa được chốt lương
+    monthEnded: boolean;
     currentUserId: string;
     data: PayrollRow[];
   }>("GET", "/payroll", { params: { month } });

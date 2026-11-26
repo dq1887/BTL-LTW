@@ -28,7 +28,6 @@ async function request(method: string, path: string, opts: Options = {}) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    // Giữ cùng dạng lỗi với axios để getErr() trong PayrollPage đọc được
     const err = new Error(data.message || "Đã có lỗi xảy ra!") as Error & {
       response?: { data: unknown };
     };
@@ -40,8 +39,7 @@ async function request(method: string, path: string, opts: Options = {}) {
 }
 
 const api = {
-  get: (path: string, opts?: { params?: Params }) =>
-    request("GET", path, opts),
+  get: (path: string, opts?: { params?: Params }) => request("GET", path, opts),
   post: (path: string, body?: unknown) => request("POST", path, { body }),
   put: (path: string, body?: unknown) => request("PUT", path, { body }),
   patch: (path: string, body?: unknown) => request("PATCH", path, { body }),

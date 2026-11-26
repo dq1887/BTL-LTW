@@ -17,9 +17,6 @@ interface AttendanceRecord {
   minutesWorked: number;
   standardMinutes?: number;
   overtimeMinutes?: number;
-  lateMinutes?: number;
-  earlyLeaveMinutes?: number;
-  hasPublishedSchedule?: boolean;
   workCredit: number;
   overtimeCredit: number;
   status: string;
@@ -255,8 +252,6 @@ export default function AttendancePage() {
               <th style={{ padding: "14px 16px" }}>Thời gian làm</th>
               <th style={{ padding: "14px 16px" }}>Thời gian chuẩn</th>
               <th style={{ padding: "14px 16px" }}>Tăng ca</th>
-              <th style={{ padding: "14px 16px" }}>Đi muộn</th>
-              <th style={{ padding: "14px 16px" }}>Về sớm</th>
               <th style={{ padding: "14px 16px" }}>Trạng thái</th>
             </tr>
           </thead>
@@ -265,9 +260,7 @@ export default function AttendancePage() {
               attendances.map((att) => {
                 const standardMins = att.standardMinutes ?? 0;
                 const overtimeMins = att.overtimeMinutes ?? 0;
-                const lateMins = att.lateMinutes ?? 0;
-                const earlyMins = att.earlyLeaveMinutes ?? 0;
-                const hasSchedule = Boolean(att.hasPublishedSchedule);
+                const isAbsent = att.status === "absent";
 
                 return (
                   <tr
@@ -366,51 +359,17 @@ export default function AttendancePage() {
                     </td>
 
                     <td style={{ padding: "14px 16px" }}>
-                      {hasSchedule && att.checkOutAt && lateMins > 0 ? (
-                        <span style={{ color: "#dc2626", fontWeight: "600" }}>
-                          {lateMins} phút
-                        </span>
-                      ) : (
-                        <span style={{ color: "#94a3b8" }}>---</span>
-                      )}
-                    </td>
-
-                    <td style={{ padding: "14px 16px" }}>
-                      {hasSchedule && att.checkOutAt && earlyMins > 0 ? (
-                        <span style={{ color: "#ea580c", fontWeight: "600" }}>
-                          {earlyMins} phút
-                        </span>
-                      ) : (
-                        <span style={{ color: "#94a3b8" }}>---</span>
-                      )}
-                    </td>
-
-                    <td style={{ padding: "14px 16px" }}>
                       <span
                         style={{
                           padding: "4px 10px",
                           borderRadius: "20px",
                           fontSize: "12px",
                           fontWeight: "600",
-                          backgroundColor:
-                            att.status === "present"
-                              ? "#dcfce7"
-                              : att.status === "late"
-                                ? "#fef3c7"
-                                : "#fee2e2",
-                          color:
-                            att.status === "present"
-                              ? "#15803d"
-                              : att.status === "late"
-                                ? "#b45309"
-                                : "#b91c1c",
+                          backgroundColor: isAbsent ? "#fee2e2" : "#dcfce7",
+                          color: isAbsent ? "#b91c1c" : "#15803d",
                         }}
                       >
-                        {att.status === "present"
-                          ? "Có mặt"
-                          : att.status === "late"
-                            ? "Đi muộn"
-                            : "Vắng mặt"}
+                        {isAbsent ? "Vắng mặt" : "Có mặt"}
                       </span>
                     </td>
                   </tr>
@@ -419,7 +378,7 @@ export default function AttendancePage() {
             ) : (
               <tr>
                 <td
-                  colSpan={isManagerOrAdmin ? 9 : 8}
+                  colSpan={isManagerOrAdmin ? 7 : 6}
                   style={{
                     textAlign: "center",
                     padding: "36px",

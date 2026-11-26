@@ -13,7 +13,7 @@ const attendanceSchema = new mongoose.Schema(
       default: null,
     },
     workDate: {
-      type: String, // "YYYY-MM-DD"
+      type: String,
       required: true,
     },
     checkInAt: {
@@ -30,23 +30,23 @@ const attendanceSchema = new mongoose.Schema(
     },
     standardMinutes: {
       type: Number,
-      default: 0, // Thời gian chuẩn (phút làm trong ca published)
+      default: 0,
     },
     overtimeMinutes: {
       type: Number,
-      default: 0, // Tăng ca (phút làm ngoài ca)
+      default: 0,
     },
     lateMinutes: {
       type: Number,
-      default: 0, // Đi muộn (phút)
+      default: 0,
     },
     earlyLeaveMinutes: {
       type: Number,
-      default: 0, // Về sớm (phút)
+      default: 0,
     },
     hasPublishedSchedule: {
       type: Boolean,
-      default: false, // Có lịch published trong ngày hay không
+      default: false,
     },
     workCredit: {
       type: Number,

@@ -1,5 +1,3 @@
-// frontend/src/services/shiftService.ts
-
 const API_BASE_URL = "http://localhost:5000/api/shifts";
 
 export interface Shift {
@@ -12,7 +10,6 @@ export interface Shift {
   updatedAt?: string;
 }
 
-// Hàm lấy header kèm JWT Token từ localStorage nếu có
 const getAuthHeaders = (): HeadersInit => {
   const token = localStorage.getItem("token") || "";
   const headers: Record<string, string> = {
@@ -25,7 +22,6 @@ const getAuthHeaders = (): HeadersInit => {
 };
 
 export const shiftService = {
-  // 1. Lấy danh sách tất cả ca làm việc
   async getAll(): Promise<Shift[]> {
     const res = await fetch(API_BASE_URL, {
       method: "GET",
@@ -38,7 +34,6 @@ export const shiftService = {
     return data;
   },
 
-  // 2. Lấy thông tin 1 ca làm việc theo ID
   async getById(id: string): Promise<Shift> {
     const res = await fetch(`${API_BASE_URL}/${id}`, {
       method: "GET",
@@ -51,8 +46,9 @@ export const shiftService = {
     return data;
   },
 
-  // 3. Thêm ca làm việc mới
-  async create(shiftData: Omit<Shift, "_id" | "createdAt" | "updatedAt">): Promise<Shift> {
+  async create(
+    shiftData: Omit<Shift, "_id" | "createdAt" | "updatedAt">,
+  ): Promise<Shift> {
     const res = await fetch(API_BASE_URL, {
       method: "POST",
       headers: getAuthHeaders(),
@@ -65,10 +61,9 @@ export const shiftService = {
     return data;
   },
 
-  // 4. Cập nhật ca làm việc
   async update(
     id: string,
-    shiftData: Partial<Omit<Shift, "_id" | "createdAt" | "updatedAt">>
+    shiftData: Partial<Omit<Shift, "_id" | "createdAt" | "updatedAt">>,
   ): Promise<Shift> {
     const res = await fetch(`${API_BASE_URL}/${id}`, {
       method: "PATCH",
@@ -82,7 +77,6 @@ export const shiftService = {
     return data;
   },
 
-  // 5. Xóa ca làm việc
   async delete(id: string): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/${id}`, {
       method: "DELETE",
@@ -94,4 +88,3 @@ export const shiftService = {
     }
   },
 };
-

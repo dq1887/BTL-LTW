@@ -2,8 +2,6 @@ const Schedule = require("../models/Schedule");
 const Employee = require("../models/Employee");
 const Shift = require("../models/Shift");
 const mongoose = require("mongoose");
-
-// 1. Lấy danh sách lịch phân ca
 const getSchedules = async (req, res) => {
   try {
     const schedules = await Schedule.find()
@@ -18,12 +16,10 @@ const getSchedules = async (req, res) => {
   }
 };
 
-// 2. Tạo mới / Phân ca làm việc
 const createSchedule = async (req, res) => {
   try {
     const { employeeId, shiftId, workDate } = req.body;
 
-    // Kiểm tra dữ liệu đầu vào
     if (
       !mongoose.isValidObjectId(employeeId) ||
       !mongoose.isValidObjectId(shiftId) ||
@@ -34,7 +30,6 @@ const createSchedule = async (req, res) => {
       });
     }
 
-    // Nhân viên và ca phải tồn tại trong database
     const [employee, shift] = await Promise.all([
       Employee.exists({ _id: employeeId }),
       Shift.exists({ _id: shiftId }),
@@ -45,7 +40,6 @@ const createSchedule = async (req, res) => {
         .json({ message: "Không tìm thấy nhân viên hoặc ca làm việc!" });
     }
 
-    // Tạo mới bản ghi phân ca (luôn ở trạng thái draft)
     const newSchedule = new Schedule({
       employeeId,
       shiftId,
@@ -56,7 +50,6 @@ const createSchedule = async (req, res) => {
     await newSchedule.save();
     res.status(201).json({ message: "Phân ca thành công!", data: newSchedule });
   } catch (error) {
-    // 🛡️ Quy tắc 2: Ràng buộc duy nhất (employeeId + workDate) -> Trả về lỗi 409 Conflict nếu trùng
     if (error.code === 11000) {
       return res.status(409).json({
         message:
@@ -70,7 +63,6 @@ const createSchedule = async (req, res) => {
   }
 };
 
-// 3. Cập nhật lịch phân ca
 const updateSchedule = async (req, res) => {
   try {
     const { id } = req.params;
@@ -80,7 +72,6 @@ const updateSchedule = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy lịch phân ca" });
     }
 
-    // 🛡️ Quy tắc 4: Khóa lịch - Nếu đã published, chặn sửa tùy tiện
     if (schedule.status === "published") {
       return res.status(403).json({
         message: "Lịch đã được công bố (published), không cho phép chỉnh sửa!",
@@ -100,7 +91,6 @@ const updateSchedule = async (req, res) => {
   }
 };
 
-// 4. Xóa lịch phân ca
 const deleteSchedule = async (req, res) => {
   try {
     const { id } = req.params;
@@ -110,7 +100,6 @@ const deleteSchedule = async (req, res) => {
       return res.status(404).json({ message: "Không tìm thấy lịch phân ca" });
     }
 
-    // 🛡️ Quy tắc 4: Khóa lịch - Nếu đã published, chặn xóa
     if (schedule.status === "published") {
       return res.status(403).json({
         message: "Lịch đã được công bố (published), không cho phép xóa!",
@@ -126,7 +115,6 @@ const deleteSchedule = async (req, res) => {
   }
 };
 
-// 5. Công bố lịch (Publish) để bàn giao sang module chấm công của TV3
 const publishSchedule = async (req, res) => {
   try {
     const { id } = req.params;
@@ -151,14 +139,12 @@ const publishSchedule = async (req, res) => {
   }
 };
 
-// 6. Tự động phân ca cho cả tuần (thứ 2 -> thứ 6), tạo ở trạng thái draft
 const SHIFT_NAMES = {
   office: "Ca hành chính",
   morning: "Ca sáng",
   afternoon: "Ca chiều",
 };
-const OFFICE_ROLES = ["manager", "admin_hr"]; // làm ca hành chính
-
+const OFFICE_ROLES = ["manager", "admin_hr"];
 const pad2 = (n) => String(n).padStart(2, "0");
 const toDateStr = (d) =>
   `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`;
@@ -177,7 +163,7 @@ const autoGenerateSchedules = async (req, res) => {
         .status(400)
         .json({ message: "Ngày bắt đầu tuần không hợp lệ!" });
     }
-    // Lùi về thứ 2 của tuần chứa ngày được gửi lên
+
     base.setUTCDate(base.getUTCDate() - ((base.getUTCDay() + 6) % 7));
     const days = Array.from({ length: 5 }, (_, i) => {
       const d = new Date(base);
@@ -185,7 +171,6 @@ const autoGenerateSchedules = async (req, res) => {
       return toDateStr(d);
     });
 
-    // Lấy 3 ca theo tên
     const shifts = await Shift.find({
       name: { $in: Object.values(SHIFT_NAMES) },
     })
@@ -195,24 +180,20 @@ const autoGenerateSchedules = async (req, res) => {
     for (const [key, name] of Object.entries(SHIFT_NAMES)) {
       const found = shifts.find((s) => s.name === name);
       if (!found) {
-        return res
-          .status(400)
-          .json({
-            message: `Chưa có ca "${name}" trong danh mục ca làm việc!`,
-          });
+        return res.status(400).json({
+          message: `Chưa có ca "${name}" trong danh mục ca làm việc!`,
+        });
       }
       shiftId[key] = found._id;
     }
 
-    // Nhân sự đang làm việc (chưa có trường status thì vẫn tính)
     const employees = await Employee.find({
       $or: [{ status: "active" }, { status: { $exists: false } }],
     })
       .select("_id employeeCode role departmentId")
       .lean();
 
-    // Manager/admin_hr -> hành chính; còn lại chia đều sáng/chiều theo phòng ban
-    const assign = new Map(); // employeeId -> shiftId
+    const assign = new Map();
     const byDept = {};
     for (const e of employees) {
       if (OFFICE_ROLES.includes(e.role)) {
@@ -237,7 +218,6 @@ const autoGenerateSchedules = async (req, res) => {
       );
     }
 
-    // Bỏ qua người đã có lịch trong ngày đó (tránh trùng khóa employeeId + workDate)
     const existing = await Schedule.find({ workDate: { $in: days } })
       .select("employeeId workDate")
       .lean();
@@ -263,7 +243,6 @@ const autoGenerateSchedules = async (req, res) => {
         const inserted = await Schedule.insertMany(docs, { ordered: false });
         created = inserted.length;
       } catch (err) {
-        // Nếu có bản ghi trùng do thao tác song song, vẫn tính số đã tạo được
         if (err.code === 11000 || err.writeErrors) {
           created = err.insertedDocs ? err.insertedDocs.length : 0;
         } else {

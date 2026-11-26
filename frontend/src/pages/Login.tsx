@@ -1,5 +1,3 @@
-// frontend/src/pages/Login.tsx
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../services/authService";
@@ -43,7 +41,6 @@ export const Login: React.FC = () => {
   return (
     <div className="login-page">
       <div className="login-card">
-        {/* Header */}
         <div className="login-header">
           <div className="login-logo">
             <svg

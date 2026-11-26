@@ -15,9 +15,7 @@ const leaveRequestSchema = new mongoose.Schema(
     },
     startDate: { type: String, required: true },
     endDate: { type: String, required: true },
-    // Các ngày đã công bố; rỗng nếu chưa có lịch chính thức.
     scheduledDates: { type: [String], required: true, default: [] },
-    // null = đơn hợp lệ nhưng chưa thể tính ngày công do thiếu lịch công bố.
     totalDays: { type: Number, default: null, min: 1 },
     reason: { type: String, required: true, trim: true, maxlength: 1000 },
     status: {
@@ -37,7 +35,16 @@ const leaveRequestSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-leaveRequestSchema.index({ employeeId:  1, createdAt: -1 });
-leaveRequestSchema.index({ employeeId: 1, status: 1, startDate: 1, endDate: 1 });
+leaveRequestSchema.index({ employeeId: 1, createdAt: -1 });
+leaveRequestSchema.index({
+  employeeId: 1,
+  status: 1,
+  startDate: 1,
+  endDate: 1,
+});
 
-module.exports = mongoose.model("LeaveRequest", leaveRequestSchema, "leaverequests");
+module.exports = mongoose.model(
+  "LeaveRequest",
+  leaveRequestSchema,
+  "leaverequests",
+);

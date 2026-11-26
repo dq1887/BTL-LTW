@@ -433,7 +433,6 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Khối 2: Thông tin liên hệ */}
         <div
           style={{
             backgroundColor: "#ffffff",
