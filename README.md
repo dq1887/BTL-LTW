@@ -46,12 +46,13 @@ Hệ thống tích hợp chặt chẽ 7 phân hệ cốt lõi với luồng dữ
 
 4. **Quản lý Ca & Lịch phân ca (Shifts & Schedules):**
    - Thiết lập danh mục ca làm việc: Ca sáng, ca chiều, ca hành chính (tên ca, giờ bắt đầu, giờ kết thúc).
-   - Bảng phân ca làm việc chi tiết theo từng ngày/tuần cho từng nhân viên (`WorkSchedule`).
-   - Điều hướng lịch trực quan theo tuần (Thứ Hai đến Chủ Nhật) và công cụ phân ca nhanh.
+   - Bảng phân ca làm việc chi tiết theo từng ngày/tuần cho từng nhân viên (`Schedule` / `WorkSchedule`).
+   - Hỗ trợ tự động sinh lịch phân ca hàng loạt (`auto-generate`) và công bố lịch (`publish`) theo tuần.
 
 5. **Quản lý Chấm công & Điểm danh (Attendance):**
    - Nhân viên điểm danh Check-in / Check-out theo thời gian thực.
-   - Tự động đối chiếu ca làm việc, tính toán giờ làm thực tế, phát hiện đi muộn / về sớm.
+   - Hỗ trợ ca làm việc xuyên ngày / checkout ngày hôm sau: hiển thị chính xác ngày checkout thực tế (gắn nhãn `(Hôm sau)`) và tính công vào ngày bắt đầu ca.
+   - Tự động đối chiếu ca làm việc để tính **Công chuẩn (`workCredit`)** và quy đổi toàn bộ thời gian làm ngoài ca thành **Công phụ / Làm thêm (`overtimeCredit`)**.
    - Thống kê tổng quan tỷ lệ đi làm theo ngày/tháng ngay trên trang Dashboard.
 
 6. **Quản lý Nghỉ phép (Leave Requests):**
@@ -97,7 +98,7 @@ BTL-LTW/
 │   ├── src/
 │   │   ├── controllers/         # Bộ điều khiển xử lý nghiệp vụ (Auth, Employee, Dept, Schedule, Shift, Leave, Attendance, Payroll)
 │   │   ├── middleware/          # Middleware xác thực JWT & phân quyền vai trò (authMiddleware)
-│   │   ├── models/              # Schema Mongoose (User, Employee, Department, Shift, Schedule, LeaveRequest, Attendance, Payroll)
+│   │   ├── models/              # Schema Mongoose (Attendance, Department, Employee, LeaveRequest, LeaveType, Payroll, SalaryRequest, Schedule, Shift, WorkSchedule)
 │   │   ├── routes/              # Khai báo Endpoint RESTful API
 │   │   └── utils/               # Các hàm tiện ích hỗ trợ tính toán, format
 │   ├── scripts/                 # Scripts tiện ích kiểm tra & cập nhật dữ liệu
@@ -112,8 +113,8 @@ BTL-LTW/
 │   │   ├── components/
 │   │   │   └── layouts/         # Layout chung, Header, Sidebar, UserDropdown, LogoutModal, CustomSelect, Icons
 │   │   ├── context/             # ThemeContext (Quản lý Dark / Light mode toàn ứng dụng)
-│   │   ├── pages/               # Các trang giao diện (Dashboard, Employees, Departments, Shifts, Schedules, Attendance, LeaveRequests, Payroll, Login, Profile)
-│   │   ├── services/            # Tầng gọi API qua Fetch/Axios (authService, employeeService, departmentService, shiftService, leaveService...)
+│   │   ├── pages/               # Các trang giao diện (Dashboard, Employees, Departments, Shifts, Schedules, Attendance, LeaveRequests, Payroll, Login, Profile, AccountSettings)
+│   │   ├── services/            # Tầng gọi API (api, authService, departmentService, employeeService, leaveService, payrollApi, shiftService)
 │   │   ├── App.tsx              # Cấu hình Routing & ProtectedRoute
 │   │   └── main.tsx             # Entry point React
 │   ├── index.html               # Trang HTML gốc
@@ -209,22 +210,29 @@ Tất cả các endpoint (ngoại trừ login) đều yêu cầu đính kèm Hea
 - `GET /api/employees`: Lấy danh sách nhân viên (hỗ trợ query tìm kiếm, lọc phòng ban, trạng thái).
 - `POST /api/employees`: Thêm mới hồ sơ nhân sự (yêu cầu quyền Admin HR).
 - `GET /api/employees/:id`: Xem thông tin chi tiết một nhân viên.
-- `PUT /api/employees/:id`: Chỉnh sửa thông tin nhân viên.
+- `PATCH /api/employees/:id`: Chỉnh sửa thông tin nhân viên.
 - `DELETE /api/employees/:id`: Xóa mềm nhân viên (chuyển trạng thái `inactive`).
 - `PATCH /api/employees/:id/restore`: Khôi phục tài khoản nhân viên đã nghỉ việc sang `active`.
 - `PATCH /api/employees/:id/transfer`: Điều chuyển phòng ban cho nhân sự.
 
 ### **3. Phòng ban (Departments)**
 - `GET /api/departments`: Lấy danh sách phòng ban kèm số lượng nhân viên hoạt động.
+- `GET /api/departments/:id`: Xem thông tin chi tiết phòng ban.
+- `GET /api/departments/:id/employees`: Lấy danh sách nhân viên thuộc phòng ban.
 - `POST /api/departments`: Thêm mới phòng ban.
-- `PUT /api/departments/:id`: Cập nhật tên/thông tin phòng ban.
+- `PATCH /api/departments/:id`: Cập nhật tên/thông tin phòng ban.
 - `DELETE /api/departments/:id`: Xóa phòng ban (ràng buộc kiểm tra không còn nhân sự).
 
 ### **4. Ca làm việc & Lịch phân ca (Shifts & Schedules)**
 - `GET /api/shifts`: Lấy danh mục các ca làm việc.
 - `POST /api/shifts`: Thêm mới ca làm việc.
+- `PATCH /api/shifts/:id`: Cập nhật ca làm việc.
+- `DELETE /api/shifts/:id`: Xóa ca làm việc.
 - `GET /api/schedules`: Lấy lịch phân ca (lọc theo khoảng ngày, phòng ban, nhân viên).
 - `POST /api/schedules`: Tạo phân ca làm việc mới.
+- `POST /api/schedules/auto-generate`: Tự động tạo lịch phân ca hàng loạt.
+- `PATCH /api/schedules/:id`: Cập nhật lịch phân ca.
+- `POST /api/schedules/:id/publish`: Công bố lịch phân ca.
 - `DELETE /api/schedules/:id`: Xóa phân ca làm việc.
 
 ### **5. Chấm công (Attendance)**
@@ -235,9 +243,14 @@ Tất cả các endpoint (ngoại trừ login) đều yêu cầu đính kèm Hea
 
 ### **6. Nghỉ phép (Leave Requests)**
 - `GET /api/leave/types`: Lấy danh mục loại nghỉ phép.
+- `POST /api/leave/types`: Tạo loại nghỉ phép mới (Admin HR).
+- `PATCH /api/leave/types/:id`: Cập nhật loại nghỉ phép (Admin HR).
 - `GET /api/leave/schedule-days`: Xem trước số ngày làm việc thực tế trong khoảng xin nghỉ.
+- `GET /api/leave/paid-balance`: Xem số ngày nghỉ phép có lương còn lại của nhân viên.
+- `GET /api/leave/balance-employees`: Xem thống kê phép năm của nhân viên (Admin HR / Manager).
 - `GET /api/leave/requests`: Lấy danh sách đơn nghỉ theo phạm vi quyền (Admin / Manager / Employee).
 - `POST /api/leave/requests`: Nhân viên tạo đơn xin nghỉ phép.
+- `PATCH /api/leave/requests/:id`: Chỉnh sửa đơn nghỉ phép khi còn `pending`.
 - `DELETE /api/leave/requests/:id`: Xóa đơn nghỉ phép (chỉ khi đang ở trạng thái `pending`).
 - `POST /api/leave/requests/:id/approve`: Quản lý / Admin duyệt đơn nghỉ phép.
 - `POST /api/leave/requests/:id/reject`: Quản lý / Admin từ chối đơn nghỉ phép.
